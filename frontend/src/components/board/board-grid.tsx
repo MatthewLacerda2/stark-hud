@@ -1,12 +1,29 @@
+import { useCallback, useMemo } from "react";
+import GridLayout, {
+  noCompactor,
+  type Layout,
+  type LayoutItem,
+} from "react-grid-layout";
 import type { Item } from "@/lib/schemas/board";
+import { updateItem } from "@/lib/api/board";
 import { ItemView } from "@/components/board/item-view";
+import { useContainerSize } from "@/hooks/use-container-size";
+
+const MARGIN = 8;
+const PADDING = 8;
+// Sides resize one axis, corners resize both.
+const HANDLES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
 
 /**
- * The board, as a fixed CSS grid.
+ * The board, as a fixed grid that can be rearranged with a mouse.
  *
- * The server owns placement — it already refused anything that did not fit — so
- * this only translates cells into `grid-column` / `grid-row`. Keeping one source
- * of truth for layout is why there is no drag-and-drop grid library here.
+ * The server still owns placement: a drag or resize is a request, sent as a
+ * PATCH, and the authoritative position comes back over the socket like any
+ * other change. If the server refuses — the slot is taken, or it would fall off
+ * the grid — nothing arrives, `items` never changes, and the tile snaps back.
+ *
+ * Compaction is off. The server places things deliberately, and a grid that
+ * pulls everything upwards would fight it.
  */
 export function BoardGrid({
   items,
@@ -17,28 +34,78 @@ export function BoardGrid({
   cols: number;
   rows: number;
 }) {
+  const { ref, width, height } = useContainerSize();
+
+  const rowHeight = useMemo(() => {
+    const usable = height - PADDING * 2 - MARGIN * (rows - 1);
+    return Math.max(1, usable / rows);
+  }, [height, rows]);
+
+  const layout: Layout = useMemo(
+    () =>
+      items.map((item) => ({
+        i: item.id,
+        x: item.x,
+        y: item.y,
+        w: item.w,
+        h: item.h,
+        maxW: cols,
+        maxH: rows,
+      })),
+    [items, cols, rows],
+  );
+
+  const persist = useCallback(
+    (_layout: Layout, _old: LayoutItem | null, next: LayoutItem | null) => {
+      if (!next) return;
+      const before = items.find((i) => i.id === next.i);
+      if (!before) return;
+      if (
+        before.x === next.x &&
+        before.y === next.y &&
+        before.w === next.w &&
+        before.h === next.h
+      ) {
+        return;
+      }
+      // Fire and forget: the socket delivers the result, and a rejection simply
+      // leaves `items` as it was, which snaps the tile home.
+      void updateItem(next.i, {
+        x: next.x,
+        y: next.y,
+        w: next.w,
+        h: next.h,
+      }).catch(() => {});
+    },
+    [items],
+  );
+
   return (
-    <div
-      className="grid size-full gap-3 p-3"
-      style={{
-        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-        gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
-      }}
-    >
-      {items.map((item) => (
-        <div
-          key={item.id}
-          // @container: item text sizes in `cqi` units, so a note in a 2x1
-          // cell and the same note in a 6x4 cell both read correctly.
-          className="@container min-h-0 min-w-0 animate-[fade-in_200ms_ease-out]"
-          style={{
-            gridColumn: `${item.x + 1} / span ${item.w}`,
-            gridRow: `${item.y + 1} / span ${item.h}`,
+    <div ref={ref} className="size-full">
+      {width > 0 && height > 0 ? (
+        <GridLayout
+          width={width}
+          layout={layout}
+          compactor={noCompactor}
+          gridConfig={{
+            cols,
+            maxRows: rows,
+            rowHeight,
+            margin: [MARGIN, MARGIN],
+            containerPadding: [PADDING, PADDING],
           }}
+          dragConfig={{ enabled: true, bounded: true, cancel: ".no-drag" }}
+          resizeConfig={{ enabled: true, handles: HANDLES }}
+          onDragStop={persist}
+          onResizeStop={persist}
         >
-          <ItemView item={item} />
-        </div>
-      ))}
+          {items.map((item) => (
+            <div key={item.id} className="@container min-h-0 min-w-0">
+              <ItemView item={item} />
+            </div>
+          ))}
+        </GridLayout>
+      ) : null}
     </div>
   );
 }

@@ -7,15 +7,16 @@ request does not fit, the caller is told what is free and decides what to do.
 
 from schemas.board import ItemRead, Payload, Placement
 
-# Sizes tuned for a 1080p TV read from a sofa, not for desktop density.
+# Sizes tuned for a 1080p TV read from a sofa, not for desktop density. On the
+# 32x18 grid a cell is roughly 60x60px, so these are deliberately generous.
 _DEFAULT_SIZES: dict[str, tuple[int, int]] = {
-    "note": (3, 2),
-    "text": (3, 1),
-    "box": (4, 3),
-    "image": (3, 3),
-    "video": (6, 4),
-    "chart": (4, 3),
-    "notification": (3, 1),
+    "note": (8, 4),
+    "text": (8, 3),
+    "box": (10, 6),
+    "image": (8, 6),
+    "video": (16, 9),
+    "chart": (10, 7),
+    "notification": (8, 3),
 }
 
 
@@ -36,7 +37,7 @@ class BoardFullError(Exception):
 
 def default_size(payload: Payload) -> tuple[int, int]:
     """Return the default (w, h) for an item kind."""
-    return _DEFAULT_SIZES.get(payload.kind, (3, 2))
+    return _DEFAULT_SIZES.get(payload.kind, (8, 4))
 
 
 def _occupancy(items: list[ItemRead], cols: int, rows: int) -> list[list[bool]]:

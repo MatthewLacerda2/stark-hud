@@ -5,7 +5,7 @@
  * one field and TypeScript narrows the rest.
  */
 
-export type ChartKind = "line" | "bar" | "pie" | "area";
+export type ChartKind = "line" | "bar" | "pie" | "area" | "radial";
 export type NotifyLevel = "info" | "success" | "warn" | "error";
 
 export interface NotePayload {
@@ -48,6 +48,9 @@ export interface ChartPayload {
   x_key: string;
   series: string[];
   title: string | null;
+  /** A ceiling for the value axis; a radial always has one. */
+  max: number | null;
+  unit: string | null;
 }
 
 export interface NotificationPayload {

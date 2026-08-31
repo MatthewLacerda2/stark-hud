@@ -116,6 +116,8 @@ def register(server: MCPServer) -> None:
         x_key: str,
         series: list[str],
         title: str | None = None,
+        max: float | None = None,
+        unit: str | None = None,
         x: int | None = None,
         y: int | None = None,
         w: int | None = None,

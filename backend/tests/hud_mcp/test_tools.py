@@ -3,7 +3,11 @@
 import pytest
 from mcp.server.mcpserver import MCPServer
 
+from core.config import get_settings
 from hud_mcp.server import build_server
+
+COLS = get_settings().GRID_COLS
+ROWS = get_settings().GRID_ROWS
 
 EXPECTED = {
     "add_box",
@@ -44,14 +48,14 @@ async def test_every_tool_is_registered(server: MCPServer) -> None:
 
 async def test_adding_reports_where_it_landed(server: MCPServer) -> None:
     """The agent is told the slot, so it can move or remove it later."""
-    assert "at (0,0) size 3x2" in await call(server, "add_note", text="hello")
-    assert "at (3,0) size 3x2" in await call(server, "add_note", text="second")
+    assert "at (0,0) size 8x4" in await call(server, "add_note", text="hello")
+    assert "at (8,0) size 8x4" in await call(server, "add_note", text="second")
 
 
 async def test_a_full_board_answers_in_words(server: MCPServer) -> None:
     """No exception reaches the agent: it gets something it can act on."""
-    for _ in range(16):
-        await call(server, "add_note", text="n")
+    for _ in range((COLS // 8) * (ROWS // 6)):
+        await call(server, "add_note", text="n", w=8, h=6)
     message = await call(server, "add_note", text="one too many")
     assert "Not added" in message
     assert "board is full" in message
@@ -65,6 +69,7 @@ async def test_bad_enum_values_are_explained(server: MCPServer) -> None:
 
 async def test_status_reports_the_largest_free_rectangle(server: MCPServer) -> None:
     """Told before it tries, an agent can pick a size that fits."""
-    assert "Largest free rectangle: 12x8 at (0,0)" in await call(server, "board_status")
-    await call(server, "add_note", text="x", x=0, y=0, w=12, h=4)
-    assert "Largest free rectangle: 12x4 at (0,4)" in await call(server, "board_status")
+    assert f"Largest free rectangle: {COLS}x{ROWS} at (0,0)" in await call(server, "board_status")
+    await call(server, "add_note", text="x", x=0, y=0, w=COLS, h=6)
+    expected = f"Largest free rectangle: {COLS}x{ROWS - 6} at (0,6)"
+    assert expected in await call(server, "board_status")

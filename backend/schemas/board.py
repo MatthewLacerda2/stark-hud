@@ -9,7 +9,7 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-ChartKind = Literal["line", "bar", "pie", "area"]
+ChartKind = Literal["line", "bar", "pie", "area", "radial"]
 NotifyLevel = Literal["info", "success", "warn", "error"]
 
 
@@ -67,6 +67,10 @@ class ChartPayload(_Payload):
 
     The board never fetches or polls: whoever has the numbers sends them.
     Updating a chart means writing the item again with new ``data``.
+
+    A ``radial`` chart is the odd one out: it reads the first row only, draws it
+    as an arc of ``max``, and prints the value in the middle. It is a gauge, not
+    a series.
     """
 
     kind: Literal["chart"] = "chart"
@@ -75,6 +79,11 @@ class ChartPayload(_Payload):
     x_key: str
     series: list[str]
     title: str | None = None
+    # A ceiling for the value axis. Left out, the axis fits the data, which is
+    # right for a count and wrong for a percentage: 21% would draw nearly full.
+    # A radial always has one, defaulting to 100.
+    max: float | None = None
+    unit: str | None = None
 
 
 class NotificationPayload(_Payload):

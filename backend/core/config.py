@@ -22,8 +22,11 @@ class Settings(BaseSettings):
     # The board is a fixed grid: the TV cannot scroll, so anything that does not
     # fit on screen would stay invisible forever. Items are placed in cells,
     # never in pixels; the browser derives cell size from the viewport.
-    GRID_COLS: int = Field(default=12, ge=1, le=48)
-    GRID_ROWS: int = Field(default=8, ge=1, le=32)
+    #
+    # 32x18 is 16:9 doubled, so a cell is square on a 1080p panel and a half-cell
+    # nudge is still a visible amount of screen.
+    GRID_COLS: int = Field(default=32, ge=1, le=96)
+    GRID_ROWS: int = Field(default=18, ge=1, le=54)
 
     # Served openly on the LAN by design: no auth, any device on the wifi may
     # read and write the board.

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@/i18n";
+import "react-grid-layout/css/styles.css";
 import "@/styles.css";
 import { routeTree } from "@/routeTree.gen";
 

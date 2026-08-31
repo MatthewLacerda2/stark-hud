@@ -6,10 +6,11 @@ from pydantic import ValidationError
 from core.config import Settings
 
 
-def test_grid_defaults_suit_a_1080p_tv() -> None:
-    """12x8 gives cells big enough to read from a sofa."""
+def test_grid_defaults_are_16_by_9_doubled() -> None:
+    """32x18 keeps cells square on a 1080p panel."""
     settings = Settings()
-    assert (settings.GRID_COLS, settings.GRID_ROWS) == (12, 8)
+    assert (settings.GRID_COLS, settings.GRID_ROWS) == (32, 18)
+    assert settings.GRID_COLS / settings.GRID_ROWS == 16 / 9
 
 
 def test_a_zero_width_grid_is_refused() -> None:

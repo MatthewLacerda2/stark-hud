@@ -2,14 +2,24 @@
 
 from httpx import AsyncClient
 
-NOTE = {"payload": {"kind": "note", "text": "n"}}
+from core.config import get_settings
+
+COLS = get_settings().GRID_COLS
+ROWS = get_settings().GRID_ROWS
+
 ITEMS = "/api/v1/board/items"
+# A size that tiles the grid exactly, so "full" means zero cells left over.
+TILE_W, TILE_H = 8, 6
+TILE = {"payload": {"kind": "note", "text": "n"}, "w": TILE_W, "h": TILE_H}
 
 
-async def _fill(client: AsyncClient) -> None:
-    """Fill all 96 cells with 16 default-sized notes."""
-    for _ in range(16):
-        assert (await client.post(ITEMS, json=NOTE)).status_code == 201
+async def _fill(client: AsyncClient) -> int:
+    """Tile the whole grid, and return how many items that took."""
+    count = (COLS // TILE_W) * (ROWS // TILE_H)
+    for _ in range(count):
+        assert (await client.post(ITEMS, json=TILE)).status_code == 201
+    assert (await client.get("/api/v1/board/status")).json()["cells_free"] == 0
+    return count
 
 
 async def test_full_board_reports_what_is_free(client: AsyncClient) -> None:
@@ -19,16 +29,15 @@ async def test_full_board_reports_what_is_free(client: AsyncClient) -> None:
     assert response.status_code == 409
     body = response.json()
     assert body["cells_free"] == 0
-    assert body["requested"] == [6, 4]
+    assert body["requested"] == [16, 9]
 
 
 async def test_freed_slot_is_reused(client: AsyncClient) -> None:
     """Removing an item makes exactly its slot available again."""
     await _fill(client)
-    items = (await client.get(ITEMS)).json()
-    victim = items[5]
+    victim = (await client.get(ITEMS)).json()[3]
     assert (await client.delete(f"{ITEMS}/{victim['id']}")).status_code == 204
-    response = await client.post(ITEMS, json=NOTE)
+
+    response = await client.post(ITEMS, json=TILE)
     assert response.status_code == 201
-    replacement = response.json()
-    assert (replacement["x"], replacement["y"]) == (victim["x"], victim["y"])
+    assert (response.json()["x"], response.json()["y"]) == (victim["x"], victim["y"])

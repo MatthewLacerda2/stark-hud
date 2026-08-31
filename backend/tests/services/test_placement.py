@@ -27,8 +27,8 @@ def _item(x: int, y: int, w: int, h: int, item_id: str = "i") -> ItemRead:
 
 def test_default_size_follows_the_kind() -> None:
     """A video gets more room than a note, because it needs it."""
-    assert default_size(NotePayload(text="x")) == (3, 2)
-    assert default_size(ChartPayload(chart="bar", data=[], x_key="k", series=["a"])) == (4, 3)
+    assert default_size(NotePayload(text="x")) == (8, 4)
+    assert default_size(ChartPayload(chart="bar", data=[], x_key="k", series=["a"])) == (10, 7)
 
 
 def test_find_slot_scans_top_left_first() -> None:
