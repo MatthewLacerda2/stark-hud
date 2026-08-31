@@ -62,14 +62,49 @@ the `Host` header would only give a false sense of safety.
 
 ## Running it
 
+Day to day, as two containers that come back on their own:
+
+```bash
+docker compose up -d --build     # start, and rebuild after a code change
+docker compose logs -f
+docker compose down              # stop
+```
+
+The board is then at `http://<this-machine>:8080`, and the MCP server at
+`:8000/mcp/` or `:8080/mcp/` — nginx proxies both `/api` and `/mcp`, so one port
+is enough if you prefer it.
+
+`restart: unless-stopped` plus a docker daemon enabled at boot is the whole of
+the autostart story. `~/.config/autostart/stark-hud.desktop` opens the browser
+full-screen on the TV at login, fifteen seconds later so the containers are
+answering by the time the page loads.
+
+For development, with hot reload:
+
 ```bash
 make back-install && make front-install    # once
 cd backend && .venv/bin/python -m uvicorn main:app --reload
-cd frontend && bun run dev
+cd frontend && bun run dev                 # already listens on 0.0.0.0
 ```
 
-The dev server proxies `/api` and `/ws` to the backend; nginx does the same in
-production.
+Either way the frontend proxies `/api` and `/ws` to the backend — Vite in
+development, nginx in the containers.
+
+## Feeding it
+
+The board never fetches. `tools/push_stats.py` pushes: per-core CPU, memory,
+GPU load and temperature, open tmux sessions, and the notifications already on
+the board. Standard library only, so cron or a systemd timer can run it.
+
+```bash
+python tools/push_stats.py             # once
+python tools/push_stats.py --loop 30   # keep it live
+```
+
+It remembers which item is which panel in `~/.local/state/stark-hud-panels.json`,
+so a refresh updates in place and a tile stays where you dragged it. It runs on
+the host, not in a container: `/proc`, `nvidia-smi` and `tmux` mean nothing from
+inside one.
 
 ## Quality gates
 

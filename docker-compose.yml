@@ -1,0 +1,44 @@
+# The board as two long-lived containers.
+#
+# `restart: unless-stopped` plus a docker daemon enabled at boot is the whole of
+# the autostart story: no unit files, and `docker compose stop` still means
+# stopped rather than "back after the next reboot".
+#
+#   docker compose up -d --build     start (and rebuild after a code change)
+#   docker compose logs -f           follow
+#   docker compose down              stop and remove
+#
+# The stats pusher stays on the host on purpose: it reads /proc, nvidia-smi and
+# tmux, none of which mean anything from inside a container.
+
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      GRID_COLS: 32
+      GRID_ROWS: 18
+      CORS_ORIGINS: "*"
+    volumes:
+      # Media items hold absolute paths, so the same path has to resolve inside
+      # the container. Read-only: the board shows files, it never writes them.
+      - /mnt/d_drive:/mnt/d_drive:ro
+      - ${HOME}:${HOME}:ro
+    ports:
+      # Published so an MCP client can reach it directly, the way the sessions
+      # are configured today. nginx also proxies /mcp, if you prefer one port.
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
