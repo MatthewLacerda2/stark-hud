@@ -71,15 +71,15 @@ function Gauge({ payload }: { payload: ChartPayload }) {
         </RadialBarChart>
       </ChartContainer>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-node-lg text-foreground">
+        <span className="text-gauge text-foreground">
           {Math.round(value)}
           {payload.unit ? (
-            <span className="text-node-sm text-muted-foreground">
+            <span className="text-gauge-label text-muted-foreground">
               {payload.unit}
             </span>
           ) : null}
         </span>
-        <span className="text-node-sm text-muted-foreground">
+        <span className="text-gauge-label text-muted-foreground">
           {String(row[payload.x_key] ?? "")}
         </span>
       </div>

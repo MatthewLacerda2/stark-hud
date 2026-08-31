@@ -62,14 +62,22 @@
   /* --- Node-relative type. `cqi` is a percentage of the container's inline
          size, so text in a tile grows with the tile. Each item wrapper is a
          container; the clamp keeps a 1x1 cell readable and a 12x8 one sane. --- */
-  --text-node-sm: clamp(0.729rem, 5.143cqi, 1.714rem);
+  --text-node-sm: clamp(0.583rem, 4.114cqi, 1.371rem);
   --text-node-sm--line-height: 1.35;
-  --text-node: clamp(0.943rem, 7.714cqi, 2.786rem);
+  --text-node: clamp(0.754rem, 6.171cqi, 2.229rem);
   --text-node--line-height: 1.25;
-  --text-node-lg: clamp(1.286rem, 12.857cqi, 5.143rem);
+  --text-node-lg: clamp(1.029rem, 10.286cqi, 4.114rem);
   --text-node-lg--line-height: 1.1;
-  --text-node-xl: clamp(1.714rem, 18.857cqi, 7.714rem);
+  --text-node-xl: clamp(1.371rem, 15.086cqi, 6.171rem);
   --text-node-xl--line-height: 1.05;
+
+  /* --- The gauge's centre reading is its own thing: a number sized to be read
+         across a room, not body text that happens to be short. Split from the
+         node scale so notes can shrink without shrinking it. --- */
+  --text-gauge: clamp(1.286rem, 12.857cqi, 5.143rem);
+  --text-gauge--line-height: 1.1;
+  --text-gauge-label: clamp(0.729rem, 5.143cqi, 1.714rem);
+  --text-gauge-label--line-height: 1.35;
 
   /* --- Typography tokens: size / line-height / weight. --- */
   --text-display: 4.2rem;
