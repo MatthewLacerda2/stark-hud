@@ -17,7 +17,7 @@ _DEFAULT_SIZES: dict[str, tuple[int, int]] = {
     "image": (8, 6),
     "video": (16, 9),
     "chart": (10, 7),
-    "notification": (8, 3),
+    "inbox": (8, 8),
 }
 
 

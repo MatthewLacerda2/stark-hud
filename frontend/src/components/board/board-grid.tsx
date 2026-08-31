@@ -4,7 +4,7 @@ import GridLayout, {
   type Layout,
   type LayoutItem,
 } from "react-grid-layout";
-import type { Item } from "@/lib/schemas/board";
+import type { Item, Notification } from "@/lib/schemas/board";
 import { updateItem } from "@/lib/api/board";
 import { ItemView } from "@/components/board/item-view";
 import { TileControls } from "@/components/board/tile-controls";
@@ -22,23 +22,11 @@ const DEFAULT_ALPHA: Record<string, number> = {
   chart: 0.25,
   note: 0.65,
   list: 0.6,
-  // Enough of the level colour to read at a glance, now that the bar down the
-  // side is gone.
-  notification: 0.22,
+  inbox: 0.6,
 };
 
-// A notification's level, as a colour.
-const LEVEL_COLOUR: Record<string, string> = {
-  info: "var(--color-info)",
-  success: "var(--color-success)",
-  warn: "var(--color-warning)",
-  error: "var(--color-destructive)",
-};
-
-/** What a tile is made of: what it was told, else what its kind implies. */
+/** The tile's background: what its kind implies. `item.color` is for its text. */
 function colourOf(item: Item): string | undefined {
-  if (item.payload.kind === "notification")
-    return LEVEL_COLOUR[item.payload.level];
   if (item.payload.kind === "note" && item.payload.color)
     return item.payload.color;
   return undefined;
@@ -59,10 +47,12 @@ const HANDLES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
  */
 export function BoardGrid({
   items,
+  notifications,
   cols,
   rows,
 }: {
   items: Item[];
+  notifications: Notification[];
   cols: number;
   rows: number;
 }) {
@@ -169,7 +159,7 @@ export function BoardGrid({
               onMouseEnter={() => show(item.id)}
               onMouseLeave={hideSoon}
             >
-              <ItemView item={item} />
+              <ItemView item={item} notifications={notifications} />
               {hovered === item.id ? (
                 <TileControls
                   alpha={alphaOf(item)}

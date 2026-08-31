@@ -1,15 +1,21 @@
-import type { Item } from "@/lib/schemas/board";
+import type { Item, Notification } from "@/lib/schemas/board";
 import { Box } from "@/components/board/items/box";
 import { Chart } from "@/components/board/items/chart";
 import { Image } from "@/components/board/items/image";
 import { Video } from "@/components/board/items/video";
+import { Inbox } from "@/components/board/items/inbox";
 import { List } from "@/components/board/items/list";
 import { Note } from "@/components/board/items/note";
-import { Notification } from "@/components/board/items/notification";
 import { Text } from "@/components/board/items/text";
 
 /** Render one item by kind. The union is exhaustive, so a new kind will not compile. */
-export function ItemView({ item }: { item: Item }) {
+export function ItemView({
+  item,
+  notifications,
+}: {
+  item: Item;
+  notifications: Notification[];
+}) {
   const payload = item.payload;
   switch (payload.kind) {
     case "note":
@@ -26,7 +32,7 @@ export function ItemView({ item }: { item: Item }) {
       return <Video id={item.id} payload={payload} />;
     case "chart":
       return <Chart payload={payload} />;
-    case "notification":
-      return <Notification payload={payload} />;
+    case "inbox":
+      return <Inbox payload={payload} notifications={notifications} />;
   }
 }

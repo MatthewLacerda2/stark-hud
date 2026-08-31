@@ -9,7 +9,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 from starlette.applications import Starlette
 
 from core.config import get_settings
-from hud_mcp import background, content, layout
+from hud_mcp import background, content, layout, notifications
 
 # Written to be read by a model that has never seen this board. The grid size is
 # interpolated rather than typed out: it has already changed once, and stale
@@ -40,9 +40,9 @@ fits the data and 21% draws as nearly full.
 
 Nothing is saved. Restarting the server empties the board.
 
-Use notify to say something finished. Those stay until removed, so they work as
-an inbox across several sessions; put your project name in the source field so a
-human can tell which Claude is speaking.\
+Use notify to say something finished. Notifications are not tiles — they all go
+into one inbox, like a phone's shade, and drop out after 48 hours. Put your
+project name in the source field so a human can tell which Claude is speaking.\
 """
 
 
@@ -54,6 +54,7 @@ def build_server() -> MCPServer:
     content.register(server)
     layout.register(server)
     background.register(server)
+    notifications.register(server)
     return server
 
 

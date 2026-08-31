@@ -12,7 +12,7 @@ import { useBoard } from "@/hooks/use-board";
  */
 function BoardPage() {
   const { t } = useTranslation();
-  const { items, background, connected } = useBoard();
+  const { items, background, notifications, connected } = useBoard();
   const status = useQuery({
     queryKey: ["board", "status"],
     queryFn: boardStatus,
@@ -26,7 +26,12 @@ function BoardPage() {
       <Background background={background} />
 
       <div className="relative size-full">
-        <BoardGrid items={items} cols={cols} rows={rows} />
+        <BoardGrid
+          items={items}
+          notifications={notifications}
+          cols={cols}
+          rows={rows}
+        />
 
         {items.length === 0 && connected ? (
           <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-h1 text-muted-foreground">

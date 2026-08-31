@@ -62,11 +62,21 @@ export interface ChartPayload {
   colors: string[];
 }
 
-export interface NotificationPayload {
-  kind: "notification";
-  message: string;
+export interface InboxPayload {
+  kind: "inbox";
+  title: string | null;
+}
+
+/** One notification. They live in an inbox, not on the grid. */
+export interface Notification {
+  id: string;
+  title: string;
+  body: string | null;
+  /** A name from the icon set, or an absolute path to a local image. */
+  icon: string | null;
   level: NotifyLevel;
   source: string | null;
+  created_at: string;
 }
 
 export type Payload =
@@ -77,7 +87,7 @@ export type Payload =
   | ImagePayload
   | VideoPayload
   | ChartPayload
-  | NotificationPayload;
+  | InboxPayload;
 
 export type ItemKind = Payload["kind"];
 
@@ -117,6 +127,7 @@ export interface Background {
 export interface BoardSnapshot {
   items: Item[];
   background: Background | null;
+  notifications: Notification[];
 }
 
 export interface BoardStatus {
@@ -136,4 +147,7 @@ export type BoardEvent =
   | { event: "board.cleared"; data: { removed: number } }
   | { event: "item.created"; data: Item }
   | { event: "item.updated"; data: Item }
-  | { event: "item.removed"; data: { id: string } };
+  | { event: "item.removed"; data: { id: string } }
+  | { event: "notification.created"; data: Notification }
+  | { event: "notification.removed"; data: { id: string } }
+  | { event: "notifications.cleared"; data: { removed: number } };

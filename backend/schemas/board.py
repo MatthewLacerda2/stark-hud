@@ -9,8 +9,9 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from schemas.notifications import Notification
+
 ChartKind = Literal["line", "bar", "pie", "area", "radial"]
-NotifyLevel = Literal["info", "success", "warn", "error"]
 
 
 class _Payload(BaseModel):
@@ -104,13 +105,16 @@ class ChartPayload(_Payload):
     colors: list[str] = []
 
 
-class NotificationPayload(_Payload):
-    """An announcement that stays on the board until dismissed."""
+class InboxPayload(_Payload):
+    """Where notifications are shown.
 
-    kind: Literal["notification"] = "notification"
-    message: str
-    level: NotifyLevel = "info"
-    source: str | None = None
+    One tile holds all of them, the way a phone's shade does. Its height decides
+    how many are visible at once and its width how much of each line fits;
+    neither is configured, they are just consequences of the size it was given.
+    """
+
+    kind: Literal["inbox"] = "inbox"
+    title: str | None = None
 
 
 Payload = Annotated[
@@ -121,7 +125,7 @@ Payload = Annotated[
     | ImagePayload
     | VideoPayload
     | ChartPayload
-    | NotificationPayload,
+    | InboxPayload,
     Field(discriminator="kind"),
 ]
 
@@ -216,6 +220,7 @@ class BoardSnapshot(BaseModel):
 
     items: list[ItemRead]
     background: Background | None
+    notifications: list[Notification]
 
 
 class BoardStatus(BaseModel):

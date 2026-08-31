@@ -24,8 +24,10 @@ from core.logging_middleware import LoggingMiddleware
 from core.rate_limiter import limiter
 from hud_mcp.server import build_app as build_mcp_app
 from repositories import board as repo
+from repositories import notifications as notifications_repo
 from schemas.board import BoardSnapshot
 from services.board import MissingFileError, SlotTakenError
+from services.notifications import BadIconError
 from services.placement import BoardFullError
 
 APP_NAME = "stark-hud"
@@ -69,6 +71,12 @@ def _missing_file_handler(_request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(status_code=404, content={"detail": str(exc)})
 
 
+def _bad_icon_handler(_request: Request, exc: Exception) -> JSONResponse:
+    """Return 422 naming the icons that exist, rather than drawing nothing."""
+    assert isinstance(exc, BadIconError)
+    return JSONResponse(status_code=422, content={"detail": str(exc)})
+
+
 def create_app() -> FastAPI:
     """Build and configure the FastAPI application."""
     settings = get_settings()
@@ -88,6 +96,7 @@ def create_app() -> FastAPI:
     app.add_exception_handler(BoardFullError, _board_full_handler)
     app.add_exception_handler(SlotTakenError, _slot_taken_handler)
     app.add_exception_handler(MissingFileError, _missing_file_handler)
+    app.add_exception_handler(BadIconError, _bad_icon_handler)
 
     app.add_middleware(LoggingMiddleware)
     app.include_router(api_router, prefix="/api/v1")
@@ -125,7 +134,11 @@ def _register_socket(app: FastAPI) -> None:
         """Push the current board on connect, then stream every change."""
         await hub.connect(socket)
         try:
-            snapshot = BoardSnapshot(items=repo.list_items(), background=repo.get_background())
+            snapshot = BoardSnapshot(
+                items=repo.list_items(),
+                background=repo.get_background(),
+                notifications=notifications_repo.list_all(),
+            )
             await socket.send_json(
                 {"event": "board.snapshot", "data": snapshot.model_dump(mode="json")}
             )

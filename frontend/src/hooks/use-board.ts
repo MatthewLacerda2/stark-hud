@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import type { Background, BoardEvent, Item } from "@/lib/schemas/board";
+import type {
+  Background,
+  BoardEvent,
+  Item,
+  Notification,
+} from "@/lib/schemas/board";
 
 /**
  * Live board state, fed entirely by the socket.
@@ -19,14 +24,19 @@ const RETRY_MAX_MS = 10_000;
 interface BoardState {
   items: Item[];
   background: Background | null;
+  notifications: Notification[];
 }
 
-const EMPTY: BoardState = { items: [], background: null };
+const EMPTY: BoardState = { items: [], background: null, notifications: [] };
 
 function reduce(state: BoardState, message: BoardEvent): BoardState {
   switch (message.event) {
     case "board.snapshot":
-      return { items: message.data.items, background: message.data.background };
+      return {
+        items: message.data.items,
+        background: message.data.background,
+        notifications: message.data.notifications,
+      };
     case "board.cleared":
       // The background is not an item; clearing the board leaves it alone.
       return { ...state, items: [] };

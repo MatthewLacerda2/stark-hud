@@ -13,6 +13,7 @@ EXPECTED = {
     "add_box",
     "add_chart",
     "add_image",
+    "add_inbox",
     "add_list",
     "add_note",
     "add_text",
@@ -20,7 +21,9 @@ EXPECTED = {
     "board_status",
     "clear_background",
     "clear_board",
+    "dismiss_notification",
     "list_items",
+    "list_notifications",
     "move_item",
     "notify",
     "remove_item",
@@ -65,7 +68,7 @@ async def test_a_full_board_answers_in_words(server: MCPServer) -> None:
 
 async def test_bad_enum_values_are_explained(server: MCPServer) -> None:
     """A wrong level names the allowed ones rather than failing validation."""
-    message = await call(server, "notify", message="done", level="shouty")
+    message = await call(server, "notify", title="done", level="shouty")
     assert "info, success, warn or error" in message
 
 

@@ -90,6 +90,27 @@ cd frontend && bun run dev                 # already listens on 0.0.0.0
 Either way the frontend proxies `/api` and `/ws` to the backend — Vite in
 development, nginx in the containers.
 
+## Notifications
+
+They are not tiles. Everything announced goes into one inbox, shown by an
+`inbox` item the way a phone's shade shows its own — icon, source, time, title,
+body — newest first. How many are visible is how tall that tile is, and how
+much of each line fits is how wide.
+
+They are kept for 48 hours and drop out on their own. In memory, like the
+board: restarting the backend empties them.
+
+```bash
+curl -X POST localhost:8000/api/v1/notifications -H 'Content-Type: application/json' \
+  -d '{"title":"deploy done","body":"12 tests","icon":"rocket","source":"ci"}'
+```
+
+`icon` is a name from a closed set — bell, check, info, alert-triangle,
+alert-circle, x-circle, terminal, git-branch, download, upload, cpu, hard-drive,
+mail, message-square, clock, zap, flame, bug, rocket, wrench — or an absolute
+path to an image. Anything else is refused with the list, because a typo would
+otherwise draw nothing and never say why.
+
 ## Feeding it
 
 The board never fetches — it draws what it is given — so something has to push.

@@ -7,9 +7,9 @@ from schemas.board import (
     BoxPayload,
     ChartPayload,
     ImagePayload,
+    InboxPayload,
     ListPayload,
     NotePayload,
-    NotificationPayload,
     TextPayload,
     VideoPayload,
 )
@@ -156,23 +156,17 @@ def register(server: MCPServer) -> None:
         return await add(payload, x, y, w, h)
 
     @server.tool()
-    async def notify(
-        message: str,
-        level: str = "info",
-        source: str | None = None,
+    async def add_inbox(
+        title: str | None = None,
         x: int | None = None,
         y: int | None = None,
         w: int | None = None,
         h: int | None = None,
     ) -> str:
-        """Announce something on the board.
+        """Put the notification inbox on the board.
 
-        The notice stays until someone removes it, so several finished sessions
-        can pile up and be read in one glance. Level is info, success, warn or
-        error. Put your session or project name in `source` so a human can tell
-        which of several Claudes is talking.
+        One tile holds every notification, the way a phone's shade does. Make it
+        taller to show more at once and wider to fit more of each line. There is
+        no reason to have two.
         """
-        if level not in {"info", "success", "warn", "error"}:
-            return f"Not added: level must be info, success, warn or error (got {level!r})"
-        payload = NotificationPayload(message=message, level=level, source=source)
-        return await add(payload, x, y, w, h)
+        return await add(InboxPayload(title=title), x, y, w, h)

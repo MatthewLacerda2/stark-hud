@@ -15,5 +15,9 @@
   },
   "chart": {
     "noData": "No data"
+  },
+  "inbox": {
+    "empty": "No notifications",
+    "justNow": "now"
   }
 }

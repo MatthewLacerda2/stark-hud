@@ -15,5 +15,9 @@
   },
   "chart": {
     "noData": "Sem dados"
+  },
+  "inbox": {
+    "empty": "Sem notificações",
+    "justNow": "agora"
   }
 }

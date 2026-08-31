@@ -62,9 +62,11 @@ every = 20
 place = { x = 18, y = 7, w = 7, h = 7 }
 panel = { kind = "list", title = "tmux", empty = "nenhuma sessão" }
 
+
+# No command: the inbox is filled over the socket, not by polling. This entry
+# only keeps the tile on the board, so it comes back after a restart.
 [[source]]
-name = "notifications"
-command = "python3 {collectors}/notifications.py"
-every = 10
-place = { x = 25, y = 7, w = 7, h = 7 }
-panel = { kind = "list", title = "notificações", empty = "nenhuma" }
+name = "inbox"
+every = 60
+place = { x = 25, y = 7, w = 7, h = 11 }
+panel = { kind = "inbox", title = "notificações" }

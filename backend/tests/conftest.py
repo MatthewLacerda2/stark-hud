@@ -7,7 +7,7 @@ never matters.
 
 import pytest
 
-from repositories import board
+from repositories import board, notifications
 
 
 @pytest.fixture(autouse=True)
@@ -15,6 +15,8 @@ def clean_board() -> None:
     """Empty the board around every test."""
     board.clear()
     board.set_background(None)
+    notifications.clear()
     yield
     board.clear()
     board.set_background(None)
+    notifications.clear()
