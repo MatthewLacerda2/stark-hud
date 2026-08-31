@@ -1,10 +1,13 @@
 """FastAPI application entrypoint.
 
 Middleware order (outermost first): CORS -> rate limiting -> request logging.
-The versioned API router is mounted at ``/api/v1``; the board socket lives at
-``/ws``. There is no database and no lifespan bootstrap: the board is in memory
-and starts empty.
+The versioned API router is mounted at ``/api/v1``, the board socket lives at
+``/ws``, and the MCP server at ``/mcp``. There is no database: the board is in
+memory and starts empty.
 """
+
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,11 +22,24 @@ from core.config import get_settings
 from core.hub import hub
 from core.logging_middleware import LoggingMiddleware
 from core.rate_limiter import limiter
+from hud_mcp.server import build_app as build_mcp_app
 from repositories import board as repo
 from services.board import SlotTakenError
 from services.placement import BoardFullError
 
 APP_NAME = "stark-hud"
+
+# Built once at import so the mounted app and the lifespan below are the same
+# object: a mounted sub-app's lifespan is not run by the parent automatically,
+# and without it the MCP session manager never starts.
+mcp_app = build_mcp_app()
+
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
+    """Run the MCP session manager for the life of the process."""
+    async with mcp_app.router.lifespan_context(mcp_app):
+        yield
 
 
 def _rate_limit_handler(_request: Request, exc: RateLimitExceeded) -> JSONResponse:
@@ -49,7 +65,7 @@ def _slot_taken_handler(_request: Request, exc: Exception) -> JSONResponse:
 def create_app() -> FastAPI:
     """Build and configure the FastAPI application."""
     settings = get_settings()
-    app = FastAPI(title=APP_NAME)
+    app = FastAPI(title=APP_NAME, lifespan=lifespan)
 
     app.add_middleware(
         CORSMiddleware,
@@ -67,6 +83,7 @@ def create_app() -> FastAPI:
 
     app.add_middleware(LoggingMiddleware)
     app.include_router(api_router, prefix="/api/v1")
+    app.mount("/mcp", mcp_app)
 
     _register_baseline_routes(app)
     _register_socket(app)
