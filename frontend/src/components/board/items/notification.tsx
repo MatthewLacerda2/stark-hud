@@ -1,4 +1,5 @@
 import type { NotificationPayload } from "@/lib/schemas/board";
+import { ScrollingText } from "@/components/board/scrolling-text";
 
 const TONES: Record<NotificationPayload["level"], string> = {
   info: "border-info bg-info/10",
@@ -16,7 +17,7 @@ export function Notification({ payload }: { payload: NotificationPayload }) {
     <div
       className={`flex size-full flex-col justify-center rounded-xl border-l-8 px-5 py-3 text-foreground ${TONES[payload.level]}`}
     >
-      <p className="wrap-break-word text-node">{payload.message}</p>
+      <ScrollingText text={payload.message} className="text-node" />
       {payload.source ? (
         <span className="mt-1 text-caption text-muted-foreground">
           {payload.source}

@@ -299,3 +299,20 @@
   border-top: none;
   cursor: nwse-resize;
 }
+
+/* Text too tall for its tile drifts down and back, with a pause at each end.
+   Nobody can scroll this screen, so the alternative is losing the bottom. */
+@keyframes node-scroll {
+  0%,
+  12% {
+    transform: translateY(0);
+  }
+  46%,
+  54% {
+    transform: translateY(calc(-1 * var(--scroll-distance, 0px)));
+  }
+  88%,
+  100% {
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,61 @@
+# What keeps the board moving.
+#
+# Each source says three things and nothing else: where the data comes from,
+# how often to ask, and which panel it lands in.
+#
+#   command / url   where. A command prints JSON on stdout; a URL returns JSON.
+#                   {collectors} expands to tools/collectors.
+#   every           seconds between runs.
+#   history         optional. Keeps the last N rows, so a source that prints one
+#                   reading becomes a series without remembering anything itself.
+#   json_path       optional, for URLs: a dotted path to dig into the response.
+#   panel           the item to write. Anything the board accepts.
+#   place           optional x/y/w/h in grid cells; omit to let the board choose.
+#
+# Commands live here rather than on the board on purpose: the board is open to
+# the whole LAN, and a display should not be a way to run code on this machine.
+
+[[source]]
+name = "cpu"
+command = "python3 {collectors}/cpu.py"
+every = 3
+place = { x = 0, y = 0, w = 12, h = 7 }
+panel = { kind = "chart", chart = "bar", title = "CPU por núcleo", x_key = "core", series = ["use"], max = 100 }
+
+[[source]]
+name = "mem"
+command = "python3 {collectors}/mem.py"
+every = 5
+place = { x = 12, y = 0, w = 6, h = 7 }
+panel = { kind = "chart", chart = "radial", title = "Memória", x_key = "label", series = ["use"], max = 100, unit = "%" }
+
+[[source]]
+name = "gpu"
+command = "python3 {collectors}/gpu.py"
+every = 3
+place = { x = 18, y = 0, w = 8, h = 7 }
+panel = { kind = "chart", chart = "bar", title = "GPU", x_key = "metric", series = ["pct"], max = 100 }
+
+# One reading each time; `history` turns it into four minutes of line.
+# 90 °C is the ceiling we chose to draw against, not a hardware limit.
+[[source]]
+name = "temps"
+command = "python3 {collectors}/temps.py"
+every = 5
+history = 48
+place = { x = 0, y = 7, w = 18, h = 7 }
+panel = { kind = "chart", chart = "line", title = "Temperatura (°C)", x_key = "t", series = ["cpu", "gpu"], max = 90 }
+
+[[source]]
+name = "tmux"
+command = "python3 {collectors}/tmux_sessions.py"
+every = 20
+place = { x = 18, y = 7, w = 7, h = 7 }
+panel = { kind = "note" }
+
+[[source]]
+name = "notifications"
+command = "python3 {collectors}/notifications.py"
+every = 10
+place = { x = 25, y = 7, w = 7, h = 7 }
+panel = { kind = "note" }

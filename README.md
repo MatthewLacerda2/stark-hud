@@ -92,19 +92,39 @@ development, nginx in the containers.
 
 ## Feeding it
 
-The board never fetches. `tools/push_stats.py` pushes: per-core CPU, memory,
-GPU load and temperature, open tmux sessions, and the notifications already on
-the board. Standard library only, so cron or a systemd timer can run it.
+The board never fetches — it draws what it is given — so something has to push.
+`tools/agent.py` does, driven by `tools/sources.toml`. A source says three
+things and nothing else:
 
-```bash
-python tools/push_stats.py             # once
-python tools/push_stats.py --loop 30   # keep it live
+```toml
+[[source]]
+name = "cpu"                                    # stable key: refreshes in place
+command = "python3 {collectors}/cpu.py"         # where (or: url = "...")
+every = 3                                       # how often, in seconds
+place = { x = 0, y = 0, w = 12, h = 7 }         # optional; omit to auto-place
+panel = { kind = "chart", chart = "bar", title = "CPU por núcleo",
+          x_key = "core", series = ["use"], max = 100 }
 ```
 
+The contract is just: **print JSON on stdout** — the rows of the chart, or plain
+text for a note. Any language, any tool. `history = N` keeps the last N rows, so
+a source that prints one reading becomes a line without remembering anything
+itself; that is how the temperature chart works.
+
+```bash
+python tools/agent.py           # run it
+python tools/agent.py --once    # one pass, for testing
+```
+
+**Commands live in that file and never on the board.** The board is open to the
+whole LAN, and if it carried commands, anything on the wifi could run code on
+this machine. A display should not be a remote shell.
+
 It remembers which item is which panel in `~/.local/state/stark-hud-panels.json`,
-so a refresh updates in place and a tile stays where you dragged it. It runs on
-the host, not in a container: `/proc`, `nvidia-smi` and `tmux` mean nothing from
-inside one.
+so a refresh rewrites contents and leaves position alone — which is what lets you
+drag a tile and keep it there. It runs on the host, not in a container: `/proc`,
+`nvidia-smi` and `tmux` describe a machine, and inside a container they would
+describe the wrong one.
 
 ## Quality gates
 
