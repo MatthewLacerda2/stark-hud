@@ -19,6 +19,10 @@ services:
       GRID_COLS: 32
       GRID_ROWS: 18
       CORS_ORIGINS: "*"
+      # Without this the container is UTC, and anything the backend formats —
+      # the times an agent reads back out of the inbox, for one — is hours off
+      # from the clock on the wall next to the screen.
+      TZ: ${TZ:-America/Fortaleza}
     volumes:
       # Media items hold absolute paths, so the same path has to resolve inside
       # the container. Read-only: the board shows files, it never writes them.

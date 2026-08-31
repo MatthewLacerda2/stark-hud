@@ -54,3 +54,14 @@ async def test_anything_past_the_window_drops_out(client: AsyncClient) -> None:
 
     inbox = (await client.get(URL)).json()
     assert [n["title"] for n in inbox["notifications"]] == ["recent"]
+
+
+async def test_search_matches_title_body_or_source(client: AsyncClient) -> None:
+    """One substring across all three fields, so a caller does not pick a column."""
+    await client.post(URL, json={"title": "deploy done", "source": "ci"})
+    await client.post(URL, json={"title": "tests green", "body": "after the deploy"})
+    await client.post(URL, json={"title": "unrelated", "source": "trm"})
+
+    assert len(repo.search("deploy")) == 2
+    assert [n.title for n in repo.search("TRM")] == ["unrelated"]
+    assert repo.search("nothing like this") == []

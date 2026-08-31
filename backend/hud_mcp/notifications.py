@@ -48,14 +48,23 @@ def register(server: MCPServer) -> None:
         return f"Notified: {title}"
 
     @server.tool()
-    async def list_notifications() -> str:
-        """What is in the inbox now, newest first."""
-        items = repo.list_all()
+    async def list_notifications(query: str | None = None) -> str:
+        """What is in the inbox, newest first.
+
+        Pass `query` to keep only the ones whose title, body or source contain
+        it — a plain case-insensitive substring. Useful for asking what a
+        particular project has been saying, or whether something already
+        reported a failure.
+        """
+        items = repo.search(query) if query else repo.list_all()
         if not items:
-            return "The inbox is empty."
-        return "\n".join(
-            f"{n.created_at:%H:%M} [{n.level}] {n.source or '—'}: {n.title}" for n in items
-        )
+            return f"Nothing matching {query!r}." if query else "The inbox is empty."
+        lines = [
+            f"{n.id}  {n.created_at:%H:%M}  [{n.level}] {n.source or '—'}: {n.title}"
+            + (f" — {n.body}" if n.body else "")
+            for n in items
+        ]
+        return "\n".join(lines)
 
     @server.tool()
     async def dismiss_notification(notification_id: str) -> str:

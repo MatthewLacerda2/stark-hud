@@ -1,9 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { InboxPayload, Notification } from "@/lib/schemas/board";
 import { NotificationIcon } from "@/components/board/notification-icon";
-
-const MINUTE_MS = 60_000;
-const HOUR_MS = 60 * MINUTE_MS;
+import { useClock } from "@/hooks/use-clock";
 
 const LEVEL_TINT: Record<Notification["level"], string> = {
   info: "text-info",
@@ -12,15 +10,25 @@ const LEVEL_TINT: Record<Notification["level"], string> = {
   error: "text-destructive",
 };
 
-/** Recent things read better as an age; older ones as the time they happened. */
+/**
+ * The clock time it happened, or "now" while that is still this minute.
+ *
+ * Absolute rather than an age, because an age has to be recomputed to stay
+ * true and a wall display is mostly not being re-rendered.
+ */
 function when(iso: string, justNow: string): string {
-  const age = Date.now() - new Date(iso).getTime();
-  if (age < MINUTE_MS) return justNow;
-  if (age < HOUR_MS) return `${Math.floor(age / MINUTE_MS)} min`;
-  return new Date(iso).toLocaleTimeString(undefined, {
+  const at = new Date(iso);
+  // h23 rather than the browser's preference: chart axes on this board are
+  // 24-hour, and two clock conventions on one screen is worse than either.
+  const clock = at.toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",
+    hourCycle: "h23",
   });
+  const now = new Date();
+  const sameMinute =
+    at.getHours() === now.getHours() && at.getMinutes() === now.getMinutes();
+  return sameMinute ? justNow : clock;
 }
 
 function Row({ notification }: { notification: Notification }) {
@@ -62,6 +70,9 @@ export function Inbox({
   notifications: Notification[];
 }) {
   const { t } = useTranslation();
+  // So "now" turns into a clock time when its minute passes, instead of
+  // outliving it until something else on the board changes.
+  useClock();
 
   return (
     <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl tile-surface p-5 tile-text">

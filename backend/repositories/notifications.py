@@ -36,6 +36,20 @@ def add(data: NotificationCreate) -> Notification:
     return notification
 
 
+def search(query: str) -> list[Notification]:
+    """Everything whose title, body or source contains ``query``.
+
+    Case-insensitive substring, not a ranking: an inbox is small enough that
+    anything cleverer would be harder to predict than to use.
+    """
+    needle = query.casefold()
+    return [
+        n
+        for n in list_all()
+        if needle in " ".join(filter(None, (n.title, n.body, n.source))).casefold()
+    ]
+
+
 def get(notification_id: str) -> Notification | None:
     """Return one, or ``None``."""
     return next((n for n in list_all() if n.id == notification_id), None)
