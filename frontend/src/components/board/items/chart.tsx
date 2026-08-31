@@ -188,7 +188,7 @@ export function Chart({ payload }: { payload: ChartPayload }) {
     // Barely there: a chart is mostly its own marks, and the background can be
     // seen through the gaps. The backdrop blur is what keeps thin axis labels
     // readable at this opacity — take it away and they fight the video.
-    <Card className="size-full gap-2 border-border/40 bg-card/25 py-3 backdrop-blur-md">
+    <Card className="size-full gap-2 border-border/40 tile-surface py-3 backdrop-blur-md">
       {payload.title ? (
         <CardHeader className="px-4">
           <CardTitle>{payload.title}</CardTitle>

@@ -10,6 +10,7 @@ import type {
 
 export interface ItemCreate {
   payload: Payload;
+  opacity?: number;
   x?: number;
   y?: number;
   w?: number;

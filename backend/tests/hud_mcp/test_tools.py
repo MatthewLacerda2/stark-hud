@@ -26,6 +26,7 @@ EXPECTED = {
     "remove_item",
     "resize_item",
     "set_background",
+    "set_opacity",
     "set_parent",
 }
 

@@ -17,7 +17,7 @@ import { ScrollingText } from "@/components/board/scrolling-text";
 export function Note({ payload }: { payload: NotePayload }) {
   return (
     <div
-      className="flex size-full flex-col justify-center rounded-xl bg-card/65 p-5 text-node text-card-foreground shadow-lg backdrop-blur-sm"
+      className="flex size-full flex-col justify-center rounded-xl tile-surface p-5 text-node text-card-foreground shadow-lg backdrop-blur-sm"
       style={payload.color ? { backgroundColor: payload.color } : undefined}
     >
       <ScrollingText text={payload.text} />

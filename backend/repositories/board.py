@@ -46,11 +46,13 @@ def add(
     parent_id: str | None,
     pinned: bool,
     key: str | None = None,
+    opacity: float | None = None,
 ) -> ItemRead:
     """Insert a new item at an already-resolved position."""
     item = ItemRead(
         id=uuid.uuid4().hex[:12],
         key=key,
+        opacity=opacity,
         payload=payload,
         x=x,
         y=y,

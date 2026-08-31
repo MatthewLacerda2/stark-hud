@@ -316,3 +316,15 @@
     transform: translateY(0);
   }
 }
+
+/* A tile's own background, at whatever opacity that tile was given.
+   `--tile-alpha` is set per item; the fallback is only for stray uses.
+   Declared as a utility rather than a plain class so it is a real Tailwind
+   utility, which is what the class allowlist checks against. */
+@utility tile-surface {
+  background-color: color-mix(
+    in oklab,
+    var(--color-card) calc(var(--tile-alpha, 0.65) * 100%),
+    transparent
+  );
+}

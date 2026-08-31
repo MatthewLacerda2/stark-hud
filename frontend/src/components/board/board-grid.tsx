@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import GridLayout, {
   noCompactor,
   type Layout,
@@ -7,10 +7,22 @@ import GridLayout, {
 import type { Item } from "@/lib/schemas/board";
 import { updateItem } from "@/lib/api/board";
 import { ItemView } from "@/components/board/item-view";
+import { TileControls } from "@/components/board/tile-controls";
 import { useContainerSize } from "@/hooks/use-container-size";
 
 const MARGIN = 8;
 const PADDING = 8;
+// Long enough to move the pointer from the tile to the controls without them
+// vanishing on the way.
+const CONTROLS_LINGER_MS = 3000;
+
+// How solid each kind's background is when nobody has said otherwise. A chart
+// reads through its own marks; prose does not.
+const DEFAULT_ALPHA: Record<string, number> = {
+  chart: 0.25,
+  note: 0.65,
+  list: 0.6,
+};
 // Sides resize one axis, corners resize both.
 const HANDLES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
 
@@ -35,6 +47,29 @@ export function BoardGrid({
   rows: number;
 }) {
   const { ref, width, height } = useContainerSize();
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [preview, setPreview] = useState<Record<string, number>>({});
+  const linger = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const show = useCallback((id: string) => {
+    clearTimeout(linger.current);
+    setHovered(id);
+  }, []);
+
+  const hideSoon = useCallback(() => {
+    clearTimeout(linger.current);
+    linger.current = setTimeout(() => setHovered(null), CONTROLS_LINGER_MS);
+  }, []);
+
+  const alphaOf = useCallback(
+    (item: Item) =>
+      preview[item.id] ?? item.opacity ?? DEFAULT_ALPHA[item.payload.kind] ?? 1,
+    [preview],
+  );
+
+  const commitAlpha = useCallback((id: string, value: number) => {
+    void updateItem(id, { opacity: value }).catch(() => {});
+  }, []);
 
   const rowHeight = useMemo(() => {
     const usable = height - PADDING * 2 - MARGIN * (rows - 1);
@@ -100,8 +135,23 @@ export function BoardGrid({
           onResizeStop={persist}
         >
           {items.map((item) => (
-            <div key={item.id} className="@container min-h-0 min-w-0">
+            <div
+              key={item.id}
+              className="@container relative min-h-0 min-w-0"
+              style={{ ["--tile-alpha" as string]: alphaOf(item) }}
+              onMouseEnter={() => show(item.id)}
+              onMouseLeave={hideSoon}
+            >
               <ItemView item={item} />
+              {hovered === item.id ? (
+                <TileControls
+                  alpha={alphaOf(item)}
+                  onPreview={(value) =>
+                    setPreview((current) => ({ ...current, [item.id]: value }))
+                  }
+                  onCommit={(value) => commitAlpha(item.id, value)}
+                />
+              ) : null}
             </div>
           ))}
         </GridLayout>

@@ -36,6 +36,18 @@ def register(server: MCPServer) -> None:
         return await _patch(item_id, ItemUpdate(w=w, h=h), "resized")
 
     @server.tool()
+    async def set_opacity(item_id: str, opacity: float) -> str:
+        """Set how solid a tile's own background is, from 0 to 1.
+
+        Lower lets the video behind show through. Charts read fine almost
+        transparent because they are mostly their own marks; prose needs
+        something behind it or it fights the moving picture.
+        """
+        if not 0 <= opacity <= 1:
+            return f"Not set: opacity must be between 0 and 1 (got {opacity})"
+        return await _patch(item_id, ItemUpdate(opacity=opacity), "set")
+
+    @server.tool()
     async def set_parent(parent_id: str, item_id: str) -> str:
         """Record an item as belonging to a box."""
         if repo.get(parent_id) is None:

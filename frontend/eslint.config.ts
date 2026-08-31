@@ -6,7 +6,14 @@ import local from "./eslint-rules/index";
 
 // Classes that are legitimately not Tailwind utilities (e.g. structural hooks),
 // so the color allowlist rule must not flag them as unregistered.
-const NON_TAILWIND_CLASSES = ["^dark$", "^group($|/)", "^peer($|/)"];
+// `no-drag` is one: react-grid-layout looks for it to know a pointer here is
+// not the start of a drag. It carries no styles.
+const NON_TAILWIND_CLASSES = [
+  "^dark$",
+  "^group($|/)",
+  "^peer($|/)",
+  "^no-drag$",
+];
 
 // The two long-standing hooks rules, which we grade explicitly below. Every
 // other rule the react-hooks preset enables is a React Compiler diagnostic.

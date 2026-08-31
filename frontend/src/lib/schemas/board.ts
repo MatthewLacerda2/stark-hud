@@ -85,6 +85,8 @@ export interface Item {
   id: string;
   /** A name given by whoever writes this panel repeatedly, so it can find it. */
   key: string | null;
+  /** How solid this tile's background is, 0 to 1. Null means its kind's default. */
+  opacity: number | null;
   payload: Payload;
   x: number;
   y: number;

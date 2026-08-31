@@ -144,6 +144,7 @@ class ItemCreate(BaseModel):
 
     payload: Payload
     key: str | None = None
+    opacity: float | None = Field(default=None, ge=0, le=1)
     x: int | None = Field(default=None, ge=0)
     y: int | None = Field(default=None, ge=0)
     w: int | None = Field(default=None, ge=1)
@@ -157,6 +158,7 @@ class ItemUpdate(BaseModel):
 
     payload: Payload | None = None
     key: str | None = None
+    opacity: float | None = Field(default=None, ge=0, le=1)
     x: int | None = Field(default=None, ge=0)
     y: int | None = Field(default=None, ge=0)
     w: int | None = Field(default=None, ge=1)
@@ -174,6 +176,9 @@ class ItemRead(BaseModel):
     # remembering an id, which is what lets a refresher survive losing its state
     # or being replaced by another process entirely.
     key: str | None = None
+    # How solid this tile's own background is, 0 to 1. None means the default
+    # for its kind: a chart is barely there, prose needs something behind it.
+    opacity: float | None = None
     payload: Payload
     x: int
     y: int
