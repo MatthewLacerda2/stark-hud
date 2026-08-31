@@ -19,7 +19,7 @@ import { ScrollingText } from "@/components/board/scrolling-text";
  */
 export function Note({ payload }: { payload: NotePayload }) {
   return (
-    <div className="flex size-full flex-col justify-center rounded-xl tile-surface p-5 text-node text-card-foreground">
+    <div className="flex size-full flex-col justify-center rounded-xl tile-surface p-5 text-node tile-text">
       <ScrollingText text={payload.text} />
     </div>
   );

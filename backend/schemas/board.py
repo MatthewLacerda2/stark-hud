@@ -183,6 +183,7 @@ class ItemRead(BaseModel):
     # The three things a tile can be told about itself. None means the default
     # for its kind: a chart is barely there, prose needs something behind it.
     opacity: float | None = None
+    # The colour of the tile's text. The background is its kind's, at `opacity`.
     color: str | None = None
     # Multiplies the text sizes inside this tile. The type still scales with the
     # tile, this just moves the whole range.

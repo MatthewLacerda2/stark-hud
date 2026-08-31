@@ -48,7 +48,8 @@ def register(server: MCPServer) -> None:
         behind show through — charts read fine almost transparent because they
         are mostly their own marks, prose needs something behind it.
 
-        `color` is any CSS colour for that background, `var(--chart-2)` included.
+        `color` is any CSS colour for the tile's **text**, `var(--chart-2)`
+        included. A tile's background is its kind's, at whatever `opacity` says.
 
         `scale` multiplies the text inside, 0.25 to 4. Type already grows with
         the tile; this moves the whole range.

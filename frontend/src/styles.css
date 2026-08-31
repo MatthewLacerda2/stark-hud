@@ -336,6 +336,12 @@
    `--tile-colour` is what it is made of and `--tile-alpha` how solid; both are
    set per item. Declared as a utility rather than a plain class so it is a real
    Tailwind utility, which is what the class allowlist checks against. */
+/* The colour of a tile's own text. Falls back to the card foreground, so a
+   tile that was never told anything looks like every other tile. */
+@utility tile-text {
+  color: var(--tile-text, var(--color-card-foreground));
+}
+
 @utility tile-surface {
   background-color: color-mix(
     in oklab,

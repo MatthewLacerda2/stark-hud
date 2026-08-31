@@ -10,7 +10,7 @@ import { ScrollingText } from "@/components/board/scrolling-text";
  */
 export function Notification({ payload }: { payload: NotificationPayload }) {
   return (
-    <div className="flex size-full flex-col justify-center rounded-xl tile-surface px-5 py-3 text-foreground">
+    <div className="flex size-full flex-col justify-center rounded-xl tile-surface px-5 py-3 tile-text">
       <ScrollingText text={payload.message} className="text-node" />
       {payload.source ? (
         <span className="mt-1 text-node-sm text-muted-foreground">

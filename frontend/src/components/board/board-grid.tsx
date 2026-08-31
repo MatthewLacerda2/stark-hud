@@ -37,7 +37,6 @@ const LEVEL_COLOUR: Record<string, string> = {
 
 /** What a tile is made of: what it was told, else what its kind implies. */
 function colourOf(item: Item): string | undefined {
-  if (item.color) return item.color;
   if (item.payload.kind === "notification")
     return LEVEL_COLOUR[item.payload.level];
   if (item.payload.kind === "note" && item.payload.color)
@@ -163,6 +162,7 @@ export function BoardGrid({
                 {
                   "--tile-alpha": alphaOf(item),
                   "--tile-colour": colourOf(item),
+                  "--tile-text": item.color ?? undefined,
                   "--tile-scale": item.scale ?? 1,
                 } as React.CSSProperties
               }
