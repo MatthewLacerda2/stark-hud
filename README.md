@@ -97,8 +97,8 @@ They are not tiles. Everything announced goes into one inbox, shown by an
 body — newest first. How many are visible is how tall that tile is, and how
 much of each line fits is how wide.
 
-They are kept for 48 hours and drop out on their own. In memory, like the
-board: restarting the backend empties them.
+They are kept for 48 hours and drop out on their own. Like the board itself,
+they are written to disk and survive a restart.
 
 ```bash
 curl -X POST localhost:8000/api/v1/notifications -H 'Content-Type: application/json' \

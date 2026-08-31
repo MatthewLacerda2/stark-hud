@@ -21,7 +21,7 @@ def test_instructions_cover_what_a_session_cannot_guess() -> None:
     instructions = (build_server().instructions or "").lower()
     for fact in (
         "never scrolls",  # why a full board refuses
-        "nothing is saved",  # why yesterday's board is gone
+        "kept on disk",  # why yesterday's board is still there
         "drag",  # why an item may have moved under it
         "dark",  # the tile convention
         "notify",  # how to announce finishing

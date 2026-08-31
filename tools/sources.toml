@@ -26,7 +26,7 @@ panel = { kind = "chart", chart = "bar", title = "CPU por núcleo", x_key = "cor
 name = "mem"
 command = "python3 {collectors}/mem.py"
 every = 5
-place = { x = 12, y = 0, w = 6, h = 7 }
+place = { x = 12, y = 0, w = 5, h = 5 }
 panel = { kind = "chart", chart = "radial", title = "Memória", x_key = "label", series = ["use"], max = 100, unit = "%", colors = ["var(--chart-2)"] }
 
 # A darker green than the CPU's, because it is the other vendor's chip. Not a
@@ -35,14 +35,14 @@ panel = { kind = "chart", chart = "radial", title = "Memória", x_key = "label",
 name = "gpu"
 command = "python3 {collectors}/gpu.py util"
 every = 3
-place = { x = 18, y = 0, w = 7, h = 7 }
+place = { x = 17, y = 0, w = 5, h = 5 }
 panel = { kind = "chart", chart = "radial", title = "GPU", x_key = "label", series = ["pct"], max = 100, unit = "%", colors = ["oklch(0.55 0.13 152)"] }
 
 [[source]]
 name = "vram"
 command = "python3 {collectors}/gpu.py vram"
 every = 3
-place = { x = 25, y = 0, w = 7, h = 7 }
+place = { x = 22, y = 0, w = 5, h = 5 }
 panel = { kind = "chart", chart = "radial", title = "VRAM", x_key = "label", series = ["pct"], max = 100, unit = "%", colors = ["oklch(0.55 0.13 152)"] }
 
 # One reading each time; `history` turns it into four minutes of line.
@@ -50,16 +50,16 @@ panel = { kind = "chart", chart = "radial", title = "VRAM", x_key = "label", ser
 [[source]]
 name = "temps"
 command = "python3 {collectors}/temps.py"
-every = 5
-history = 48
-place = { x = 0, y = 7, w = 18, h = 7 }
+every = 2
+history = 90
+place = { x = 0, y = 7, w = 12, h = 6 }
 panel = { kind = "chart", chart = "line", title = "Temperatura (°C)", x_key = "t", series = ["cpu", "gpu"], max = 90, colors = ["var(--chart-2)", "oklch(0.55 0.13 152)"] }
 
 [[source]]
 name = "tmux"
 command = "python3 {collectors}/tmux_sessions.py"
 every = 20
-place = { x = 18, y = 7, w = 7, h = 7 }
+place = { x = 18, y = 7, w = 5, h = 7 }
 panel = { kind = "list", title = "tmux", empty = "nenhuma sessão" }
 
 
@@ -68,5 +68,5 @@ panel = { kind = "list", title = "tmux", empty = "nenhuma sessão" }
 [[source]]
 name = "inbox"
 every = 60
-place = { x = 25, y = 7, w = 7, h = 11 }
+place = { x = 23, y = 5, w = 9, h = 13 }
 panel = { kind = "inbox", title = "notificações" }

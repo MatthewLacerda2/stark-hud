@@ -227,3 +227,6 @@ frontend/dist/
 
 # Keep the example env tracked
 !.env.example
+
+# The live board, written by the backend.
+state/

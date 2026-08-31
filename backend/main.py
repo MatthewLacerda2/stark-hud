@@ -2,10 +2,11 @@
 
 Middleware order (outermost first): CORS -> rate limiting -> request logging.
 The versioned API router is mounted at ``/api/v1``, the board socket lives at
-``/ws``, and the MCP server at ``/mcp``. There is no database: the board is in
-memory and starts empty.
+``/ws``, and the MCP server at ``/mcp``. There is no database: the board is held
+in memory and mirrored to a ``.hud`` file, read back at startup.
 """
 
+import asyncio
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -26,6 +27,7 @@ from hud_mcp.server import build_app as build_mcp_app
 from repositories import board as repo
 from repositories import notifications as notifications_repo
 from schemas.board import BoardSnapshot
+from services import persistence
 from services.board import MissingFileError, SlotTakenError
 from services.notifications import BadIconError
 from services.placement import BoardFullError
@@ -40,9 +42,19 @@ mcp_app = build_mcp_app()
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
-    """Run the MCP session manager for the life of the process."""
-    async with mcp_app.router.lifespan_context(mcp_app):
-        yield
+    """Restore the board, run the MCP session manager, and write on the way out.
+
+    The final save is what makes a clean stop lose nothing; the flusher is what
+    covers the other kind, where nothing gets to run on the way out.
+    """
+    persistence.restore()
+    flush = asyncio.create_task(persistence.flusher(get_settings().STATE_FLUSH_SECONDS))
+    try:
+        async with mcp_app.router.lifespan_context(mcp_app):
+            yield
+    finally:
+        flush.cancel()
+        persistence.save()
 
 
 def _rate_limit_handler(_request: Request, exc: RateLimitExceeded) -> JSONResponse:

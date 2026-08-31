@@ -67,6 +67,11 @@ export interface InboxPayload {
   title: string | null;
 }
 
+/** Nothing is written to a clock: the browser already knows the time. */
+export interface ClockPayload {
+  kind: "clock";
+}
+
 /** One notification. They live in an inbox, not on the grid. */
 export interface Notification {
   id: string;
@@ -87,7 +92,8 @@ export type Payload =
   | ImagePayload
   | VideoPayload
   | ChartPayload
-  | InboxPayload;
+  | InboxPayload
+  | ClockPayload;
 
 export type ItemKind = Payload["kind"];
 

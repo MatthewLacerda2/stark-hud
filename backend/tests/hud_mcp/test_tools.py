@@ -14,6 +14,7 @@ EXPECTED = {
     "add_chart",
     "add_image",
     "add_inbox",
+    "add_clock",
     "add_list",
     "add_note",
     "add_text",

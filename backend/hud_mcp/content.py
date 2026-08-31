@@ -6,6 +6,7 @@ from hud_mcp.common import add
 from schemas.board import (
     BoxPayload,
     ChartPayload,
+    ClockPayload,
     ImagePayload,
     InboxPayload,
     ListPayload,
@@ -170,3 +171,18 @@ def register(server: MCPServer) -> None:
         no reason to have two.
         """
         return await add(InboxPayload(title=title), x, y, w, h)
+
+    @server.tool()
+    async def add_clock(
+        x: int | None = None,
+        y: int | None = None,
+        w: int | None = None,
+        h: int | None = None,
+    ) -> str:
+        """Put a clock on the board: the time now, and the date under it.
+
+        It takes no content and is never updated — the browser keeps its own
+        time. Two rows tall it shows only the time; give it three or more for
+        the date as well.
+        """
+        return await add(ClockPayload(), x, y, w, h)

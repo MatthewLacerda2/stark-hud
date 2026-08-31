@@ -18,6 +18,8 @@ _DEFAULT_SIZES: dict[str, tuple[int, int]] = {
     "video": (16, 9),
     "chart": (10, 7),
     "inbox": (8, 8),
+    # Three rows so the date shows by default; squash it to two for time only.
+    "clock": (7, 4),
 }
 
 

@@ -15,6 +15,9 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
+    # As the human, so the board file it writes is one they can open and edit
+    # without sudo. It reads the host's media as that user too.
+    user: "1000:1000"
     environment:
       GRID_COLS: 32
       GRID_ROWS: 18
@@ -23,7 +26,12 @@ services:
       # the times an agent reads back out of the inbox, for one — is hours off
       # from the clock on the wall next to the screen.
       TZ: ${TZ:-America/Fortaleza}
+      # The board itself, kept across restarts. Plain JSON under a name of our
+      # own, so it can be backed up, edited or swapped for another board.
+      STATE_FILE: /data/board.hud
     volumes:
+      # Read-write, unlike the rest: this is the one thing the backend owns.
+      - ./state:/data
       # Media items hold absolute paths, so the same path has to resolve inside
       # the container. Read-only: the board shows files, it never writes them.
       - /mnt/d_drive:/mnt/d_drive:ro

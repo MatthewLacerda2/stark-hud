@@ -1,9 +1,9 @@
 """Board state. The only module that touches the store.
 
-There is no database in this phase: the board is a dict that dies with the
-process. The repository boundary is kept anyway — every item is a serializable
-Pydantic model, so persisting to a ``.hudtv`` file later means rewriting this
-module and nothing else.
+The board lives in a dict and is mirrored to a ``.hud`` file by
+``services.persistence``; this module only says when something changed, by
+calling ``store.touch``. It never writes: a repository that both held state and
+did I/O would make every mutation a possible failure.
 
 Handlers are async but these functions are not: there is no I/O to await, and
 the event loop is single-threaded, so a call that does not await is atomic.
@@ -12,6 +12,7 @@ the event loop is single-threaded, so a call that does not await is atomic.
 import uuid
 from datetime import UTC, datetime
 
+from repositories import store
 from schemas.board import Background, ItemRead, Payload
 
 _items: dict[str, ItemRead] = {}
@@ -67,12 +68,14 @@ def add(
         created_at=datetime.now(UTC),
     )
     _items[item.id] = item
+    store.touch()
     return item
 
 
 def replace(item: ItemRead) -> ItemRead:
     """Overwrite an existing item with an updated copy."""
     _items[item.id] = item
+    store.touch()
     return item
 
 
@@ -88,6 +91,7 @@ def remove(item_id: str) -> bool:
     for child in list(_items.values()):
         if child.parent_id == item_id:
             _items[child.id] = child.model_copy(update={"parent_id": None})
+    store.touch()
     return True
 
 
@@ -99,6 +103,7 @@ def clear() -> int:
     """
     count = len(_items)
     _items.clear()
+    store.touch()
     return count
 
 
@@ -111,4 +116,16 @@ def set_background(background: Background | None) -> Background | None:
     """Replace the background. ``None`` falls back to the plain dark ground."""
     global _background  # noqa: PLW0603 - module-level store, same as _items
     _background = background
+    store.touch()
     return _background
+
+
+def load(items: list[ItemRead], background: Background | None) -> None:
+    """Replace everything with what came off disk.
+
+    Deliberately not marked dirty: what was just read is what is already there.
+    """
+    global _background  # noqa: PLW0603 - module-level store, same as _items
+    _items.clear()
+    _items.update({item.id: item for item in items})
+    _background = background

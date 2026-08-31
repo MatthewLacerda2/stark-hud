@@ -117,6 +117,16 @@ class InboxPayload(_Payload):
     title: str | None = None
 
 
+class ClockPayload(_Payload):
+    """The time now, with the date under it when the tile is tall enough.
+
+    Nothing is ever written to it. The browser already knows what time it is,
+    and a clock fed over the socket would stop the moment its writer did.
+    """
+
+    kind: Literal["clock"] = "clock"
+
+
 Payload = Annotated[
     NotePayload
     | TextPayload
@@ -125,7 +135,8 @@ Payload = Annotated[
     | ImagePayload
     | VideoPayload
     | ChartPayload
-    | InboxPayload,
+    | InboxPayload
+    | ClockPayload,
     Field(discriminator="kind"),
 ]
 

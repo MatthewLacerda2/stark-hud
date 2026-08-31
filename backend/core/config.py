@@ -35,6 +35,16 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: str = "*"
 
+    # Where the board is kept between runs. Empty means keep nothing, which is
+    # what the tests want. The extension is ours; the contents are plain JSON,
+    # so the file can be edited, copied, or swapped for another board.
+    STATE_FILE: str = "state/board.hud"
+
+    # How long the board may be ahead of the file on disk. Every change is
+    # written whole, so this is a batching window, not a risk window: a power
+    # cut loses at most this many seconds of the screen.
+    STATE_FLUSH_SECONDS: float = 5.0
+
     @property
     def cors_origins_list(self) -> list[str]:
         """Parse the comma-separated CORS origins into a list."""

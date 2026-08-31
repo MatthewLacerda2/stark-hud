@@ -1,13 +1,15 @@
 """The notification store. The only module that touches it.
 
-In memory, like the board, and pruned on every read: nothing older than the
-retention window is ever handed out, so a stale one cannot linger just because
-nobody asked for a while.
+In memory, like the board, and mirrored to the same ``.hud`` file — they are as
+much the state of the screen as the tiles are. Pruned on every read: nothing
+older than the retention window is ever handed out, so a stale one cannot linger
+just because nobody asked for a while.
 """
 
 import uuid
 from datetime import UTC, datetime, timedelta
 
+from repositories import store
 from schemas.notifications import Notification, NotificationCreate
 
 RETENTION = timedelta(hours=48)
@@ -18,7 +20,10 @@ _notifications: list[Notification] = []
 def _prune(now: datetime) -> None:
     """Drop everything past the window."""
     cutoff = now - RETENTION
+    before = len(_notifications)
     _notifications[:] = [n for n in _notifications if n.created_at > cutoff]
+    if len(_notifications) < before:
+        store.touch()
 
 
 def list_all() -> list[Notification]:
@@ -33,6 +38,7 @@ def add(data: NotificationCreate) -> Notification:
     notification = Notification(**data.model_dump(), id=uuid.uuid4().hex[:12], created_at=now)
     _notifications.append(notification)
     _prune(now)
+    store.touch()
     return notification
 
 
@@ -59,11 +65,21 @@ def remove(notification_id: str) -> bool:
     """Dismiss one. Returns whether it was there."""
     before = len(_notifications)
     _notifications[:] = [n for n in _notifications if n.id != notification_id]
-    return len(_notifications) < before
+    if len(_notifications) < before:
+        store.touch()
+        return True
+    return False
 
 
 def clear() -> int:
     """Dismiss everything. Returns how many went."""
     count = len(_notifications)
     _notifications.clear()
+    store.touch()
     return count
+
+
+def load(notifications: list[Notification]) -> None:
+    """Replace everything with what came off disk, dropping anything stale."""
+    _notifications[:] = notifications
+    _prune(datetime.now(UTC))

@@ -58,6 +58,10 @@
   /* --- Type family. Adwaita Sans is GNOME's Inter derivative: the closest
          thing to an SF Pro already on the machine. --- */
   --font-sans: "Adwaita Sans", Inter, system-ui, sans-serif;
+  /* Round and geometric, for the clock. Self-hosted, latin subset only: a
+     clock needs ten digits, a colon and a slash, and a board that goes plain
+     when the wifi drops is not a board. */
+  --font-rounded: Quicksand, var(--font-sans);
 
   /* --- Node-relative type. `cqi` is a percentage of the container's inline
          size, so text in a tile grows with the tile. Each item wrapper is a
@@ -340,6 +344,15 @@
    tile that was never told anything looks like every other tile. */
 @utility tile-text {
   color: var(--tile-text, var(--color-card-foreground));
+}
+
+/* The clock's face. `swap` so the time is never invisible while it loads. */
+@font-face {
+  font-family: "Quicksand";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/quicksand-600-latin.woff2") format("woff2");
 }
 
 @utility tile-surface {

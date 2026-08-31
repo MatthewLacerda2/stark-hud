@@ -1,6 +1,7 @@
 import type { Item, Notification } from "@/lib/schemas/board";
 import { Box } from "@/components/board/items/box";
 import { Chart } from "@/components/board/items/chart";
+import { Clock } from "@/components/board/items/clock";
 import { Image } from "@/components/board/items/image";
 import { Video } from "@/components/board/items/video";
 import { Inbox } from "@/components/board/items/inbox";
@@ -34,5 +35,8 @@ export function ItemView({
       return <Chart payload={payload} />;
     case "inbox":
       return <Inbox payload={payload} notifications={notifications} />;
+    case "clock":
+      // Its height decides whether the date fits; the payload says nothing.
+      return <Clock rows={item.h} />;
   }
 }

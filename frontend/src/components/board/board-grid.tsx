@@ -23,6 +23,7 @@ const DEFAULT_ALPHA: Record<string, number> = {
   note: 0.65,
   list: 0.6,
   inbox: 0.6,
+  clock: 0.5,
 };
 
 /** The tile's background: what its kind implies. `item.color` is for its text. */
