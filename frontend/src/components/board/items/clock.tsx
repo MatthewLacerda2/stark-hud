@@ -32,7 +32,7 @@ export function Clock({ rows }: { rows: number }) {
 
   return (
     <div className="flex size-full flex-col items-center justify-center gap-1 rounded-xl tile-surface p-4 font-rounded tile-text">
-      <span className="text-node-xl font-semibold tabular-nums tracking-tight">
+      <span className="text-node-xl font-bold tabular-nums tracking-tight">
         {time}
       </span>
       {rows >= ROWS_FOR_DATE ? (

@@ -346,13 +346,22 @@
   color: var(--tile-text, var(--color-card-foreground));
 }
 
-/* The clock's face. `swap` so the time is never invisible while it loads. */
+/* The clock's face, in the two weights it actually uses. Both are shipped so
+   the browser never has to fake a bold, which on round digits looks smudged.
+   `swap` so the time is never invisible while it loads. */
 @font-face {
   font-family: "Quicksand";
   font-style: normal;
   font-weight: 600;
   font-display: swap;
   src: url("/fonts/quicksand-600-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Quicksand";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/quicksand-700-latin.woff2") format("woff2");
 }
 
 @utility tile-surface {

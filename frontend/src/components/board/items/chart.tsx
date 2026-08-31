@@ -7,7 +7,6 @@ import {
   RadialBarChart,
   Bar,
   BarChart,
-  CartesianGrid,
   Cell,
   Line,
   LineChart,
@@ -128,7 +127,9 @@ function Body({ payload }: { payload: ChartPayload }) {
   }[payload.chart];
   return (
     <Cartesian data={data} margin={{ left: 4, right: 12, top: 8 }}>
-      <CartesianGrid vertical={false} />
+      {/* No grid behind the marks. This chart sits over a video on a TV, and
+          rules drawn across it read as part of the picture, not as a scale.
+          The axis labels carry the reading on their own. */}
       <XAxis dataKey={xKey} tickLine={false} axisLine={false} tickMargin={8} />
       <YAxis
         tickLine={false}
