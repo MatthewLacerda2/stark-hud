@@ -140,8 +140,9 @@ class Source:
         """Fold what the source produced into the declared panel.
 
         Where it lands depends on the kind: a chart wants rows in `data`, a list
-        wants strings in `items`, and anything else wants text. The source only
-        has to print the content; the config already says what it is.
+        wants strings in `items`, a feed wants entries in `entries`, and
+        anything else wants text. The source only has to print the content; the
+        config already says what it is.
         """
         panel = dict(self.spec["panel"])
         kind = panel.get("kind", "note")
@@ -157,6 +158,11 @@ class Source:
             return panel  # a static widget: nothing to fold in
         if kind == "list":
             panel["items"] = [str(row) for row in rows]
+            return panel
+        if kind == "feed":
+            # Rows are already whole entries; a feed is replaced, never appended
+            # to, so history would only fight whoever polled it.
+            panel["entries"] = rows
             return panel
 
         if self.history is not None:

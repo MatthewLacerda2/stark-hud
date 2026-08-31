@@ -20,6 +20,9 @@ _DEFAULT_SIZES: dict[str, tuple[int, int]] = {
     "inbox": (8, 8),
     # Three rows so the date shows by default; squash it to two for time only.
     "clock": (7, 4),
+    # Tall like the inbox: a feed nobody scrolls is only as useful as the number
+    # of lines it can show at once.
+    "feed": (9, 10),
 }
 
 

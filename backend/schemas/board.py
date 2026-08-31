@@ -121,6 +121,38 @@ class InboxPayload(_Payload):
     title: str | None = None
 
 
+class FeedEntry(BaseModel):
+    """One line in a feed.
+
+    Shaped like a notification minus the parts a feed does not have: no level,
+    because nothing here is an alert, and a short badge where a notification
+    puts its icon.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: str
+    source: str | None = None
+    # Two to four letters standing in for the icon — initials of whatever the
+    # line came from, so a glance tells them apart without reading.
+    badge: str | None = Field(default=None, max_length=4)
+    at: datetime | None = None
+
+
+class FeedPayload(_Payload):
+    """A list of things that happened, newest first.
+
+    Read like the inbox — same line, same rhythm — but it is content someone
+    polled rather than announcements pushed at us, so it lives in its own
+    widget and is replaced whole on every refresh.
+    """
+
+    kind: Literal["feed"] = "feed"
+    title: str | None = None
+    entries: list[FeedEntry] = []
+    empty: str | None = None
+
+
 class ClockPayload(_Payload):
     """The time now, with the date under it when the widget is tall enough.
 
@@ -140,7 +172,8 @@ Payload = Annotated[
     | VideoPayload
     | ChartPayload
     | InboxPayload
-    | ClockPayload,
+    | ClockPayload
+    | FeedPayload,
     Field(discriminator="kind"),
 ]
 

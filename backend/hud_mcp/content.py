@@ -7,6 +7,8 @@ from schemas.board import (
     BoxPayload,
     ChartPayload,
     ClockPayload,
+    FeedEntry,
+    FeedPayload,
     ImagePayload,
     InboxPayload,
     ListPayload,
@@ -182,6 +184,33 @@ def register(server: MCPServer) -> None:
         no reason to have two.
         """
         return await add(InboxPayload(title=title), x, y, w, h)
+
+    @server.tool()
+    async def add_feed(
+        entries: list[dict],
+        title: str | None = None,
+        empty: str | None = None,
+        x: int | None = None,
+        y: int | None = None,
+        w: int | None = None,
+        h: int | None = None,
+    ) -> str:
+        """Put a feed of things that happened on the board, newest first.
+
+        Each entry is `{"title": ..., "source": ..., "badge": ..., "at": ...}`,
+        where `title` is the line people read, `source` says where it came from,
+        `badge` is two to four letters shown where a notification has its icon,
+        and `at` is an ISO timestamp. Only `title` is required.
+
+        Use this for something you poll and rewrite whole — a feed is replaced
+        on every refresh, not appended to. To announce that one thing finished,
+        use notify instead: that goes in the inbox and stays.
+        """
+        try:
+            rows = [FeedEntry(**entry) for entry in entries]
+        except (TypeError, ValueError) as exc:
+            return f"Not added: {exc}"
+        return await add(FeedPayload(title=title, entries=rows, empty=empty), x, y, w, h)
 
     @server.tool()
     async def add_clock(

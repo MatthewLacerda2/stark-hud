@@ -70,6 +70,22 @@ export interface InboxPayload {
   title: string | null;
 }
 
+/** One line in a feed: a notification's shape, minus level, plus a badge. */
+export interface FeedEntry {
+  title: string;
+  source: string | null;
+  /** Two to four letters where a notification has its icon. */
+  badge: string | null;
+  at: string | null;
+}
+
+export interface FeedPayload {
+  kind: "feed";
+  title: string | null;
+  entries: FeedEntry[];
+  empty: string | null;
+}
+
 /** Nothing is written to a clock: the browser already knows the time. */
 export interface ClockPayload {
   kind: "clock";
@@ -99,7 +115,8 @@ export type Payload =
   | VideoPayload
   | ChartPayload
   | InboxPayload
-  | ClockPayload;
+  | ClockPayload
+  | FeedPayload;
 
 export type ItemKind = Payload["kind"];
 
