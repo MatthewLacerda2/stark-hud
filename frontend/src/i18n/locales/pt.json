@@ -7,7 +7,8 @@
     "error": "Não consegui falar com o board.",
     "empty": "Nada no board ainda.",
     "disconnected": "Reconectando…",
-    "crashed": "Algo quebrou. Recarregando…"
+    "crashed": "Algo quebrou. Recarregando…",
+    "emptyList": "nada aqui"
   },
   "media": {
     "missing": "Arquivo perdido"

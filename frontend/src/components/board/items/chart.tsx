@@ -29,13 +29,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const SLOTS = 5;
 
-/** Map each series onto a theme chart colour, the way shadcn expects. */
-function toConfig(series: string[]): ChartConfig {
+/** The colour for series `i`: whatever was asked for, else the next default. */
+function pick(colors: string[], i: number): string {
+  return colors.length > 0
+    ? colors[i % colors.length]
+    : `var(--chart-${(i % SLOTS) + 1})`;
+}
+
+/** Map each series onto a colour, the way shadcn's ChartConfig expects. */
+function toConfig(series: string[], colors: string[]): ChartConfig {
   return Object.fromEntries(
-    series.map((key, i) => [
-      key,
-      { label: key, color: `var(--chart-${(i % SLOTS) + 1})` },
-    ]),
+    series.map((key, i) => [key, { label: key, color: pick(colors, i) }]),
   );
 }
 
@@ -48,9 +52,12 @@ function Gauge({ payload }: { payload: ChartPayload }) {
 
   return (
     <div className="relative size-full">
-      <ChartContainer config={toConfig(payload.series)} className="size-full">
+      <ChartContainer
+        config={toConfig(payload.series, payload.colors)}
+        className="size-full"
+      >
         <RadialBarChart
-          data={[{ ...row, __fill: "var(--chart-1)" }]}
+          data={[{ ...row, __fill: pick(payload.colors, 0) }]}
           startAngle={90}
           endAngle={90 - 360 * fraction}
           innerRadius="72%"
@@ -66,7 +73,7 @@ function Gauge({ payload }: { payload: ChartPayload }) {
             dataKey={payload.series[0]}
             background
             cornerRadius={999}
-            fill="var(--chart-1)"
+            fill={pick(payload.colors, 0)}
           />
         </RadialBarChart>
       </ChartContainer>
@@ -138,6 +145,10 @@ function Body({ payload }: { payload: ChartPayload }) {
         if (payload.chart === "bar") {
           return <Bar key={key} dataKey={key} fill={color} radius={6} />;
         }
+        // Line and area carry history, and Recharts would tween every point
+        // between the old data and the new — the whole shape morphs instead of
+        // the window sliding. Off, a new sample simply appears at the right and
+        // the rest shifts, which is what a scrolling series should look like.
         if (payload.chart === "area") {
           return (
             <Area
@@ -146,6 +157,7 @@ function Body({ payload }: { payload: ChartPayload }) {
               stroke={color}
               fill={color}
               fillOpacity={0.25}
+              isAnimationActive={false}
             />
           );
         }
@@ -156,6 +168,7 @@ function Body({ payload }: { payload: ChartPayload }) {
             stroke={color}
             strokeWidth={3}
             dot={false}
+            isAnimationActive={false}
           />
         );
       })}
@@ -175,7 +188,7 @@ export function Chart({ payload }: { payload: ChartPayload }) {
     // Barely there: a chart is mostly its own marks, and the background can be
     // seen through the gaps. The backdrop blur is what keeps thin axis labels
     // readable at this opacity — take it away and they fight the video.
-    <Card className="size-full gap-2 border-border/40 bg-card/30 py-3 backdrop-blur-md">
+    <Card className="size-full gap-2 border-border/40 bg-card/25 py-3 backdrop-blur-md">
       {payload.title ? (
         <CardHeader className="px-4">
           <CardTitle>{payload.title}</CardTitle>
@@ -190,7 +203,7 @@ export function Chart({ payload }: { payload: ChartPayload }) {
           <Gauge payload={payload} />
         ) : (
           <ChartContainer
-            config={toConfig(payload.series)}
+            config={toConfig(payload.series, payload.colors)}
             className="size-full"
           >
             <Body payload={payload} />

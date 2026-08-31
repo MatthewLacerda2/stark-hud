@@ -142,12 +142,26 @@ class Source:
         self.history: deque[Row] | None = deque(maxlen=depth) if depth else None
 
     def payload(self, produced: list[Row] | str) -> dict:
-        """Fold what the source produced into the declared panel."""
+        """Fold what the source produced into the declared panel.
+
+        Where it lands depends on the kind: a chart wants rows in `data`, a list
+        wants strings in `items`, and anything else wants text. The source only
+        has to print the content; the config already says what it is.
+        """
         panel = dict(self.spec["panel"])
+        kind = panel.get("kind", "note")
+
         if isinstance(produced, str):
-            panel["text"] = produced
+            panel["items" if kind == "list" else "text"] = (
+                produced.splitlines() if kind == "list" else produced
+            )
             return panel
+
         rows = produced if isinstance(produced, list) else [produced]
+        if kind == "list":
+            panel["items"] = [str(row) for row in rows]
+            return panel
+
         if self.history is not None:
             self.history.extend(rows)
             rows = list(self.history)

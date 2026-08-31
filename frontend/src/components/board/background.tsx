@@ -4,8 +4,8 @@ import type { Background as BackgroundType } from "@/lib/schemas/board";
 /**
  * A looping video behind the grid, always muted.
  *
- * `blur-lg` is 12px, half of what it was: enough to stop the video competing
- * with the tiles, not so much that it stops being a picture of something.
+ * 11px: enough to stop the video competing with the tiles, not so much that
+ * it stops being a picture of something.
  *
  * Keyed on the path so swapping videos remounts the element: the URL never
  * changes, so without the key the browser would keep playing the old file.
@@ -29,7 +29,7 @@ export function Background({
       playsInline
       className={cn(
         "absolute inset-0 size-full object-cover",
-        background.blur && "scale-105 blur-lg",
+        background.blur && "scale-105 blur-[11px]",
       )}
     />
   );

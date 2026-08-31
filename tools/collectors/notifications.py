@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""The board's own notifications, as plain text for a note.
+"""The board's own notifications, as a JSON array for a list panel.
 
 Reads the board rather than any system source: an inbox of what several
-sessions have announced, gathered in one tile.
+sessions have announced, gathered into one tile.
 """
 
 import json
@@ -18,9 +18,8 @@ try:
 except (urllib.error.HTTPError, OSError):
     items = []
 
-lines = [
+print(json.dumps([
     f"{i['payload'].get('source') or '—'}: {i['payload']['message']}"
     for i in items
     if i["payload"]["kind"] == "notification"
-]
-print("notificações\n\n" + ("\n".join(lines) if lines else "(nenhuma)"))
+]))

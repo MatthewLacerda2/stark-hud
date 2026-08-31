@@ -7,7 +7,8 @@
     "error": "No se pudo contactar el tablero.",
     "empty": "Nada en el tablero todavía.",
     "disconnected": "Reconectando…",
-    "crashed": "Algo se rompió. Recargando…"
+    "crashed": "Algo se rompió. Recargando…",
+    "emptyList": "nada aquí"
   },
   "media": {
     "missing": "Archivo no encontrado"

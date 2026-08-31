@@ -3,6 +3,7 @@ import { Box } from "@/components/board/items/box";
 import { Chart } from "@/components/board/items/chart";
 import { Image } from "@/components/board/items/image";
 import { Video } from "@/components/board/items/video";
+import { List } from "@/components/board/items/list";
 import { Note } from "@/components/board/items/note";
 import { Notification } from "@/components/board/items/notification";
 import { Text } from "@/components/board/items/text";
@@ -15,6 +16,8 @@ export function ItemView({ item }: { item: Item }) {
       return <Note payload={payload} />;
     case "text":
       return <Text payload={payload} />;
+    case "list":
+      return <List payload={payload} />;
     case "box":
       return <Box payload={payload} />;
     case "image":

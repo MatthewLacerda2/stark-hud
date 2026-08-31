@@ -44,6 +44,20 @@ class BoxPayload(_Payload):
     stroke: str | None = None
 
 
+class ListPayload(_Payload):
+    """A heading and the things under it.
+
+    Its own kind rather than a note with newlines in it: a title and its entries
+    are different weights and sizes, and joining them into one string throws
+    that away.
+    """
+
+    kind: Literal["list"] = "list"
+    title: str | None = None
+    items: list[str] = []
+    empty: str | None = None
+
+
 class ImagePayload(_Payload):
     """An image read from a local path and served back by this API."""
 
@@ -84,6 +98,10 @@ class ChartPayload(_Payload):
     # A radial always has one, defaulting to 100.
     max: float | None = None
     unit: str | None = None
+    # One CSS colour per series, cycled if shorter. Any colour the browser
+    # understands, so `var(--chart-2)` picks a theme token and anything else is
+    # literal. Empty means the default palette.
+    colors: list[str] = []
 
 
 class NotificationPayload(_Payload):
@@ -98,6 +116,7 @@ class NotificationPayload(_Payload):
 Payload = Annotated[
     NotePayload
     | TextPayload
+    | ListPayload
     | BoxPayload
     | ImagePayload
     | VideoPayload

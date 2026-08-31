@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Open tmux session names, as plain text for a note."""
+"""Open tmux session names, as a JSON array for a list panel."""
 
+import json
 import subprocess
 
 try:
@@ -12,4 +13,4 @@ try:
 except (OSError, subprocess.SubprocessError):
     names = []
 
-print("tmux\n\n" + ("\n".join(names) if names else "(nenhuma sessão)"))
+print(json.dumps(names))

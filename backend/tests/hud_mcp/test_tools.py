@@ -13,6 +13,7 @@ EXPECTED = {
     "add_box",
     "add_chart",
     "add_image",
+    "add_list",
     "add_note",
     "add_text",
     "add_video",

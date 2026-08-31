@@ -7,6 +7,7 @@ from schemas.board import (
     BoxPayload,
     ChartPayload,
     ImagePayload,
+    ListPayload,
     NotePayload,
     NotificationPayload,
     TextPayload,
@@ -54,6 +55,25 @@ def register(server: MCPServer) -> None:
         if size not in {"sm", "md", "lg", "xl"}:
             return f"Not added: size must be sm, md, lg or xl (got {size!r})"
         return await add(TextPayload(text=text, size=size), x, y, w, h)
+
+    @server.tool()
+    async def add_list(
+        items: list[str],
+        title: str | None = None,
+        empty: str | None = None,
+        x: int | None = None,
+        y: int | None = None,
+        w: int | None = None,
+        h: int | None = None,
+    ) -> str:
+        """Put a heading and a list of lines on the board.
+
+        Use this rather than a note full of newlines: the title and the entries
+        are drawn at different sizes and weights, which a single string cannot
+        express. `empty` is what to show when the list has nothing in it.
+        """
+        payload = ListPayload(title=title, items=items, empty=empty)
+        return await add(payload, x, y, w, h)
 
     @server.tool()
     async def add_box(
@@ -118,6 +138,7 @@ def register(server: MCPServer) -> None:
         title: str | None = None,
         max: float | None = None,
         unit: str | None = None,
+        colors: list[str] | None = None,
         x: int | None = None,
         y: int | None = None,
         w: int | None = None,

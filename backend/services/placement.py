@@ -12,6 +12,7 @@ from schemas.board import ItemRead, Payload, Placement
 _DEFAULT_SIZES: dict[str, tuple[int, int]] = {
     "note": (8, 4),
     "text": (8, 3),
+    "list": (7, 7),
     "box": (10, 6),
     "image": (8, 6),
     "video": (16, 9),

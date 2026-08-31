@@ -20,6 +20,13 @@ export interface TextPayload {
   size: "sm" | "md" | "lg" | "xl";
 }
 
+export interface ListPayload {
+  kind: "list";
+  title: string | null;
+  items: string[];
+  empty: string | null;
+}
+
 export interface BoxPayload {
   kind: "box";
   label: string | null;
@@ -51,6 +58,8 @@ export interface ChartPayload {
   /** A ceiling for the value axis; a radial always has one. */
   max: number | null;
   unit: string | null;
+  /** One CSS colour per series, cycled. Empty means the default palette. */
+  colors: string[];
 }
 
 export interface NotificationPayload {
@@ -63,6 +72,7 @@ export interface NotificationPayload {
 export type Payload =
   | NotePayload
   | TextPayload
+  | ListPayload
   | BoxPayload
   | ImagePayload
   | VideoPayload
