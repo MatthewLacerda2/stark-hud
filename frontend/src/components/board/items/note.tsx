@@ -4,7 +4,7 @@ import { ScrollingText } from "@/components/board/scrolling-text";
 /**
  * A sticky note.
  *
- * Dark ground by convention: this board is a TV in a dim room, and a pale tile
+ * Dark ground by convention: this board is a TV in a dim room, and a pale widget
  * is a lamp pointed at whoever is watching. `color` still overrides it, but a
  * light value is a deliberate choice, not the default.
  *
@@ -12,14 +12,14 @@ import { ScrollingText } from "@/components/board/scrolling-text";
  * marks; prose has to be readable, and text over moving video is not.
  *
  * `color` is applied by the grid, alongside opacity and scale, so one place
- * decides what a tile is made of and a coloured note still obeys its slider.
+ * decides what a widget is made of and a coloured note still obeys its slider.
  *
  * Text is sized in container units, so the same note reads correctly in a 2x1
  * cell and in a 6x4 one.
  */
 export function Note({ payload }: { payload: NotePayload }) {
   return (
-    <div className="flex size-full flex-col justify-center rounded-xl tile-surface p-5 text-node tile-text">
+    <div className="flex size-full flex-col justify-center rounded-xl widget-surface p-5 text-node widget-text">
       <ScrollingText text={payload.text} />
     </div>
   );

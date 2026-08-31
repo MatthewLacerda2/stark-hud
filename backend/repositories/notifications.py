@@ -1,7 +1,7 @@
 """The notification store. The only module that touches it.
 
 In memory, like the board, and mirrored to the same ``.hud`` file — they are as
-much the state of the screen as the tiles are. Pruned on every read: nothing
+much the state of the screen as the widgets are. Pruned on every read: nothing
 older than the retention window is ever handed out, so a stale one cannot linger
 just because nobody asked for a while.
 """

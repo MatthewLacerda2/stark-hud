@@ -1,4 +1,4 @@
-"""The board has to come back after a restart, tiles and notifications alike."""
+"""The board has to come back after a restart, widgets and notifications alike."""
 
 from pathlib import Path
 

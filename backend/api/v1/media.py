@@ -2,7 +2,7 @@
 
 The item id is the handle, not the path: a filesystem path never appears in a
 URL, and an item that points at a file which has since moved simply 404s. The
-frontend turns that 404 into a visible placeholder rather than a broken tile.
+frontend turns that 404 into a visible placeholder rather than a broken widget.
 """
 
 from pathlib import Path

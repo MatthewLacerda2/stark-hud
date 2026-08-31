@@ -42,17 +42,17 @@ def register(server: MCPServer) -> None:
         color: str | None = None,
         scale: float | None = None,
     ) -> str:
-        """Change how a tile looks. Everything is optional; only what you pass moves.
+        """Change how a widget looks. Everything is optional; only what you pass moves.
 
         `opacity` 0 to 1, how solid its background is. Lower lets the video
         behind show through — charts read fine almost transparent because they
         are mostly their own marks, prose needs something behind it.
 
-        `color` is any CSS colour for the tile's **text**, `var(--chart-2)`
-        included. A tile's background is its kind's, at whatever `opacity` says.
+        `color` is any CSS colour for the widget's **text**, `var(--chart-2)`
+        included. A widget's background is its kind's, at whatever `opacity` says.
 
         `scale` multiplies the text inside, 0.25 to 4. Type already grows with
-        the tile; this moves the whole range.
+        the widget; this moves the whole range.
         """
         if opacity is not None and not 0 <= opacity <= 1:
             return f"Not set: opacity must be between 0 and 1 (got {opacity})"

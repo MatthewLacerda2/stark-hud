@@ -92,9 +92,9 @@ development, nginx in the containers.
 
 ## Notifications
 
-They are not tiles. Everything announced goes into one inbox, shown by an
+They are not widgets. Everything announced goes into one inbox, shown by an
 `inbox` item the way a phone's shade shows its own — icon, source, time, title,
-body — newest first. How many are visible is how tall that tile is, and how
+body — newest first. How many are visible is how tall that widget is, and how
 much of each line fits is how wide.
 
 They are kept for 48 hours and drop out on their own. Like the board itself,
@@ -143,7 +143,7 @@ this machine. A display should not be a remote shell.
 
 It remembers which item is which panel in `~/.local/state/stark-hud-panels.json`,
 so a refresh rewrites contents and leaves position alone — which is what lets you
-drag a tile and keep it there. It runs on the host, not in a container: `/proc`,
+drag a widget and keep it there. It runs on the host, not in a container: `/proc`,
 `nvidia-smi` and `tmux` describe a machine, and inside a container they would
 describe the wrong one.
 

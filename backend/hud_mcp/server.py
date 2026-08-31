@@ -20,7 +20,7 @@ stark-hud is a board shown on a TV in the user's home.
 
 The TV has no keyboard and no mouse, and from the sofa nobody touches it, so
 whatever you put there has to make sense unattended and be readable from across
-a room. Prefer few large tiles to many small ones.
+a room. Prefer few large widgets to many small ones.
 
 The grid is {cols} columns by {rows} rows and never scrolls: anything that does
 not fit would be invisible forever, so a full board refuses new items rather
@@ -31,17 +31,17 @@ reason to arrange things. Call board_status before adding several items, or
 anything large; it reports the biggest free rectangle so you can pick a size
 that fits. A refusal comes back as a sentence saying what is free, not an error.
 
-Someone may drag and resize tiles with a mouse, so do not assume an item is
+Someone may drag and resize widgets with a mouse, so do not assume an item is
 still where you put it. Call list_items instead of remembering.
 
-Tiles are dark by convention: this is a TV in a dim room and a pale one glares.
+Widgets are dark by convention: this is a TV in a dim room and a pale one glares.
 On charts, pass `max` whenever the numbers have a ceiling — without it the axis
 fits the data and 21% draws as nearly full.
 
-The board is kept on disk and comes back after a restart, tiles and
+The board is kept on disk and comes back after a restart, widgets and
 notifications alike, so what you leave there is what a human finds later.
 
-Use notify to say something finished. Notifications are not tiles — they all go
+Use notify to say something finished. Notifications are not widgets — they all go
 into one inbox, like a phone's shade, and drop out after 48 hours. Put your
 project name in the source field so a human can tell which Claude is speaking.\
 """

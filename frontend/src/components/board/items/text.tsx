@@ -1,6 +1,6 @@
 import type { TextPayload } from "@/lib/schemas/board";
 
-// Relative to the tile, not the page: a "lg" text in a small cell should not
+// Relative to the widget, not the page: a "lg" text in a small cell should not
 // overflow it, and in a full-width banner it should fill it.
 const SIZES: Record<TextPayload["size"], string> = {
   sm: "text-node-sm",

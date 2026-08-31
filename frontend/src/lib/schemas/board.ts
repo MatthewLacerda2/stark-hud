@@ -25,7 +25,7 @@ export interface ListPayload {
   title: string | null;
   items: string[];
   empty: string | null;
-  /** Heading and entries can be coloured apart; null takes the tile's colour. */
+  /** Heading and entries can be coloured apart; null takes the widget's colour. */
   title_color: string | null;
   item_color: string | null;
 }
@@ -84,7 +84,7 @@ export interface Notification {
   icon: string | null;
   level: NotifyLevel;
   source: string | null;
-  /** Colours for this entry. Null means white, whatever the tile is. */
+  /** Colours for this entry. Null means white, whatever the widget is. */
   title_color: string | null;
   body_color: string | null;
   created_at: string;
@@ -107,11 +107,11 @@ export interface Item {
   id: string;
   /** A name given by whoever writes this panel repeatedly, so it can find it. */
   key: string | null;
-  /** How solid this tile's background is, 0 to 1. Null means its kind's default. */
+  /** How solid this widget's background is, 0 to 1. Null means its kind's default. */
   opacity: number | null;
-  /** The tile's background colour. Null means its kind's default. */
+  /** The widget's background colour. Null means its kind's default. */
   color: string | null;
-  /** Multiplies the text sizes inside the tile. Null means 1. */
+  /** Multiplies the text sizes inside the widget. Null means 1. */
   scale: number | null;
   payload: Payload;
   x: number;

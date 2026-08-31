@@ -3,12 +3,12 @@ import { Blend } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
 /**
- * The per-tile controls that appear while the pointer is on a tile.
+ * The per-widget controls that appear while the pointer is on a widget.
  *
  * Marked `no-drag` so the grid ignores pointers here — otherwise reaching for
- * the slider would pick the tile up instead.
+ * the slider would pick the widget up instead.
  */
-export function TileControls({
+export function WidgetControls({
   alpha,
   onPreview,
   onCommit,

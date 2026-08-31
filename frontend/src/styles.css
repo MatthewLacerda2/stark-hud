@@ -64,22 +64,24 @@
   --font-rounded: Quicksand, var(--font-sans);
 
   /* --- Node-relative type. `cqi` is a percentage of the container's inline
-         size, so text in a tile grows with the tile. Each item wrapper is a
+         size, so text in a widget grows with the widget. Each item wrapper is a
          container; the clamp keeps a 1x1 cell readable and a 12x8 one sane.
-         `--tile-scale` moves that whole range for one tile, so a panel can be
+         `--widget-scale` moves that whole range for one widget, so a panel can be
          made bigger without every other panel following it. --- */
   --text-node-sm: calc(
-    clamp(0.583rem, 4.114cqi, 1.371rem) * var(--tile-scale, 1)
+    clamp(0.583rem, 4.114cqi, 1.371rem) * var(--widget-scale, 1)
   );
   --text-node-sm--line-height: 1.35;
-  --text-node: calc(clamp(0.754rem, 6.171cqi, 2.229rem) * var(--tile-scale, 1));
+  --text-node: calc(
+    clamp(0.754rem, 6.171cqi, 2.229rem) * var(--widget-scale, 1)
+  );
   --text-node--line-height: 1.25;
   --text-node-lg: calc(
-    clamp(1.029rem, 10.286cqi, 4.114rem) * var(--tile-scale, 1)
+    clamp(1.029rem, 10.286cqi, 4.114rem) * var(--widget-scale, 1)
   );
   --text-node-lg--line-height: 1.1;
   --text-node-xl: calc(
-    clamp(1.371rem, 15.086cqi, 6.171rem) * var(--tile-scale, 1)
+    clamp(1.371rem, 15.086cqi, 6.171rem) * var(--widget-scale, 1)
   );
   --text-node-xl--line-height: 1.05;
 
@@ -87,11 +89,11 @@
          across a room, not body text that happens to be short. Split from the
          node scale so notes can shrink without shrinking it. --- */
   --text-gauge: calc(
-    clamp(1.286rem, 12.857cqi, 5.143rem) * var(--tile-scale, 1)
+    clamp(1.286rem, 12.857cqi, 5.143rem) * var(--widget-scale, 1)
   );
   --text-gauge--line-height: 1.1;
   --text-gauge-label: calc(
-    clamp(0.729rem, 5.143cqi, 1.714rem) * var(--tile-scale, 1)
+    clamp(0.729rem, 5.143cqi, 1.714rem) * var(--widget-scale, 1)
   );
   --text-gauge-label--line-height: 1.35;
 
@@ -221,7 +223,7 @@
 /* --------------------------------------------------------------------------
    Drag and resize affordances.
 
-   Invisible until the pointer is over a tile: this screen is a TV first, and a
+   Invisible until the pointer is over a widget: this screen is a TV first, and a
    permanent scattering of handles would be visual noise nobody on the sofa can
    use anyway. Sides resize one axis, corners resize both.
    -------------------------------------------------------------------------- */
@@ -316,7 +318,7 @@
   cursor: nwse-resize;
 }
 
-/* Text too tall for its tile drifts down and back, with a pause at each end.
+/* Text too tall for its widget drifts down and back, with a pause at each end.
    Nobody can scroll this screen, so the alternative is losing the bottom. */
 @keyframes node-scroll {
   0%,
@@ -333,17 +335,17 @@
   }
 }
 
-/* A tile's background: one colour at one opacity, and nothing else.
-   No blur, no border, no shadow — those read as a tile even at zero opacity,
+/* A widget's background: one colour at one opacity, and nothing else.
+   No blur, no border, no shadow — those read as a widget even at zero opacity,
    which is what made "fully transparent" still look like something was there.
 
-   `--tile-colour` is what it is made of and `--tile-alpha` how solid; both are
+   `--widget-colour` is what it is made of and `--widget-alpha` how solid; both are
    set per item. Declared as a utility rather than a plain class so it is a real
    Tailwind utility, which is what the class allowlist checks against. */
-/* The colour of a tile's own text. Falls back to the card foreground, so a
-   tile that was never told anything looks like every other tile. */
-@utility tile-text {
-  color: var(--tile-text, var(--color-card-foreground));
+/* The colour of a widget's own text. Falls back to the card foreground, so a
+   widget that was never told anything looks like every other widget. */
+@utility widget-text {
+  color: var(--widget-text, var(--color-card-foreground));
 }
 
 /* The clock's face, in the two weights it actually uses. Both are shipped so
@@ -364,10 +366,11 @@
   src: url("/fonts/quicksand-700-latin.woff2") format("woff2");
 }
 
-@utility tile-surface {
+@utility widget-surface {
   background-color: color-mix(
     in oklab,
-    var(--tile-colour, var(--color-card)) calc(var(--tile-alpha, 0.65) * 100%),
+    var(--widget-colour, var(--color-card))
+      calc(var(--widget-alpha, 0.65) * 100%),
     transparent
   );
 }

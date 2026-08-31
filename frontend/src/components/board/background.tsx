@@ -4,7 +4,7 @@ import type { Background as BackgroundType } from "@/lib/schemas/board";
 /**
  * A looping video behind the grid, always muted.
  *
- * 11px: enough to stop the video competing with the tiles, not so much that
+ * 11px: enough to stop the video competing with the widgets, not so much that
  * it stops being a picture of something.
  *
  * Keyed on the path so swapping videos remounts the element: the URL never

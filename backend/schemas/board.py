@@ -58,7 +58,7 @@ class ListPayload(_Payload):
     items: list[str] = []
     empty: str | None = None
     # A heading and its entries may be coloured apart. Either left out falls
-    # back to the tile's own colour, so a plain list still needs no colours.
+    # back to the widget's own colour, so a plain list still needs no colours.
     title_color: str | None = None
     item_color: str | None = None
 
@@ -112,7 +112,7 @@ class ChartPayload(_Payload):
 class InboxPayload(_Payload):
     """Where notifications are shown.
 
-    One tile holds all of them, the way a phone's shade does. Its height decides
+    One widget holds all of them, the way a phone's shade does. Its height decides
     how many are visible at once and its width how much of each line fits;
     neither is configured, they are just consequences of the size it was given.
     """
@@ -122,7 +122,7 @@ class InboxPayload(_Payload):
 
 
 class ClockPayload(_Payload):
-    """The time now, with the date under it when the tile is tall enough.
+    """The time now, with the date under it when the widget is tall enough.
 
     Nothing is ever written to it. The browser already knows what time it is,
     and a clock fed over the socket would stop the moment its writer did.
@@ -199,13 +199,13 @@ class ItemRead(BaseModel):
     # remembering an id, which is what lets a refresher survive losing its state
     # or being replaced by another process entirely.
     key: str | None = None
-    # The three things a tile can be told about itself. None means the default
+    # The three things a widget can be told about itself. None means the default
     # for its kind: a chart is barely there, prose needs something behind it.
     opacity: float | None = None
-    # The colour of the tile's text. The background is its kind's, at `opacity`.
+    # The colour of the widget's text. The background is its kind's, at `opacity`.
     color: str | None = None
-    # Multiplies the text sizes inside this tile. The type still scales with the
-    # tile, this just moves the whole range.
+    # Multiplies the text sizes inside this widget. The type still scales with the
+    # widget, this just moves the whole range.
     scale: float | None = None
     payload: Payload
     x: int

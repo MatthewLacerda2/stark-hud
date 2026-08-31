@@ -104,7 +104,7 @@ def read_source(source: dict) -> list[Row] | str | None:
             return None
     else:
         # No source of data: the panel is whatever the config says it is. Used
-        # for a tile that is fed some other way — the inbox gets its contents
+        # for a widget that is fed some other way — the inbox gets its contents
         # over the socket, it just needs to exist and stay put.
         return []
 
@@ -154,7 +154,7 @@ class Source:
 
         rows = produced if isinstance(produced, list) else [produced]
         if not rows and "command" not in self.spec and "url" not in self.spec:
-            return panel  # a static tile: nothing to fold in
+            return panel  # a static widget: nothing to fold in
         if kind == "list":
             panel["items"] = [str(row) for row in rows]
             return panel

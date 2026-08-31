@@ -34,7 +34,7 @@ def register(server: MCPServer) -> None:
         size. Coordinates are grid cells (the grid is 12x8), never pixels.
 
         Leave `color` alone unless asked. The board is a TV in a dim room, so
-        tiles are dark by convention — a pale note is a lamp pointed at whoever
+        widgets are dark by convention — a pale note is a lamp pointed at whoever
         is watching, and white text on it is unreadable.
         """
         return await add(NotePayload(text=text, color=color), x, y, w, h)
@@ -76,7 +76,7 @@ def register(server: MCPServer) -> None:
         express. `empty` is what to show when the list has nothing in it.
 
         The heading and the entries can be coloured apart; left alone they both
-        take the tile's colour, which is usually what you want.
+        take the widget's colour, which is usually what you want.
         """
         payload = ListPayload(
             title=title,
@@ -117,7 +117,7 @@ def register(server: MCPServer) -> None:
         """Show a local image file.
 
         The path must exist on the machine running the board. If the file later
-        moves, the tile shows a "file not found" placeholder instead of breaking.
+        moves, the widget shows a "file not found" placeholder instead of breaking.
         """
         return await add(ImagePayload(path=path, alt=alt), x, y, w, h, parent_id)
 
@@ -135,7 +135,7 @@ def register(server: MCPServer) -> None:
     ) -> str:
         """Show a local video file.
 
-        Muted by default: several tiles playing sound at once is unusable. Only
+        Muted by default: several widgets playing sound at once is unusable. Only
         unmute when the video is the point of the board right now.
         """
         payload = VideoPayload(path=path, autoplay=autoplay, loop=loop, muted=muted)
@@ -177,7 +177,7 @@ def register(server: MCPServer) -> None:
     ) -> str:
         """Put the notification inbox on the board.
 
-        One tile holds every notification, the way a phone's shade does. Make it
+        One widget holds every notification, the way a phone's shade does. Make it
         taller to show more at once and wider to fit more of each line. There is
         no reason to have two.
         """

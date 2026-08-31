@@ -45,6 +45,23 @@ these can be overridden by the user** (see the closing note).
   user — so long as the user says why, and the explanation still holds in the
   current context.
 
+## What things are called
+
+One word per thing, so a conversation and the code do not drift apart.
+
+- **widget** — one block on the board. Not "node", not "tile", not "card". A
+  node suggests a graph and a tile suggests decoration; this is a widget on a
+  dashboard, and that is the ordinary word for it.
+- **item** — the same thing on the wire. The API, the schemas and the MCP tools
+  say `item` (`add_note`, `list_items`, `move_item`), and that stays: it is a
+  published contract, and renaming it would buy nothing.
+- **board** — everything on screen at once: the widgets, the background, the
+  grid they sit on.
+- **panel** — a widget that something writes to repeatedly, found by its `key`.
+  Every panel is a widget; a one-off note is not a panel.
+- **the agent** — `tools/agent.py`, the process on the host that feeds the
+  panels. Not "the collector", which is one script it runs.
+
 ## Version control
 
 This repository is **local only**. There is no remote, no issues, and no pull

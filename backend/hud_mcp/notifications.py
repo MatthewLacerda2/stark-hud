@@ -26,7 +26,7 @@ def register(server: MCPServer) -> None:
     ) -> str:
         """Announce something in the board's inbox.
 
-        Not a tile: every notification goes into the one inbox, like a phone's
+        Not a widget: every notification goes into the one inbox, like a phone's
         shade. They are kept for 48 hours and then drop out on their own.
 
         `title` is the line people read; put the detail in `body`. Put your

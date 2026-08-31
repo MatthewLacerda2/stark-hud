@@ -7,12 +7,12 @@ import GridLayout, {
 import type { Item, Notification } from "@/lib/schemas/board";
 import { updateItem } from "@/lib/api/board";
 import { ItemView } from "@/components/board/item-view";
-import { TileControls } from "@/components/board/tile-controls";
+import { WidgetControls } from "@/components/board/widget-controls";
 import { useContainerSize } from "@/hooks/use-container-size";
 
 const MARGIN = 8;
 const PADDING = 8;
-// Long enough to move the pointer from the tile to the controls without them
+// Long enough to move the pointer from the widget to the controls without them
 // vanishing on the way.
 const CONTROLS_LINGER_MS = 3000;
 
@@ -26,7 +26,7 @@ const DEFAULT_ALPHA: Record<string, number> = {
   clock: 0.5,
 };
 
-/** The tile's background: what its kind implies. `item.color` is for its text. */
+/** The widget's background: what its kind implies. `item.color` is for its text. */
 function colourOf(item: Item): string | undefined {
   if (item.payload.kind === "note" && item.payload.color)
     return item.payload.color;
@@ -41,7 +41,7 @@ const HANDLES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
  * The server still owns placement: a drag or resize is a request, sent as a
  * PATCH, and the authoritative position comes back over the socket like any
  * other change. If the server refuses — the slot is taken, or it would fall off
- * the grid — nothing arrives, `items` never changes, and the tile snaps back.
+ * the grid — nothing arrives, `items` never changes, and the widget snaps back.
  *
  * Compaction is off. The server places things deliberately, and a grid that
  * pulls everything upwards would fight it.
@@ -115,7 +115,7 @@ export function BoardGrid({
         return;
       }
       // Fire and forget: the socket delivers the result, and a rejection simply
-      // leaves `items` as it was, which snaps the tile home.
+      // leaves `items` as it was, which snaps the widget home.
       void updateItem(next.i, {
         x: next.x,
         y: next.y,
@@ -151,10 +151,10 @@ export function BoardGrid({
               className="@container relative min-h-0 min-w-0"
               style={
                 {
-                  "--tile-alpha": alphaOf(item),
-                  "--tile-colour": colourOf(item),
-                  "--tile-text": item.color ?? undefined,
-                  "--tile-scale": item.scale ?? 1,
+                  "--widget-alpha": alphaOf(item),
+                  "--widget-colour": colourOf(item),
+                  "--widget-text": item.color ?? undefined,
+                  "--widget-scale": item.scale ?? 1,
                 } as React.CSSProperties
               }
               onMouseEnter={() => show(item.id)}
@@ -162,7 +162,7 @@ export function BoardGrid({
             >
               <ItemView item={item} notifications={notifications} />
               {hovered === item.id ? (
-                <TileControls
+                <WidgetControls
                   alpha={alphaOf(item)}
                   onPreview={(value) =>
                     setPreview((current) => ({ ...current, [item.id]: value }))

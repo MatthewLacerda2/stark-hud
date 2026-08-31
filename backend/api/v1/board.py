@@ -69,7 +69,7 @@ async def upsert_by_key(key: str, payload: ItemCreate) -> ItemRead:
     different process — costs nothing.
 
     Position is honoured on the first write and ignored afterwards. A refresher
-    sends the same body every time, and if that moved the tile, dragging one
+    sends the same body every time, and if that moved the widget, dragging one
     would be undone by the next update seconds later.
     """
     existing = repo.get_by_key(key)

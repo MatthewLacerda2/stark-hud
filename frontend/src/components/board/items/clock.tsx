@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-// Below this the tile has no room for a second line, so the date is dropped
+// Below this the widget has no room for a second line, so the date is dropped
 // rather than shrunk into something nobody can read from the sofa.
 const ROWS_FOR_DATE = 2;
 
@@ -13,8 +13,8 @@ const ROWS_FOR_DATE = 2;
  * socket: a clock that depends on a writer stops when the writer does, and this
  * one has to be right at 4am with nothing else running.
  *
- * Digits are tabular so the tile does not twitch as the seconds change width,
- * and set in a rounded face — a clock is the one tile nobody reads, only
+ * Digits are tabular so the widget does not twitch as the seconds change width,
+ * and set in a rounded face — a clock is the one widget nobody reads, only
  * glances at, so it can afford to look like an object rather than like text.
  */
 export function Clock({ rows }: { rows: number }) {
@@ -31,7 +31,7 @@ export function Clock({ rows }: { rows: number }) {
   ).slice(-2)}`;
 
   return (
-    <div className="flex size-full flex-col items-center justify-center gap-1 rounded-xl tile-surface p-4 font-rounded tile-text">
+    <div className="flex size-full flex-col items-center justify-center gap-1 rounded-xl widget-surface p-4 font-rounded widget-text">
       <span className="text-node-xl font-bold tabular-nums tracking-tight">
         {time}
       </span>

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 /**
  * How far a block overflows its box, in pixels, or 0 when it fits.
  *
- * Re-measured whenever the element or its content resizes, because a tile can
+ * Re-measured whenever the element or its content resizes, because a widget can
  * be dragged to a new size at any moment and text that fitted may stop fitting.
  */
 export function useOverflow(deps: unknown): {

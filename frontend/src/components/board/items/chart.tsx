@@ -188,7 +188,7 @@ export function Chart({ payload }: { payload: ChartPayload }) {
   return (
     // Only a colour at an opacity. A border and a blur survive at zero opacity
     // and still draw a rectangle, which defeats the point of turning it down.
-    <Card className="size-full gap-2 border-0 tile-surface py-3 shadow-none">
+    <Card className="size-full gap-2 border-0 widget-surface py-3 shadow-none">
       {payload.title ? (
         <CardHeader className="px-4">
           <CardTitle>{payload.title}</CardTitle>

@@ -38,7 +38,7 @@ class HudFile(BaseModel):
     """What a ``.hud`` file holds.
 
     Notifications live here too: they are as much the state of the screen as the
-    tiles are, and losing them on every restart was the one thing about this
+    widgets are, and losing them on every restart was the one thing about this
     board that behaved like a toy.
     """
 

@@ -66,7 +66,7 @@ panel = { kind = "list", title = "tmux", empty = "nenhuma sessão", title_color 
 
 
 # No command: the inbox is filled over the socket, not by polling. This entry
-# only keeps the tile on the board, so it comes back after a restart.
+# only keeps the widget on the board, so it comes back after a restart.
 [[source]]
 name = "inbox"
 every = 60

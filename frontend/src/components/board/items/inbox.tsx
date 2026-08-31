@@ -31,7 +31,7 @@ function when(iso: string, justNow: string): string {
   return sameMinute ? justNow : clock;
 }
 
-// The default for an entry's text, whatever colour the tile itself is: an inbox
+// The default for an entry's text, whatever colour the widget itself is: an inbox
 // is read line by line, and a line that has to stand out says so for itself.
 const DEFAULT_TEXT = "#fff";
 
@@ -71,7 +71,7 @@ function Row({ notification }: { notification: Notification }) {
 /**
  * The notification shade.
  *
- * How many fit is decided by how tall the tile is and how much of each line
+ * How many fit is decided by how tall the widget is and how much of each line
  * fits by how wide — neither is configured, they are just what the size does.
  * Overflow is clipped rather than scrolled: the newest are at the top, and
  * nobody can scroll this screen anyway.
@@ -89,7 +89,7 @@ export function Inbox({
   useClock();
 
   return (
-    <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl tile-surface p-5 tile-text">
+    <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl widget-surface p-5 widget-text">
       {payload.title ? (
         <h3 className="shrink-0 text-node font-semibold tracking-tight">
           {payload.title}

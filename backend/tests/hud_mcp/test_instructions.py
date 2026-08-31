@@ -23,7 +23,7 @@ def test_instructions_cover_what_a_session_cannot_guess() -> None:
         "never scrolls",  # why a full board refuses
         "kept on disk",  # why yesterday's board is still there
         "drag",  # why an item may have moved under it
-        "dark",  # the tile convention
+        "dark",  # the widget convention
         "notify",  # how to announce finishing
     ):
         assert fact in instructions, f"instructions no longer mention {fact!r}"

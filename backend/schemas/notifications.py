@@ -1,6 +1,6 @@
-"""Notifications: an inbox, not tiles.
+"""Notifications: an inbox, not widgets.
 
-Several sessions announce into the same place, and one tile on the board shows
+Several sessions announce into the same place, and one widget on the board shows
 them the way a phone does — icon, title, body, when.
 """
 

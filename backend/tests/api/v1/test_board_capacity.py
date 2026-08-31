@@ -8,16 +8,16 @@ COLS = get_settings().GRID_COLS
 ROWS = get_settings().GRID_ROWS
 
 ITEMS = "/api/v1/board/items"
-# A size that tiles the grid exactly, so "full" means zero cells left over.
-TILE_W, TILE_H = 8, 6
-TILE = {"payload": {"kind": "note", "text": "n"}, "w": TILE_W, "h": TILE_H}
+# A size that widgets the grid exactly, so "full" means zero cells left over.
+WIDGET_W, WIDGET_H = 8, 6
+WIDGET = {"payload": {"kind": "note", "text": "n"}, "w": WIDGET_W, "h": WIDGET_H}
 
 
 async def _fill(client: AsyncClient) -> int:
-    """Tile the whole grid, and return how many items that took."""
-    count = (COLS // TILE_W) * (ROWS // TILE_H)
+    """Widget the whole grid, and return how many items that took."""
+    count = (COLS // WIDGET_W) * (ROWS // WIDGET_H)
     for _ in range(count):
-        assert (await client.post(ITEMS, json=TILE)).status_code == 201
+        assert (await client.post(ITEMS, json=WIDGET)).status_code == 201
     assert (await client.get("/api/v1/board/status")).json()["cells_free"] == 0
     return count
 
@@ -38,6 +38,6 @@ async def test_freed_slot_is_reused(client: AsyncClient) -> None:
     victim = (await client.get(ITEMS)).json()[3]
     assert (await client.delete(f"{ITEMS}/{victim['id']}")).status_code == 204
 
-    response = await client.post(ITEMS, json=TILE)
+    response = await client.post(ITEMS, json=WIDGET)
     assert response.status_code == 201
     assert (response.json()["x"], response.json()["y"]) == (victim["x"], victim["y"])
