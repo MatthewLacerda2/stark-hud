@@ -1,0 +1,17 @@
+{
+  "app": {
+    "title": "stark-hud"
+  },
+  "board": {
+    "loading": "Loading board…",
+    "error": "Could not reach the board.",
+    "empty": "Nothing on the board yet.",
+    "disconnected": "Reconnecting…"
+  },
+  "media": {
+    "missing": "File not found"
+  },
+  "chart": {
+    "noData": "No data"
+  }
+}

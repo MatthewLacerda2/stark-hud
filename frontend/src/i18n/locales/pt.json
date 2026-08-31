@@ -1,0 +1,17 @@
+{
+  "app": {
+    "title": "stark-hud"
+  },
+  "board": {
+    "loading": "Carregando o board…",
+    "error": "Não consegui falar com o board.",
+    "empty": "Nada no board ainda.",
+    "disconnected": "Reconectando…"
+  },
+  "media": {
+    "missing": "Arquivo perdido"
+  },
+  "chart": {
+    "noData": "Sem dados"
+  }
+}

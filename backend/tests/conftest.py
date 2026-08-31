@@ -1,0 +1,18 @@
+"""Root test fixtures.
+
+There is no database. The board is a module-level dict, so the only shared state
+between tests is the board itself — cleared before and after each test so order
+never matters.
+"""
+
+import pytest
+
+from repositories import board
+
+
+@pytest.fixture(autouse=True)
+def clean_board() -> None:
+    """Empty the board around every test."""
+    board.clear()
+    yield
+    board.clear()

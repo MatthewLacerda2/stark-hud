@@ -1,0 +1,17 @@
+{
+  "app": {
+    "title": "stark-hud"
+  },
+  "board": {
+    "loading": "Cargando el tablero…",
+    "error": "No se pudo contactar el tablero.",
+    "empty": "Nada en el tablero todavía.",
+    "disconnected": "Reconectando…"
+  },
+  "media": {
+    "missing": "Archivo no encontrado"
+  },
+  "chart": {
+    "noData": "Sin datos"
+  }
+}
