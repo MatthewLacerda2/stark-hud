@@ -52,6 +52,11 @@ class NotificationCreate(BaseModel):
     icon: str | None = None
     level: NotifyLevel = "info"
     source: str | None = None
+    # Colours for this one entry, as CSS the browser understands. Left out, the
+    # text is white: an inbox where every line picks its own colour is a mess,
+    # so colour is for the rare line that has to stand out.
+    title_color: str | None = None
+    body_color: str | None = None
 
 
 class Notification(NotificationCreate):

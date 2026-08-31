@@ -25,6 +25,9 @@ export interface ListPayload {
   title: string | null;
   items: string[];
   empty: string | null;
+  /** Heading and entries can be coloured apart; null takes the tile's colour. */
+  title_color: string | null;
+  item_color: string | null;
 }
 
 export interface BoxPayload {
@@ -81,6 +84,9 @@ export interface Notification {
   icon: string | null;
   level: NotifyLevel;
   source: string | null;
+  /** Colours for this entry. Null means white, whatever the tile is. */
+  title_color: string | null;
+  body_color: string | null;
   created_at: string;
 }
 

@@ -12,6 +12,9 @@ import { ScrollingText } from "@/components/board/scrolling-text";
  *
  * They scroll when there are more of them than fit, because nobody can scroll
  * this screen.
+ *
+ * The heading and the entries can be coloured apart. Left alone they both take
+ * the tile's colour, which is the case that needs no thought.
  */
 export function List({ payload }: { payload: ListPayload }) {
   const { t } = useTranslation();
@@ -20,7 +23,12 @@ export function List({ payload }: { payload: ListPayload }) {
   return (
     <div className="flex size-full flex-col gap-2 rounded-xl tile-surface p-5 tile-text">
       {payload.title ? (
-        <h3 className="shrink-0 text-node font-semibold tracking-tight">
+        <h3
+          className="shrink-0 text-node font-semibold tracking-tight"
+          style={
+            payload.title_color ? { color: payload.title_color } : undefined
+          }
+        >
           {payload.title}
         </h3>
       ) : null}
@@ -28,6 +36,7 @@ export function List({ payload }: { payload: ListPayload }) {
         <ScrollingText
           text={payload.items.join("\n")}
           className="flex-1 text-node-sm font-semibold opacity-85"
+          color={payload.item_color ?? undefined}
         />
       ) : (
         <p className="text-node-sm font-semibold italic opacity-70">{empty}</p>

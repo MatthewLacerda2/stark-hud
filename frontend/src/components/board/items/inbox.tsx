@@ -31,6 +31,10 @@ function when(iso: string, justNow: string): string {
   return sameMinute ? justNow : clock;
 }
 
+// The default for an entry's text, whatever colour the tile itself is: an inbox
+// is read line by line, and a line that has to stand out says so for itself.
+const DEFAULT_TEXT = "#fff";
+
 function Row({ notification }: { notification: Notification }) {
   const { t } = useTranslation();
   return (
@@ -45,9 +49,19 @@ function Row({ notification }: { notification: Notification }) {
             {when(notification.created_at, t("inbox.justNow"))}
           </span>
         </div>
-        <p className="truncate font-semibold">{notification.title}</p>
+        <p
+          className="truncate font-semibold"
+          style={{ color: notification.title_color ?? DEFAULT_TEXT }}
+        >
+          {notification.title}
+        </p>
         {notification.body ? (
-          <p className="line-clamp-2 opacity-75">{notification.body}</p>
+          <p
+            className="line-clamp-2 opacity-75"
+            style={{ color: notification.body_color ?? DEFAULT_TEXT }}
+          >
+            {notification.body}
+          </p>
         ) : null}
       </div>
     </li>

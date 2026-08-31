@@ -21,6 +21,8 @@ def register(server: MCPServer) -> None:
         icon: str | None = None,
         level: str = "info",
         source: str | None = None,
+        title_color: str | None = None,
+        body_color: str | None = None,
     ) -> str:
         """Announce something in the board's inbox.
 
@@ -35,12 +37,24 @@ def register(server: MCPServer) -> None:
         x-circle, terminal, git-branch, download, upload, cpu, hard-drive, mail,
         message-square, clock, zap, flame, bug, rocket, wrench — or an absolute
         path to an image on this machine.
+
+        The text is white unless you colour it. Leave the colours alone unless
+        you were asked for one: an inbox where every line is its own colour is
+        a mess, and `level` already tints the icon.
         """
         if level not in LEVELS:
             return f"Not sent: level must be info, success, warn or error (got {level!r})"
         try:
             notification = service.create(
-                NotificationCreate(title=title, body=body, icon=icon, level=level, source=source)
+                NotificationCreate(
+                    title=title,
+                    body=body,
+                    icon=icon,
+                    level=level,
+                    source=source,
+                    title_color=title_color,
+                    body_color=body_color,
+                )
             )
         except BadIconError as exc:
             return f"Not sent: {exc}"

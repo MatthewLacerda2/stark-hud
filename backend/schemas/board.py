@@ -57,6 +57,10 @@ class ListPayload(_Payload):
     title: str | None = None
     items: list[str] = []
     empty: str | None = None
+    # A heading and its entries may be coloured apart. Either left out falls
+    # back to the tile's own colour, so a plain list still needs no colours.
+    title_color: str | None = None
+    item_color: str | None = None
 
 
 class ImagePayload(_Payload):

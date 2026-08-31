@@ -14,15 +14,22 @@ const MIN_SECONDS = 8;
 export function ScrollingText({
   text,
   className = "",
+  color,
 }: {
   text: string;
   className?: string;
+  /** Overrides the inherited colour. The inner element owns `style` already. */
+  color?: string;
 }) {
   const { ref, overflow } = useOverflow(text);
   const seconds = Math.max(MIN_SECONDS, (overflow / PIXELS_PER_SECOND) * 2);
 
   return (
-    <div ref={ref} className={`min-h-0 overflow-hidden ${className}`}>
+    <div
+      ref={ref}
+      className={`min-h-0 overflow-hidden ${className}`}
+      style={color ? { color } : undefined}
+    >
       <p
         className="wrap-break-word whitespace-pre-wrap"
         style={

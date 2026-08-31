@@ -62,6 +62,8 @@ def register(server: MCPServer) -> None:
         items: list[str],
         title: str | None = None,
         empty: str | None = None,
+        title_color: str | None = None,
+        item_color: str | None = None,
         x: int | None = None,
         y: int | None = None,
         w: int | None = None,
@@ -72,8 +74,17 @@ def register(server: MCPServer) -> None:
         Use this rather than a note full of newlines: the title and the entries
         are drawn at different sizes and weights, which a single string cannot
         express. `empty` is what to show when the list has nothing in it.
+
+        The heading and the entries can be coloured apart; left alone they both
+        take the tile's colour, which is usually what you want.
         """
-        payload = ListPayload(title=title, items=items, empty=empty)
+        payload = ListPayload(
+            title=title,
+            items=items,
+            empty=empty,
+            title_color=title_color,
+            item_color=item_color,
+        )
         return await add(payload, x, y, w, h)
 
     @server.tool()
