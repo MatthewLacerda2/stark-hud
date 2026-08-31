@@ -22,6 +22,9 @@ const DEFAULT_ALPHA: Record<string, number> = {
   chart: 0.25,
   note: 0.65,
   list: 0.6,
+  // Enough of the level colour to read at a glance, now that the bar down the
+  // side is gone.
+  notification: 0.22,
 };
 // Sides resize one axis, corners resize both.
 const HANDLES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;

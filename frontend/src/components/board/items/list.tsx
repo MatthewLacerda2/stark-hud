@@ -14,7 +14,7 @@ export function List({ payload }: { payload: ListPayload }) {
   const empty = payload.empty ?? t("board.emptyList");
 
   return (
-    <div className="flex size-full flex-col gap-2 rounded-xl tile-surface p-5 text-card-foreground shadow-lg backdrop-blur-sm">
+    <div className="flex size-full flex-col gap-2 rounded-xl tile-surface p-5 text-card-foreground">
       {payload.title ? (
         <h3 className="shrink-0 text-node font-semibold tracking-tight">
           {payload.title}

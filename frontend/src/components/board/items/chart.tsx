@@ -185,10 +185,9 @@ function Body({ payload }: { payload: ChartPayload }) {
 export function Chart({ payload }: { payload: ChartPayload }) {
   const { t } = useTranslation();
   return (
-    // Barely there: a chart is mostly its own marks, and the background can be
-    // seen through the gaps. The backdrop blur is what keeps thin axis labels
-    // readable at this opacity — take it away and they fight the video.
-    <Card className="size-full gap-2 border-border/40 tile-surface py-3 backdrop-blur-md">
+    // Only a colour at an opacity. A border and a blur survive at zero opacity
+    // and still draw a rectangle, which defeats the point of turning it down.
+    <Card className="size-full gap-2 border-0 tile-surface py-3 shadow-none">
       {payload.title ? (
         <CardHeader className="px-4">
           <CardTitle>{payload.title}</CardTitle>

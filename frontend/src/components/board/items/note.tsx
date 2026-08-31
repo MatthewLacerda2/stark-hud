@@ -11,14 +11,21 @@ import { ScrollingText } from "@/components/board/scrolling-text";
  * Kept more opaque than a chart on purpose. A chart is legible through its own
  * marks; prose has to be readable, and text over moving video is not.
  *
+ * `color` feeds the same surface as the slider, so a coloured note still obeys
+ * whatever opacity it was given.
+ *
  * Text is sized in container units, so the same note reads correctly in a 2x1
  * cell and in a 6x4 one.
  */
 export function Note({ payload }: { payload: NotePayload }) {
   return (
     <div
-      className="flex size-full flex-col justify-center rounded-xl tile-surface p-5 text-node text-card-foreground shadow-lg backdrop-blur-sm"
-      style={payload.color ? { backgroundColor: payload.color } : undefined}
+      className="flex size-full flex-col justify-center rounded-xl tile-surface p-5 text-node text-card-foreground"
+      style={
+        payload.color
+          ? ({ "--tile-colour": payload.color } as React.CSSProperties)
+          : undefined
+      }
     >
       <ScrollingText text={payload.text} />
     </div>
