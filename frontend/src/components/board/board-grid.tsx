@@ -24,6 +24,7 @@ const DEFAULT_ALPHA: Record<string, number> = {
   list: 0.6,
   inbox: 0.6,
   clock: 0.5,
+  feed: 0.6,
 };
 
 /** The widget's background: what its kind implies. `item.color` is for its text. */

@@ -65,6 +65,17 @@ place = { x = 18, y = 7, w = 5, h = 7 }
 panel = { kind = "list", title = "tmux", empty = "nenhuma sessão", title_color = "#16a34a", item_color = "#4ade80" }
 
 
+# Two minutes: each pass is one call per feed plus one per push to fetch the
+# message, and there is no hurry — a commit is not news by the second.
+[[source]]
+name = "commits"
+command = "python3 {collectors}/github_commits.py --limit 10"
+every = 120
+timeout = 60
+place = { x = 12, y = 5, w = 6, h = 13 }
+panel = { kind = "feed", title = "commits", empty = "nenhum commit recente" }
+
+
 # No command: the inbox is filled over the socket, not by polling. This entry
 # only keeps the widget on the board, so it comes back after a restart.
 [[source]]

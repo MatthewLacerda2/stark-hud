@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import type { InboxPayload, Notification } from "@/lib/schemas/board";
 import { NotificationIcon } from "@/components/board/notification-icon";
 import { useClock } from "@/hooks/use-clock";
+import { when } from "@/lib/when";
 
 const LEVEL_TINT: Record<Notification["level"], string> = {
   info: "text-info",
@@ -10,29 +11,9 @@ const LEVEL_TINT: Record<Notification["level"], string> = {
   error: "text-destructive",
 };
 
-/**
- * The clock time it happened, or "now" while that is still this minute.
- *
- * Absolute rather than an age, because an age has to be recomputed to stay
- * true and a wall display is mostly not being re-rendered.
- */
-function when(iso: string, justNow: string): string {
-  const at = new Date(iso);
-  // h23 rather than the browser's preference: chart axes on this board are
-  // 24-hour, and two clock conventions on one screen is worse than either.
-  const clock = at.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  });
-  const now = new Date();
-  const sameMinute =
-    at.getHours() === now.getHours() && at.getMinutes() === now.getMinutes();
-  return sameMinute ? justNow : clock;
-}
-
-// The default for an entry's text, whatever colour the widget itself is: an inbox
-// is read line by line, and a line that has to stand out says so for itself.
+// The default for an entry's text, whatever colour the widget itself is: an
+// inbox is read line by line, and a line that has to stand out says so for
+// itself.
 const DEFAULT_TEXT = "#fff";
 
 function Row({ notification }: { notification: Notification }) {
