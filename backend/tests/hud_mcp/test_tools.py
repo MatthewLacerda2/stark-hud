@@ -13,12 +13,14 @@ EXPECTED = {
     "add_text",
     "add_video",
     "board_status",
+    "clear_background",
     "clear_board",
     "list_items",
     "move_item",
     "notify",
     "remove_item",
     "resize_item",
+    "set_background",
     "set_parent",
 }
 

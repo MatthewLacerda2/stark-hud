@@ -17,6 +17,18 @@ router = APIRouter(prefix="/media", tags=["media"])
 _MEDIA_KINDS = {"image", "video"}
 
 
+@router.get("/background")
+async def get_background_media() -> FileResponse:
+    """Stream the video behind the grid."""
+    background = repo.get_background()
+    if background is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No background set")
+    path = Path(background.path)
+    if not path.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"File is gone: {path}")
+    return FileResponse(path)
+
+
 @router.get("/{item_id}")
 async def get_media(item_id: str) -> FileResponse:
     """Stream the file behind an image or video item."""

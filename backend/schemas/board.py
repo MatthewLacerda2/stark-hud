@@ -149,6 +149,26 @@ class ItemRead(BaseModel):
     created_at: datetime
 
 
+class Background(BaseModel):
+    """A looping video behind the grid.
+
+    Never has audio: this is wallpaper, and a board that makes noise on its own
+    is a board nobody leaves running.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    path: str
+    blur: bool = False
+
+
+class BoardSnapshot(BaseModel):
+    """Everything a client needs on connect."""
+
+    items: list[ItemRead]
+    background: Background | None
+
+
 class BoardStatus(BaseModel):
     """Occupancy summary, so a caller can look before it leaps."""
 

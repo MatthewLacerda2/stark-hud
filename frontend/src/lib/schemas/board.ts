@@ -87,6 +87,17 @@ export interface Placement {
   h: number;
 }
 
+/** A looping, always-silent video behind the grid. */
+export interface Background {
+  path: string;
+  blur: boolean;
+}
+
+export interface BoardSnapshot {
+  items: Item[];
+  background: Background | null;
+}
+
 export interface BoardStatus {
   cols: number;
   rows: number;
@@ -99,7 +110,8 @@ export interface BoardStatus {
 
 /** Events pushed over the board socket. */
 export type BoardEvent =
-  | { event: "board.snapshot"; data: Item[] }
+  | { event: "board.snapshot"; data: BoardSnapshot }
+  | { event: "background.changed"; data: Background | null }
   | { event: "board.cleared"; data: { removed: number } }
   | { event: "item.created"; data: Item }
   | { event: "item.updated"; data: Item }

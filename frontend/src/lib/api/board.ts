@@ -1,7 +1,12 @@
 /** Typed wrappers for the board endpoints. Pages call these, never `fetch`. */
 
 import { request } from "@/lib/api/client";
-import type { BoardStatus, Item, Payload } from "@/lib/schemas/board";
+import type {
+  Background,
+  BoardStatus,
+  Item,
+  Payload,
+} from "@/lib/schemas/board";
 
 export interface ItemCreate {
   payload: Payload;
@@ -37,4 +42,16 @@ export function removeItem(id: string): Promise<void> {
 
 export function clearBoard(): Promise<{ removed: number }> {
   return request<{ removed: number }>("/board/items", { method: "DELETE" });
+}
+
+export function getBackground(): Promise<Background | null> {
+  return request<Background | null>("/board/background");
+}
+
+export function setBackground(body: Background): Promise<Background> {
+  return request<Background>("/board/background", { method: "PUT", body });
+}
+
+export function clearBackground(): Promise<void> {
+  return request<void>("/board/background", { method: "DELETE" });
 }

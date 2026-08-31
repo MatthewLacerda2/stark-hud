@@ -14,5 +14,7 @@ from repositories import board
 def clean_board() -> None:
     """Empty the board around every test."""
     board.clear()
+    board.set_background(None)
     yield
     board.clear()
+    board.set_background(None)

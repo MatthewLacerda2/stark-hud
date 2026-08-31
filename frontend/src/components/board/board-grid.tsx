@@ -28,7 +28,9 @@ export function BoardGrid({
       {items.map((item) => (
         <div
           key={item.id}
-          className="min-h-0 min-w-0 animate-[fade-in_200ms_ease-out]"
+          // @container: item text sizes in `cqi` units, so a note in a 2x1
+          // cell and the same note in a 6x4 cell both read correctly.
+          className="@container min-h-0 min-w-0 animate-[fade-in_200ms_ease-out]"
           style={{
             gridColumn: `${item.x + 1} / span ${item.w}`,
             gridRow: `${item.y + 1} / span ${item.h}`,

@@ -24,7 +24,8 @@ from core.logging_middleware import LoggingMiddleware
 from core.rate_limiter import limiter
 from hud_mcp.server import build_app as build_mcp_app
 from repositories import board as repo
-from services.board import SlotTakenError
+from schemas.board import BoardSnapshot
+from services.board import MissingFileError, SlotTakenError
 from services.placement import BoardFullError
 
 APP_NAME = "stark-hud"
@@ -62,6 +63,12 @@ def _slot_taken_handler(_request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(status_code=409, content={"detail": str(exc)})
 
 
+def _missing_file_handler(_request: Request, exc: Exception) -> JSONResponse:
+    """Return 404 when a background points at a path that is not there."""
+    assert isinstance(exc, MissingFileError)
+    return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+
 def create_app() -> FastAPI:
     """Build and configure the FastAPI application."""
     settings = get_settings()
@@ -80,6 +87,7 @@ def create_app() -> FastAPI:
     app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
     app.add_exception_handler(BoardFullError, _board_full_handler)
     app.add_exception_handler(SlotTakenError, _slot_taken_handler)
+    app.add_exception_handler(MissingFileError, _missing_file_handler)
 
     app.add_middleware(LoggingMiddleware)
     app.include_router(api_router, prefix="/api/v1")
@@ -117,8 +125,10 @@ def _register_socket(app: FastAPI) -> None:
         """Push the current board on connect, then stream every change."""
         await hub.connect(socket)
         try:
-            snapshot = [item.model_dump(mode="json") for item in repo.list_items()]
-            await socket.send_json({"event": "board.snapshot", "data": snapshot})
+            snapshot = BoardSnapshot(items=repo.list_items(), background=repo.get_background())
+            await socket.send_json(
+                {"event": "board.snapshot", "data": snapshot.model_dump(mode="json")}
+            )
             while True:
                 await socket.receive_text()
         except WebSocketDisconnect:

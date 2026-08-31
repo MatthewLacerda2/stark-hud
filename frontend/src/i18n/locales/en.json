@@ -6,7 +6,8 @@
     "loading": "Loading board…",
     "error": "Could not reach the board.",
     "empty": "Nothing on the board yet.",
-    "disconnected": "Reconnecting…"
+    "disconnected": "Reconnecting…",
+    "crashed": "Something broke. Reloading…"
   },
   "media": {
     "missing": "File not found"

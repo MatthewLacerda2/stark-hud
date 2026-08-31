@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, status
 
 from core.hub import hub
 from repositories import board as repo
-from schemas.board import BoardStatus, ItemCreate, ItemRead, ItemUpdate
+from schemas.board import Background, BoardStatus, ItemCreate, ItemRead, ItemUpdate
 from services import board as service
 
 router = APIRouter(prefix="/board", tags=["board"])
@@ -28,6 +28,28 @@ async def list_items() -> list[ItemRead]:
 async def board_status() -> BoardStatus:
     """Return grid occupancy and the largest free rectangle."""
     return service.status()
+
+
+@router.get("/background", response_model=Background | None)
+async def get_background() -> Background | None:
+    """Return the current video background, or null for the plain dark ground."""
+    return repo.get_background()
+
+
+@router.put("/background", response_model=Background)
+async def set_background(payload: Background) -> Background:
+    """Set the looping video behind the grid. Always silent."""
+    background = service.set_background(payload)
+    await hub.broadcast("background.changed", payload.model_dump(mode="json"))
+    assert background is not None
+    return background
+
+
+@router.delete("/background", status_code=status.HTTP_204_NO_CONTENT)
+async def clear_background() -> None:
+    """Go back to the plain dark ground."""
+    service.set_background(None)
+    await hub.broadcast("background.changed", None)
 
 
 @router.post("/items", response_model=ItemRead, status_code=status.HTTP_201_CREATED)

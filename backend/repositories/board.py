@@ -12,9 +12,10 @@ the event loop is single-threaded, so a call that does not await is atomic.
 import uuid
 from datetime import UTC, datetime
 
-from schemas.board import ItemRead, Payload
+from schemas.board import Background, ItemRead, Payload
 
 _items: dict[str, ItemRead] = {}
+_background: Background | None = None
 
 
 def list_items() -> list[ItemRead]:
@@ -68,7 +69,23 @@ def remove(item_id: str) -> bool:
 
 
 def clear() -> int:
-    """Remove every item. Returns how many were dropped."""
+    """Remove every item. Returns how many were dropped.
+
+    The background is not an item and survives: clearing the board is about what
+    is on it, not what is behind it.
+    """
     count = len(_items)
     _items.clear()
     return count
+
+
+def get_background() -> Background | None:
+    """Return the current video background, if any."""
+    return _background
+
+
+def set_background(background: Background | None) -> Background | None:
+    """Replace the background. ``None`` falls back to the plain dark ground."""
+    global _background  # noqa: PLW0603 - module-level store, same as _items
+    _background = background
+    return _background

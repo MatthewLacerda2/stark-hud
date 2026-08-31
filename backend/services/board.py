@@ -3,9 +3,11 @@
 Handlers stay thin; the rules about where an item may land live here.
 """
 
+from pathlib import Path
+
 from core.config import get_settings
 from repositories import board as repo
-from schemas.board import BoardStatus, ItemCreate, ItemRead, ItemUpdate, Placement
+from schemas.board import Background, BoardStatus, ItemCreate, ItemRead, ItemUpdate, Placement
 from services.placement import default_size, find_slot, is_free, largest_free_rect
 
 
@@ -17,6 +19,26 @@ class SlotTakenError(Exception):
         super().__init__(
             f"Slot {place.w}x{place.h} at ({place.x}, {place.y}) is taken or out of bounds"
         )
+
+
+class MissingFileError(Exception):
+    """Raised when a background points at a path that is not a file."""
+
+    def __init__(self, path: str) -> None:
+        self.path = path
+        super().__init__(f"No file at {path}")
+
+
+def set_background(background: Background | None) -> Background | None:
+    """Set or clear the video background, checking the file exists first.
+
+    Items with a missing file show a visible placeholder, so the problem
+    announces itself. A missing background is just darkness, indistinguishable
+    from having set none — so this one is checked up front.
+    """
+    if background is not None and not Path(background.path).is_file():
+        raise MissingFileError(background.path)
+    return repo.set_background(background)
 
 
 def _grid() -> tuple[int, int]:

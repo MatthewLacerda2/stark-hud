@@ -8,7 +8,7 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.applications import Starlette
 
-from hud_mcp import content, layout
+from hud_mcp import background, content, layout
 
 INSTRUCTIONS = """\
 stark-hud is a board shown on a TV in the user's home.
@@ -35,6 +35,7 @@ def build_server() -> MCPServer:
     server = MCPServer(name="stark-hud", instructions=INSTRUCTIONS)
     content.register(server)
     layout.register(server)
+    background.register(server)
     return server
 
 

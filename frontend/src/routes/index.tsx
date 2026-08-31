@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { boardStatus } from "@/lib/api/board";
+import { Background } from "@/components/board/background";
 import { BoardGrid } from "@/components/board/board-grid";
 import { useBoard } from "@/hooks/use-board";
 
@@ -11,7 +12,7 @@ import { useBoard } from "@/hooks/use-board";
  */
 function BoardPage() {
   const { t } = useTranslation();
-  const { items, connected } = useBoard();
+  const { items, background, connected } = useBoard();
   const status = useQuery({
     queryKey: ["board", "status"],
     queryFn: boardStatus,
@@ -22,19 +23,23 @@ function BoardPage() {
 
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-background">
-      <BoardGrid items={items} cols={cols} rows={rows} />
+      <Background background={background} />
 
-      {items.length === 0 && connected ? (
-        <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-h1 text-muted-foreground">
-          {t("board.empty")}
-        </p>
-      ) : null}
+      <div className="relative size-full">
+        <BoardGrid items={items} cols={cols} rows={rows} />
 
-      {!connected ? (
-        <p className="absolute right-4 bottom-3 text-body text-warning">
-          {t("board.disconnected")}
-        </p>
-      ) : null}
+        {items.length === 0 && connected ? (
+          <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-h1 text-muted-foreground">
+            {t("board.empty")}
+          </p>
+        ) : null}
+
+        {!connected ? (
+          <p className="absolute right-4 bottom-3 text-body text-warning">
+            {t("board.disconnected")}
+          </p>
+        ) : null}
+      </div>
     </main>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { BoardEvent, Item } from "@/lib/schemas/board";
+import type { Background, BoardEvent, Item } from "@/lib/schemas/board";
 
 /**
  * Live board state, fed entirely by the socket.
@@ -16,25 +16,43 @@ const WS_URL =
 const RETRY_MIN_MS = 500;
 const RETRY_MAX_MS = 10_000;
 
-function reduce(items: Item[], message: BoardEvent): Item[] {
+interface BoardState {
+  items: Item[];
+  background: Background | null;
+}
+
+const EMPTY: BoardState = { items: [], background: null };
+
+function reduce(state: BoardState, message: BoardEvent): BoardState {
   switch (message.event) {
     case "board.snapshot":
-      return message.data;
+      return { items: message.data.items, background: message.data.background };
     case "board.cleared":
-      return [];
+      // The background is not an item; clearing the board leaves it alone.
+      return { ...state, items: [] };
+    case "background.changed":
+      return { ...state, background: message.data };
     case "item.created":
-      return [...items, message.data];
+      return { ...state, items: [...state.items, message.data] };
     case "item.updated":
-      return items.map((i) => (i.id === message.data.id ? message.data : i));
+      return {
+        ...state,
+        items: state.items.map((i) =>
+          i.id === message.data.id ? message.data : i,
+        ),
+      };
     case "item.removed":
-      return items.filter((i) => i.id !== message.data.id);
+      return {
+        ...state,
+        items: state.items.filter((i) => i.id !== message.data.id),
+      };
     default:
-      return items;
+      return state;
   }
 }
 
-export function useBoard(): { items: Item[]; connected: boolean } {
-  const [items, setItems] = useState<Item[]>([]);
+export function useBoard(): BoardState & { connected: boolean } {
+  const [state, setState] = useState<BoardState>(EMPTY);
   const [connected, setConnected] = useState(false);
   const retryRef = useRef(RETRY_MIN_MS);
 
@@ -52,7 +70,7 @@ export function useBoard(): { items: Item[]; connected: boolean } {
       };
 
       socket.onmessage = (event) => {
-        setItems((current) =>
+        setState((current) =>
           reduce(current, JSON.parse(event.data as string)),
         );
       };
@@ -73,5 +91,5 @@ export function useBoard(): { items: Item[]; connected: boolean } {
     };
   }, []);
 
-  return { items, connected };
+  return { ...state, connected };
 }

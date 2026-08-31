@@ -16,7 +16,7 @@ export function Notification({ payload }: { payload: NotificationPayload }) {
     <div
       className={`flex size-full flex-col justify-center rounded-xl border-l-8 px-5 py-3 text-foreground ${TONES[payload.level]}`}
     >
-      <p className="wrap-break-word text-h3">{payload.message}</p>
+      <p className="wrap-break-word text-node">{payload.message}</p>
       {payload.source ? (
         <span className="mt-1 text-caption text-muted-foreground">
           {payload.source}

@@ -30,6 +30,10 @@ def register(server: MCPServer) -> None:
 
         Omit x and y and the board picks a free slot; omit w and h for a default
         size. Coordinates are grid cells (the grid is 12x8), never pixels.
+
+        Leave `color` alone unless asked. The board is a TV in a dim room, so
+        tiles are dark by convention — a pale note is a lamp pointed at whoever
+        is watching, and white text on it is unreadable.
         """
         return await add(NotePayload(text=text, color=color), x, y, w, h)
 
@@ -133,6 +137,10 @@ def register(server: MCPServer) -> None:
         message: str,
         level: str = "info",
         source: str | None = None,
+        x: int | None = None,
+        y: int | None = None,
+        w: int | None = None,
+        h: int | None = None,
     ) -> str:
         """Announce something on the board.
 
@@ -143,4 +151,5 @@ def register(server: MCPServer) -> None:
         """
         if level not in {"info", "success", "warn", "error"}:
             return f"Not added: level must be info, success, warn or error (got {level!r})"
-        return await add(NotificationPayload(message=message, level=level, source=source))
+        payload = NotificationPayload(message=message, level=level, source=source)
+        return await add(payload, x, y, w, h)
