@@ -20,6 +20,12 @@ export default defineConfig({
   // Dev only: the API and the board socket live on the backend port, while
   // Vite serves the app. In production nginx does this instead.
   server: {
+    // Exposed on the LAN on purpose: the board is meant to be opened from any
+    // device in the house, not just the machine running it. allowedHosts is
+    // open for the same reason — the page is reached by IP, by hostname, and
+    // by whatever mDNS name a phone resolves.
+    host: true,
+    allowedHosts: true,
     proxy: {
       "/api": { target: "http://127.0.0.1:8000", changeOrigin: true },
       "/ws": { target: "ws://127.0.0.1:8000", ws: true },
