@@ -30,57 +30,50 @@ from typing import Any
 
 DEFAULT_CONFIG = Path(__file__).parent / "sources.toml"
 DEFAULT_API = "http://127.0.0.1:8000/api/v1"
-STATE = Path.home() / ".local/state/stark-hud-panels.json"
 
 Row = dict[str, Any]
 
 
 # ------------------------------------------------------------------- board
 class Board:
-    """The HTTP side: upsert a named panel, remembering what it became."""
+    """The HTTP side.
+
+    Panels are addressed by the name they were given, so this holds no state at
+    all. It used to keep a file mapping names to item ids; when that file went
+    missing the panels it had made were unclaimable, every write collided with
+    them, and the board silently froze on its last values.
+    """
 
     def __init__(self, api: str) -> None:
         self.api = api
-        self.ids: dict[str, str] = self._load()
-
-    @staticmethod
-    def _load() -> dict[str, str]:
-        try:
-            return json.loads(STATE.read_text())
-        except (OSError, ValueError):
-            return {}
-
-    def _save(self) -> None:
-        STATE.parent.mkdir(parents=True, exist_ok=True)
-        STATE.write_text(json.dumps(self.ids, indent=2))
 
     def call(self, method: str, path: str, body: dict | None = None) -> Any:
-        """One request. Returns None for anything that is not a 2xx."""
+        """One request. Returns None on failure, having said why."""
         data = json.dumps(body).encode() if body is not None else None
         request = urllib.request.Request(
-            f"{self.api}{path}", data=data, method=method,
+            f"{self.api}{path}",
+            data=data,
+            method=method,
             headers={"Content-Type": "application/json"} if data else {},
         )
         try:
             with urllib.request.urlopen(request, timeout=5) as response:
                 raw = response.read()
                 return json.loads(raw) if raw else None
-        except (urllib.error.HTTPError, OSError):
-            return None
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode()[:200]
+            print(f"  ! {method} {path}: {exc.code} {detail}", file=sys.stderr)
+        except OSError as exc:
+            print(f"  ! {method} {path}: {exc}", file=sys.stderr)
+        return None
 
-    def upsert(self, name: str, payload: dict, place: dict) -> None:
-        """Update the panel if it is still there, otherwise create it.
+    def write(self, key: str, payload: dict, place: dict) -> None:
+        """Create or update the panel called ``key``.
 
-        Updating in place is what lets somebody drag a tile and keep it: a
-        refresh rewrites the contents and leaves x, y, w and h alone.
+        ``place`` only takes effect the first time; the board ignores it after,
+        so a panel someone dragged stays dragged.
         """
-        item_id = self.ids.get(name)
-        if item_id and self.call("PATCH", f"/board/items/{item_id}", {"payload": payload}):
-            return
-        created = self.call("POST", "/board/items", {"payload": payload, **place})
-        if created:
-            self.ids[name] = created["id"]
-            self._save()
+        self.call("PUT", f"/board/items/by-key/{key}", {"payload": payload, **place})
 
 
 # ------------------------------------------------------------------ reading
@@ -178,7 +171,7 @@ def tick(board: Board, sources: list[Source], now: float) -> None:
         produced = read_source(source.spec)
         if produced is None:
             continue
-        board.upsert(source.name, source.payload(produced), source.spec.get("place", {}))
+        board.write(source.name, source.payload(produced), source.spec.get("place", {}))
 
 
 def main() -> None:

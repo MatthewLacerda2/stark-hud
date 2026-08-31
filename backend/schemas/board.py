@@ -143,6 +143,7 @@ class ItemCreate(BaseModel):
     """
 
     payload: Payload
+    key: str | None = None
     x: int | None = Field(default=None, ge=0)
     y: int | None = Field(default=None, ge=0)
     w: int | None = Field(default=None, ge=1)
@@ -155,6 +156,7 @@ class ItemUpdate(BaseModel):
     """Partial update. Any field left as ``None`` is untouched."""
 
     payload: Payload | None = None
+    key: str | None = None
     x: int | None = Field(default=None, ge=0)
     y: int | None = Field(default=None, ge=0)
     w: int | None = Field(default=None, ge=1)
@@ -167,6 +169,11 @@ class ItemRead(BaseModel):
     """An item as broadcast to every client."""
 
     id: str
+    # A caller-supplied name for something it will write again — a panel that
+    # updates rather than a one-off. Whoever writes it can find it later without
+    # remembering an id, which is what lets a refresher survive losing its state
+    # or being replaced by another process entirely.
+    key: str | None = None
     payload: Payload
     x: int
     y: int

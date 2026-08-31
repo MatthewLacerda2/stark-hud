@@ -28,12 +28,29 @@ def get(item_id: str) -> ItemRead | None:
     return _items.get(item_id)
 
 
+def get_by_key(key: str) -> ItemRead | None:
+    """Return the item carrying ``key``, or ``None``.
+
+    Keys are how a repeating writer finds its own panel again. They are unique
+    by convention, not by constraint; the first match wins.
+    """
+    return next((item for item in list_items() if item.key == key), None)
+
+
 def add(
-    payload: Payload, x: int, y: int, w: int, h: int, parent_id: str | None, pinned: bool
+    payload: Payload,
+    x: int,
+    y: int,
+    w: int,
+    h: int,
+    parent_id: str | None,
+    pinned: bool,
+    key: str | None = None,
 ) -> ItemRead:
     """Insert a new item at an already-resolved position."""
     item = ItemRead(
         id=uuid.uuid4().hex[:12],
+        key=key,
         payload=payload,
         x=x,
         y=y,

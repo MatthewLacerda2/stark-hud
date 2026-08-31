@@ -73,7 +73,16 @@ def _resolve(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> Placeme
 def create(data: ItemCreate) -> ItemRead:
     """Add an item, auto-placing it when coordinates are omitted."""
     place = _resolve(data, None)
-    return repo.add(data.payload, place.x, place.y, place.w, place.h, data.parent_id, data.pinned)
+    return repo.add(
+        data.payload,
+        place.x,
+        place.y,
+        place.w,
+        place.h,
+        data.parent_id,
+        data.pinned,
+        data.key,
+    )
 
 
 def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
@@ -87,6 +96,7 @@ def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
                 "y": place.y,
                 "w": place.w,
                 "h": place.h,
+                "key": data.key if data.key is not None else item.key,
                 "parent_id": data.parent_id if data.parent_id is not None else item.parent_id,
                 "pinned": data.pinned if data.pinned is not None else item.pinned,
             }

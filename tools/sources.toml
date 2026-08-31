@@ -29,14 +29,21 @@ every = 5
 place = { x = 12, y = 0, w = 6, h = 7 }
 panel = { kind = "chart", chart = "radial", title = "Memória", x_key = "label", series = ["use"], max = 100, unit = "%", colors = ["var(--chart-2)"] }
 
-[[source]]
-name = "gpu"
-command = "python3 {collectors}/gpu.py"
-every = 3
-place = { x = 18, y = 0, w = 8, h = 7 }
 # A darker green than the CPU's, because it is the other vendor's chip. Not a
 # warning colour: orange and red on a dashboard mean something is wrong.
-panel = { kind = "chart", chart = "bar", title = "GPU", x_key = "metric", series = ["pct"], max = 100, colors = ["oklch(0.55 0.13 152)"] }
+[[source]]
+name = "gpu"
+command = "python3 {collectors}/gpu.py util"
+every = 3
+place = { x = 18, y = 0, w = 7, h = 7 }
+panel = { kind = "chart", chart = "radial", title = "GPU", x_key = "label", series = ["pct"], max = 100, unit = "%", colors = ["oklch(0.55 0.13 152)"] }
+
+[[source]]
+name = "vram"
+command = "python3 {collectors}/gpu.py vram"
+every = 3
+place = { x = 25, y = 0, w = 7, h = 7 }
+panel = { kind = "chart", chart = "radial", title = "VRAM", x_key = "label", series = ["pct"], max = 100, unit = "%", colors = ["oklch(0.55 0.13 152)"] }
 
 # One reading each time; `history` turns it into four minutes of line.
 # 90 °C is the ceiling we chose to draw against, not a hardware limit.

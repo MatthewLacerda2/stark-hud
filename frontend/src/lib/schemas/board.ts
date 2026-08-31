@@ -83,6 +83,8 @@ export type ItemKind = Payload["kind"];
 
 export interface Item {
   id: string;
+  /** A name given by whoever writes this panel repeatedly, so it can find it. */
+  key: string | null;
   payload: Payload;
   x: number;
   y: number;

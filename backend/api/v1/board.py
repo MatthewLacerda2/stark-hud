@@ -60,6 +60,29 @@ async def create_item(payload: ItemCreate) -> ItemRead:
     return item
 
 
+@router.put("/items/by-key/{key}", response_model=ItemRead)
+async def upsert_by_key(key: str, payload: ItemCreate) -> ItemRead:
+    """Write the panel called ``key``, creating it the first time.
+
+    For anything that refreshes: the caller names its panel and never has to
+    remember an id, so losing local state — or being restarted, or replaced by a
+    different process — costs nothing.
+
+    Position is honoured on the first write and ignored afterwards. A refresher
+    sends the same body every time, and if that moved the tile, dragging one
+    would be undone by the next update seconds later.
+    """
+    existing = repo.get_by_key(key)
+    if existing is None:
+        item = service.create(payload.model_copy(update={"key": key}))
+        await hub.broadcast("item.created", item.model_dump(mode="json"))
+        return item
+
+    item = service.update(existing, ItemUpdate(payload=payload.payload))
+    await hub.broadcast("item.updated", item.model_dump(mode="json"))
+    return item
+
+
 @router.patch("/items/{item_id}", response_model=ItemRead)
 async def update_item(item_id: str, payload: ItemUpdate) -> ItemRead:
     """Apply a partial update to an item."""
