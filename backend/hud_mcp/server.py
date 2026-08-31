@@ -8,31 +8,49 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.applications import Starlette
 
+from core.config import get_settings
 from hud_mcp import background, content, layout
 
-INSTRUCTIONS = """\
+# Written to be read by a model that has never seen this board. The grid size is
+# interpolated rather than typed out: it has already changed once, and stale
+# instructions are worse than none — every session would plan against a grid
+# that does not exist.
+_INSTRUCTIONS = """\
 stark-hud is a board shown on a TV in the user's home.
 
-The TV has no keyboard and no mouse and nobody touches it, so whatever you put
-there has to make sense unattended. The grid is 12 columns by 8 rows and never
-scrolls: anything that does not fit on screen would be invisible forever, so a
-full board refuses new items rather than overlapping them.
+The TV has no keyboard and no mouse, and from the sofa nobody touches it, so
+whatever you put there has to make sense unattended and be readable from across
+a room. Prefer few large tiles to many small ones.
 
-Placement is in grid cells, never pixels. Omit x and y and the board finds a
-free slot for you — prefer that unless you have a reason to arrange things.
-Call board_status before adding several items, or anything large.
+The grid is {cols} columns by {rows} rows and never scrolls: anything that does
+not fit would be invisible forever, so a full board refuses new items rather
+than overlapping them. Placement is in grid cells, never pixels.
+
+Omit x and y and the board finds a free slot — prefer that unless you have a
+reason to arrange things. Call board_status before adding several items, or
+anything large; it reports the biggest free rectangle so you can pick a size
+that fits. A refusal comes back as a sentence saying what is free, not an error.
+
+Someone may drag and resize tiles with a mouse, so do not assume an item is
+still where you put it. Call list_items instead of remembering.
+
+Tiles are dark by convention: this is a TV in a dim room and a pale one glares.
+On charts, pass `max` whenever the numbers have a ceiling — without it the axis
+fits the data and 21% draws as nearly full.
 
 Nothing is saved. Restarting the server empties the board.
 
-Use notify to tell the user something finished. Those stay until removed, so
-they work as an inbox across several sessions; put your project name in the
-source field so a human can tell which Claude is speaking.\
+Use notify to say something finished. Those stay until removed, so they work as
+an inbox across several sessions; put your project name in the source field so a
+human can tell which Claude is speaking.\
 """
 
 
 def build_server() -> MCPServer:
     """Create the MCP server with every tool registered."""
-    server = MCPServer(name="stark-hud", instructions=INSTRUCTIONS)
+    settings = get_settings()
+    instructions = _INSTRUCTIONS.format(cols=settings.GRID_COLS, rows=settings.GRID_ROWS)
+    server = MCPServer(name="stark-hud", instructions=instructions)
     content.register(server)
     layout.register(server)
     background.register(server)
