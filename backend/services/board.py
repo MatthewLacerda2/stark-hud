@@ -98,6 +98,8 @@ def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
                 "h": place.h,
                 "key": data.key if data.key is not None else item.key,
                 "opacity": data.opacity if data.opacity is not None else item.opacity,
+                "color": data.color if data.color is not None else item.color,
+                "scale": data.scale if data.scale is not None else item.scale,
                 "parent_id": data.parent_id if data.parent_id is not None else item.parent_id,
                 "pinned": data.pinned if data.pinned is not None else item.pinned,
             }

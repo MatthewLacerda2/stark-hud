@@ -87,6 +87,10 @@ export interface Item {
   key: string | null;
   /** How solid this tile's background is, 0 to 1. Null means its kind's default. */
   opacity: number | null;
+  /** The tile's background colour. Null means its kind's default. */
+  color: string | null;
+  /** Multiplies the text sizes inside the tile. Null means 1. */
+  scale: number | null;
   payload: Payload;
   x: number;
   y: number;

@@ -26,6 +26,24 @@ const DEFAULT_ALPHA: Record<string, number> = {
   // side is gone.
   notification: 0.22,
 };
+
+// A notification's level, as a colour.
+const LEVEL_COLOUR: Record<string, string> = {
+  info: "var(--color-info)",
+  success: "var(--color-success)",
+  warn: "var(--color-warning)",
+  error: "var(--color-destructive)",
+};
+
+/** What a tile is made of: what it was told, else what its kind implies. */
+function colourOf(item: Item): string | undefined {
+  if (item.color) return item.color;
+  if (item.payload.kind === "notification")
+    return LEVEL_COLOUR[item.payload.level];
+  if (item.payload.kind === "note" && item.payload.color)
+    return item.payload.color;
+  return undefined;
+}
 // Sides resize one axis, corners resize both.
 const HANDLES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
 
@@ -141,7 +159,13 @@ export function BoardGrid({
             <div
               key={item.id}
               className="@container relative min-h-0 min-w-0"
-              style={{ ["--tile-alpha" as string]: alphaOf(item) }}
+              style={
+                {
+                  "--tile-alpha": alphaOf(item),
+                  "--tile-colour": colourOf(item),
+                  "--tile-scale": item.scale ?? 1,
+                } as React.CSSProperties
+              }
               onMouseEnter={() => show(item.id)}
               onMouseLeave={hideSoon}
             >

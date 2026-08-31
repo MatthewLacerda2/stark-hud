@@ -36,16 +36,31 @@ def register(server: MCPServer) -> None:
         return await _patch(item_id, ItemUpdate(w=w, h=h), "resized")
 
     @server.tool()
-    async def set_opacity(item_id: str, opacity: float) -> str:
-        """Set how solid a tile's own background is, from 0 to 1.
+    async def set_style(
+        item_id: str,
+        opacity: float | None = None,
+        color: str | None = None,
+        scale: float | None = None,
+    ) -> str:
+        """Change how a tile looks. Everything is optional; only what you pass moves.
 
-        Lower lets the video behind show through. Charts read fine almost
-        transparent because they are mostly their own marks; prose needs
-        something behind it or it fights the moving picture.
+        `opacity` 0 to 1, how solid its background is. Lower lets the video
+        behind show through — charts read fine almost transparent because they
+        are mostly their own marks, prose needs something behind it.
+
+        `color` is any CSS colour for that background, `var(--chart-2)` included.
+
+        `scale` multiplies the text inside, 0.25 to 4. Type already grows with
+        the tile; this moves the whole range.
         """
-        if not 0 <= opacity <= 1:
+        if opacity is not None and not 0 <= opacity <= 1:
             return f"Not set: opacity must be between 0 and 1 (got {opacity})"
-        return await _patch(item_id, ItemUpdate(opacity=opacity), "set")
+        if scale is not None and not 0.25 <= scale <= 4:
+            return f"Not set: scale must be between 0.25 and 4 (got {scale})"
+        if opacity is None and color is None and scale is None:
+            return "Nothing to set: pass at least one of opacity, color or scale"
+        update = ItemUpdate(opacity=opacity, color=color, scale=scale)
+        return await _patch(item_id, update, "restyled")
 
     @server.tool()
     async def set_parent(parent_id: str, item_id: str) -> str:

@@ -47,12 +47,16 @@ def add(
     pinned: bool,
     key: str | None = None,
     opacity: float | None = None,
+    color: str | None = None,
+    scale: float | None = None,
 ) -> ItemRead:
     """Insert a new item at an already-resolved position."""
     item = ItemRead(
         id=uuid.uuid4().hex[:12],
         key=key,
         opacity=opacity,
+        color=color,
+        scale=scale,
         payload=payload,
         x=x,
         y=y,
