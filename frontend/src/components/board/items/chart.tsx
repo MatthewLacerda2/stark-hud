@@ -108,7 +108,10 @@ function Body({ payload }: { payload: ChartPayload }) {
 export function Chart({ payload }: { payload: ChartPayload }) {
   const { t } = useTranslation();
   return (
-    <Card className="size-full gap-2 py-3">
+    // Semi-transparent, not transparent: the animated background should show
+    // through, but axis labels and tick values lose against moving video.
+    // backdrop-blur softens whatever is behind so thin type still reads.
+    <Card className="size-full gap-2 border-border/50 bg-card/65 py-3 backdrop-blur-md">
       {payload.title ? (
         <CardHeader className="px-4">
           <CardTitle>{payload.title}</CardTitle>
