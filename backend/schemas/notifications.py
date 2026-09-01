@@ -36,6 +36,7 @@ ICONS = frozenset(
         "bug",
         "rocket",
         "wrench",
+        "github",
     }
 )
 

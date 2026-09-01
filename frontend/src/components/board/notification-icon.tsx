@@ -1,52 +1,12 @@
 import {
-  AlertCircle,
   AlertTriangle,
-  Bell,
-  Bug,
   Check,
-  Clock,
-  Cpu,
-  Download,
-  Flame,
-  GitBranch,
-  HardDrive,
   Info,
-  Mail,
-  MessageSquare,
-  Rocket,
-  Terminal,
-  Upload,
-  Wrench,
   XCircle,
-  Zap,
   type LucideIcon,
 } from "lucide-react";
 import type { Notification } from "@/lib/schemas/board";
-
-// A closed set, named the same on both sides. Importing every lucide icon to
-// support names nobody picks would cost the whole library in the bundle.
-const NAMED: Record<string, LucideIcon> = {
-  bell: Bell,
-  check: Check,
-  info: Info,
-  "alert-triangle": AlertTriangle,
-  "alert-circle": AlertCircle,
-  "x-circle": XCircle,
-  terminal: Terminal,
-  "git-branch": GitBranch,
-  download: Download,
-  upload: Upload,
-  cpu: Cpu,
-  "hard-drive": HardDrive,
-  mail: Mail,
-  "message-square": MessageSquare,
-  clock: Clock,
-  zap: Zap,
-  flame: Flame,
-  bug: Bug,
-  rocket: Rocket,
-  wrench: Wrench,
-};
+import { NAMED } from "@/components/board/named-icon";
 
 /** What a notification's level looks like, when it has no icon of its own. */
 const FALLBACK: Record<Notification["level"], LucideIcon> = {

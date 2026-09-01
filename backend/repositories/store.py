@@ -94,6 +94,45 @@ def write(state: HudFile) -> bool:
     return True
 
 
+def _salvage(document: dict) -> HudFile:
+    """Build a board from a file, skipping the parts this build cannot read.
+
+    Items are validated one at a time on purpose. The file is a schema written
+    down, and a schema changes: a widget kind that has lost a field, or gained a
+    required one, must cost that widget and nothing else. Refusing the whole
+    document takes the background, the clock and every notification with it —
+    which is exactly what happened the first time a field was removed.
+    """
+    kept: list[ItemRead] = []
+    for entry in document.get("items") or []:
+        try:
+            kept.append(ItemRead.model_validate(entry))
+        except ValidationError:
+            kind = (entry or {}).get("payload", {}).get("kind", "?")
+            logger.warning("dropping a %s widget this build cannot read", kind)
+
+    notes: list[Notification] = []
+    for entry in document.get("notifications") or []:
+        try:
+            notes.append(Notification.model_validate(entry))
+        except ValidationError:
+            logger.warning("dropping a notification this build cannot read")
+
+    background = None
+    if document.get("background"):
+        try:
+            background = Background.model_validate(document["background"])
+        except ValidationError:
+            logger.warning("dropping a background this build cannot read")
+
+    return HudFile(
+        hud=document.get("hud", FORMAT),
+        items=kept,
+        notifications=notes,
+        background=background,
+    )
+
+
 def read() -> HudFile | None:
     """Read the board back, or ``None`` when there is nothing usable to read.
 
@@ -115,12 +154,16 @@ def read() -> HudFile | None:
         return None
 
     try:
-        state = HudFile.model_validate_json(raw)
-    except (ValidationError, json.JSONDecodeError, UnicodeDecodeError):
+        document = json.loads(raw)
+        if not isinstance(document, dict):
+            raise ValueError("a board is an object")
+    except (ValueError, UnicodeDecodeError):
         spoiled = source.with_suffix(source.suffix + ".bad")
         logger.exception("%s is not a readable board; moved to %s", source, spoiled)
         source.replace(spoiled)
         return None
+
+    state = _salvage(document)
 
     if state.hud > FORMAT:
         logger.error("%s is format %s, this build reads %s", source, state.hud, FORMAT)

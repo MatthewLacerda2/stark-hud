@@ -7,9 +7,9 @@ validated as a note and the frontend can switch on one field.
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from schemas.notifications import Notification
+from schemas.notifications import ICONS, Notification
 
 ChartKind = Literal["line", "bar", "pie", "area", "radial"]
 
@@ -125,17 +125,14 @@ class FeedEntry(BaseModel):
     """One line in a feed.
 
     Shaped like a notification minus the parts a feed does not have: no level,
-    because nothing here is an alert, and a short badge where a notification
-    puts its icon.
+    because nothing here is an alert, and no icon, because `source` already says
+    where the line came from and a column repeating that only steals width.
     """
 
     model_config = ConfigDict(extra="forbid")
 
     title: str
     source: str | None = None
-    # Two to four letters standing in for the icon — initials of whatever the
-    # line came from, so a glance tells them apart without reading.
-    badge: str | None = Field(default=None, max_length=4)
     at: datetime | None = None
 
 
@@ -149,8 +146,18 @@ class FeedPayload(_Payload):
 
     kind: Literal["feed"] = "feed"
     title: str | None = None
+    # A name from the notification icon set, drawn beside the heading. Refused
+    # rather than dropped if it is not one, so a typo is visible.
+    icon: str | None = None
     entries: list[FeedEntry] = []
     empty: str | None = None
+
+    @field_validator("icon")
+    @classmethod
+    def _known_icon(cls, value: str | None) -> str | None:
+        if value is not None and value not in ICONS:
+            raise ValueError(f"{value!r} is not an icon: pass one of {', '.join(sorted(ICONS))}")
+        return value
 
 
 class ClockPayload(_Payload):

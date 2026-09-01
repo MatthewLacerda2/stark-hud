@@ -197,10 +197,9 @@ def register(server: MCPServer) -> None:
     ) -> str:
         """Put a feed of things that happened on the board, newest first.
 
-        Each entry is `{"title": ..., "source": ..., "badge": ..., "at": ...}`,
-        where `title` is the line people read, `source` says where it came from,
-        `badge` is two to four letters shown where a notification has its icon,
-        and `at` is an ISO timestamp. Only `title` is required.
+        Each entry is `{"title": ..., "source": ..., "at": ...}`, where `title`
+        is the line people read, `source` says where it came from, and `at` is
+        an ISO timestamp. Only `title` is required.
 
         Use this for something you poll and rewrite whole — a feed is replaced
         on every refresh, not appended to. To announce that one thing finished,

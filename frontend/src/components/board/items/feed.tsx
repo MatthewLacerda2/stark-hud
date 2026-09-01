@@ -1,18 +1,14 @@
 import { useTranslation } from "react-i18next";
 import type { FeedEntry, FeedPayload } from "@/lib/schemas/board";
+import { NamedIcon } from "@/components/board/named-icon";
 import { useClock } from "@/hooks/use-clock";
 import { when } from "@/lib/when";
 
 function Row({ entry }: { entry: FeedEntry }) {
   const { t } = useTranslation();
   return (
-    <li className="flex gap-3 py-2 text-node-sm">
-      {/* Where the inbox puts an icon. Fixed width so every title starts on the
-          same column, which is what makes a list of these scannable. */}
-      <span className="mt-[0.15em] w-[3.2em] shrink-0 text-center font-semibold tracking-wide tabular-nums opacity-50">
-        {entry.badge ?? ""}
-      </span>
-      <div className="min-w-0 flex-1">
+    <li className="py-2 text-node-sm">
+      <div className="min-w-0">
         <div className="flex items-baseline justify-between gap-2 opacity-60">
           <span className="truncate">{entry.source ?? "—"}</span>
           {entry.at ? (
@@ -46,7 +42,8 @@ export function Feed({ payload }: { payload: FeedPayload }) {
   return (
     <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl widget-surface p-5 widget-text">
       {payload.title ? (
-        <h3 className="shrink-0 text-node font-semibold tracking-tight">
+        <h3 className="flex shrink-0 items-center gap-2 text-node font-semibold tracking-tight">
+          {payload.icon ? <NamedIcon name={payload.icon} /> : null}
           {payload.title}
         </h3>
       ) : null}
