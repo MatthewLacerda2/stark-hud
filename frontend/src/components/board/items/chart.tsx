@@ -28,11 +28,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const SLOTS = 5;
 
+// Recharts paints axis labels with SVG `fill`, which the widget's `color` never
+// reaches. Handed to them by name instead, with shadcn's own muted-foreground as
+// the fallback so a chart nobody coloured looks exactly as it did. Passed as a
+// class rather than a prop because the container styles those labels with one of
+// its own, and a class is what replaces a class.
+const AXIS_INK =
+  "[&_.recharts-cartesian-axis-tick-value]:fill-[var(--widget-text,var(--color-muted-foreground))]";
+
 /** The colour for series `i`: whatever was asked for, else the next default. */
 function pick(colors: string[], i: number): string {
   return colors.length > 0
     ? colors[i % colors.length]
     : `var(--chart-${(i % SLOTS) + 1})`;
+}
+
+/** True when a colour states its own alpha, as `#rgba` or `#rrggbbaa` do. */
+function carriesAlpha(color: string): boolean {
+  return /^#(?:[0-9a-f]{4}|[0-9a-f]{8})$/i.test(color);
 }
 
 /** Map each series onto a colour, the way shadcn's ChartConfig expects. */
@@ -77,7 +90,7 @@ function Gauge({ payload }: { payload: ChartPayload }) {
         </RadialBarChart>
       </ChartContainer>
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-gauge text-foreground">
+        <span className="text-gauge widget-text">
           {Math.round(value)}
           {payload.unit ? (
             <span className="text-gauge-label text-muted-foreground">
@@ -94,7 +107,7 @@ function Gauge({ payload }: { payload: ChartPayload }) {
 }
 
 function Body({ payload }: { payload: ChartPayload }) {
-  const { data, x_key: xKey, series } = payload;
+  const { data, x_key: xKey, series, colors } = payload;
   // Hoisted so TypeScript can narrow it; a property access stays nullable.
   const ceiling = payload.max;
 
@@ -106,10 +119,7 @@ function Body({ payload }: { payload: ChartPayload }) {
         />
         <Pie data={data} dataKey={series[0]} nameKey={xKey} innerRadius="45%">
           {data.map((row, i) => (
-            <Cell
-              key={String(row[xKey])}
-              fill={`var(--chart-${(i % SLOTS) + 1})`}
-            />
+            <Cell key={String(row[xKey])} fill={pick(colors, i)} />
           ))}
         </Pie>
       </PieChart>
@@ -141,7 +151,7 @@ function Body({ payload }: { payload: ChartPayload }) {
       {series.length > 1 ? (
         <ChartLegend content={<ChartLegendContent />} />
       ) : null}
-      {series.map((key) => {
+      {series.map((key, i) => {
         const color = `var(--color-${key})`;
         if (payload.chart === "bar") {
           return <Bar key={key} dataKey={key} fill={color} radius={6} />;
@@ -157,7 +167,11 @@ function Body({ payload }: { payload: ChartPayload }) {
               dataKey={key}
               stroke={color}
               fill={color}
-              fillOpacity={0.25}
+              // The wash is what makes an area read as a fill under its line
+              // rather than a solid block. A colour that carries its own alpha
+              // has already been told how solid to be, so multiplying it again
+              // would quietly make it a quarter of what was asked for.
+              fillOpacity={carriesAlpha(pick(colors, i)) ? 1 : 0.25}
               isAnimationActive={false}
             />
           );
@@ -188,7 +202,7 @@ export function Chart({ payload }: { payload: ChartPayload }) {
   return (
     // Only a colour at an opacity. A border and a blur survive at zero opacity
     // and still draw a rectangle, which defeats the point of turning it down.
-    <Card className="size-full gap-2 border-0 widget-surface py-3 shadow-none">
+    <Card className="size-full gap-2 border-0 widget-surface py-3 shadow-none widget-text">
       {payload.title ? (
         <CardHeader className="px-4">
           <CardTitle>{payload.title}</CardTitle>
@@ -204,7 +218,7 @@ export function Chart({ payload }: { payload: ChartPayload }) {
         ) : (
           <ChartContainer
             config={toConfig(payload.series, payload.colors)}
-            className="size-full"
+            className={`size-full ${AXIS_INK}`}
           >
             <Body payload={payload} />
           </ChartContainer>
