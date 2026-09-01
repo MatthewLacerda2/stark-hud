@@ -9,7 +9,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 from starlette.applications import Starlette
 
 from core.config import get_settings
-from hud_mcp import background, content, layout, notifications
+from hud_mcp import background, content, layout, lists, notifications
 
 # Written to be read by a model that has never seen this board. The grid size is
 # interpolated rather than typed out: it has already changed once, and stale
@@ -45,6 +45,11 @@ It holds more than one screenful as pages, and shows exactly one. New widgets
 land on the page being shown; show_page turns it, for everyone at once. Only do
 that when asked — the TV cannot turn it back.
 
+Widgets are written whole: to change a chart or a feed, write it again with
+everything in it. A list somebody is keeping is the exception — add_to_list and
+remove_from_list change one line and leave the rest alone, because a list is
+built up over time and no session knows every line already in it.
+
 Use notify to say something finished. Notifications are not widgets — they all go
 into one inbox, like a phone's shade, and drop out after 48 hours. Put your
 project name in the source field so a human can tell which Claude is speaking.\
@@ -59,6 +64,7 @@ def build_server() -> MCPServer:
     content.register(server)
     layout.register(server)
     background.register(server)
+    lists.register(server)
     notifications.register(server)
     return server
 
