@@ -51,7 +51,7 @@ async def set_page(payload: PageChange) -> PageChange:
     has nothing to turn its own page with, so turning it on a laptop is the
     only way it ever turns.
     """
-    page = repo.set_page(payload.page)
+    page = service.turn_to(payload.page)
     await hub.broadcast("board.page", {"page": page})
     return PageChange(page=page)
 

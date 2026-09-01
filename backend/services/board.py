@@ -145,3 +145,13 @@ def status() -> BoardStatus:
         item_count=len(items),
         largest_free_rect=largest_free_rect(items, cols, rows),
     )
+
+
+def turn_to(page: int) -> int:
+    """Show a page, and never one past the last that has anything on it.
+
+    Nothing stopped a swipe from walking off the end, and a board with one page
+    happily reported page 7: the TV then showed an empty grid that nobody in the
+    room could turn back.
+    """
+    return repo.set_page(max(0, min(page, page_count() - 1)))

@@ -25,6 +25,10 @@ export function usePageTurn(turn: (delta: number) => void) {
       // Vertical scrolling is not ours: the board does not scroll, and a
       // two-finger scroll down should not sidestep into the next page.
       if (Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
+      // A sideways trackpad swipe is also the browser's back gesture, and
+      // leaving the board to go back a page is a far worse outcome than not
+      // turning it, so this gesture is ours once we know it is horizontal.
+      event.preventDefault();
       travelled += event.deltaX;
       clearTimeout(settle);
       settle = setTimeout(() => (travelled = 0), SWIPE_QUIET_MS);
@@ -35,7 +39,7 @@ export function usePageTurn(turn: (delta: number) => void) {
     };
 
     window.addEventListener("keydown", onKey);
-    window.addEventListener("wheel", onWheel, { passive: true });
+    window.addEventListener("wheel", onWheel, { passive: false });
     return () => {
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("wheel", onWheel);
