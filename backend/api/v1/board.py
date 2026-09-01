@@ -1,6 +1,7 @@
 """Board endpoints. Every mutation is broadcast to connected clients."""
 
 from fastapi import APIRouter, HTTPException, status
+from pydantic import BaseModel, Field
 
 from core.hub import hub
 from repositories import board as repo
@@ -28,6 +29,31 @@ async def list_items() -> list[ItemRead]:
 async def board_status() -> BoardStatus:
     """Return grid occupancy and the largest free rectangle."""
     return service.status()
+
+
+class PageChange(BaseModel):
+    """Which page to show."""
+
+    page: int = Field(ge=0)
+
+
+@router.get("/page", response_model=PageChange)
+async def get_page() -> PageChange:
+    """Return the page every client is showing."""
+    return PageChange(page=repo.get_page())
+
+
+@router.put("/page", response_model=PageChange)
+async def set_page(payload: PageChange) -> PageChange:
+    """Turn the page for every client at once.
+
+    There is one page for the whole board rather than one per browser: the TV
+    has nothing to turn its own page with, so turning it on a laptop is the
+    only way it ever turns.
+    """
+    page = repo.set_page(payload.page)
+    await hub.broadcast("board.page", {"page": page})
+    return PageChange(page=page)
 
 
 @router.get("/background", response_model=Background | None)

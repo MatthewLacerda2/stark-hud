@@ -26,9 +26,30 @@ def register(server: MCPServer) -> None:
         return f"{verb.capitalize()} {describe(updated)}"
 
     @server.tool()
-    async def move_item(item_id: str, x: int, y: int) -> str:
-        """Move an item to a grid cell. Fails if something is already there."""
-        return await _patch(item_id, ItemUpdate(x=x, y=y), "moved")
+    async def move_item(item_id: str, x: int, y: int, page: int | None = None) -> str:
+        """Move an item to a grid cell. Fails if something is already there.
+
+        Pass `page` to send it to another screen. Each page is its own grid of
+        the same size, so a slot taken here may be free there.
+        """
+        return await _patch(item_id, ItemUpdate(x=x, y=y, page=page), "moved")
+
+    @server.tool()
+    async def show_page(page: int) -> str:
+        """Turn the board to a page, for everyone looking at it.
+
+        The board is one screenful and never scrolls; pages are how it holds
+        more than fits. There is one page for every client, because the TV has
+        nothing to turn its own page with — so this is how anything on another
+        page is ever seen. New widgets land on the page being shown.
+        """
+        if page < 0:
+            return f"Not shown: a page is 0 or more (got {page})"
+        current = repo.set_page(page)
+        await hub.broadcast("board.page", {"page": current})
+        pages = service.page_count()
+        note = "" if page < pages else f" (nothing on it yet; {pages} pages have widgets)"
+        return f"Showing page {current}{note}"
 
     @server.tool()
     async def resize_item(item_id: str, w: int, h: int) -> str:

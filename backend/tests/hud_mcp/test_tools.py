@@ -16,6 +16,7 @@ EXPECTED = {
     "add_inbox",
     "add_clock",
     "add_feed",
+    "show_page",
     "add_list",
     "add_note",
     "add_text",

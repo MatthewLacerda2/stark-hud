@@ -25,9 +25,15 @@ interface BoardState {
   items: Item[];
   background: Background | null;
   notifications: Notification[];
+  page: number;
 }
 
-const EMPTY: BoardState = { items: [], background: null, notifications: [] };
+const EMPTY: BoardState = {
+  items: [],
+  background: null,
+  notifications: [],
+  page: 0,
+};
 
 function reduce(state: BoardState, message: BoardEvent): BoardState {
   switch (message.event) {
@@ -36,10 +42,13 @@ function reduce(state: BoardState, message: BoardEvent): BoardState {
         items: message.data.items,
         background: message.data.background,
         notifications: message.data.notifications,
+        page: message.data.page,
       };
     case "board.cleared":
       // The background is not an item; clearing the board leaves it alone.
       return { ...state, items: [] };
+    case "board.page":
+      return { ...state, page: message.data.page };
     case "background.changed":
       return { ...state, background: message.data };
     case "item.created":

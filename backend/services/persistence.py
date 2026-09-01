@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 def snapshot() -> HudFile:
     """Everything worth keeping, as it stands right now."""
     return HudFile(
+        page=board_repo.get_page(),
         items=board_repo.list_items(),
         background=board_repo.get_background(),
         notifications=notifications_repo.list_all(),
@@ -42,7 +43,7 @@ def restore() -> None:
         logger.info("starting with an empty board (%s)", store.path() or "persistence off")
         return
 
-    board_repo.load(state.items, state.background)
+    board_repo.load(state.items, state.background, state.page)
     notifications_repo.load(state.notifications)
     logger.info(
         "restored %s items and %s notifications from %s",

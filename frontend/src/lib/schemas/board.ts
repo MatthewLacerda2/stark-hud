@@ -131,6 +131,8 @@ export interface Item {
   /** Multiplies the text sizes inside the widget. Null means 1. */
   scale: number | null;
   payload: Payload;
+  /** Which screen this widget is on. The board shows exactly one at a time. */
+  page: number;
   x: number;
   y: number;
   w: number;
@@ -157,11 +159,16 @@ export interface BoardSnapshot {
   items: Item[];
   background: Background | null;
   notifications: Notification[];
+  /** The page being shown, the same for every client. */
+  page: number;
 }
 
 export interface BoardStatus {
   cols: number;
   rows: number;
+  /** Occupancy is per page; these describe the one being shown. */
+  page: number;
+  pages: number;
   cells_total: number;
   cells_used: number;
   cells_free: number;
@@ -174,6 +181,7 @@ export type BoardEvent =
   | { event: "board.snapshot"; data: BoardSnapshot }
   | { event: "background.changed"; data: Background | null }
   | { event: "board.cleared"; data: { removed: number } }
+  | { event: "board.page"; data: { page: number } }
   | { event: "item.created"; data: Item }
   | { event: "item.updated"; data: Item }
   | { event: "item.removed"; data: { id: string } }
