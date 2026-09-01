@@ -5,6 +5,7 @@ Prints a single row on purpose: `history` in the agent config turns it into a
 line, so this never has to remember anything between runs.
 """
 
+import fcntl
 import json
 import subprocess
 import time
@@ -25,7 +26,18 @@ def cpu_celsius() -> float | None:
 
 
 def gpu_celsius() -> float | None:
-    """GPU temperature from nvidia-smi, if there is one."""
+    """GPU temperature from nvidia-smi, if there is one.
+
+    Behind the same lock as the gauges. A wedged driver leaves nvidia-smi in
+    uninterruptible sleep where a timeout cannot reach it, so the only defence
+    is to never start a second one.
+    """
+    lock = Path("/tmp/stark-hud-nvidia-smi.lock").open("w")  # noqa: S108 - a lock, not data
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        return None
+
     try:
         out = subprocess.run(
             ["nvidia-smi", "--query-gpu=temperature.gpu", "--format=csv,noheader,nounits"],
