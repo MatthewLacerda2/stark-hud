@@ -25,7 +25,7 @@ export function ItemView({
     case "text":
       return <Text payload={payload} />;
     case "list":
-      return <List payload={payload} />;
+      return <List id={item.id} payload={payload} />;
     case "box":
       return <Box payload={payload} />;
     case "image":

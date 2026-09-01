@@ -62,3 +62,18 @@ async def test_a_named_icon_has_no_picture_to_serve(client: AsyncClient) -> None
     """A glyph is drawn by the browser, so there is nothing here to stream."""
     item_id = await _add_feed(client, "github")
     assert (await client.get(f"/api/v1/media/{item_id}/icon")).status_code == 404
+
+
+async def test_a_list_entry_icon_is_served_by_its_place(
+    client: AsyncClient, tmp_path: Path
+) -> None:
+    """A list carries an icon per line, so its index says which one is meant."""
+    icon = tmp_path / "face.png"
+    icon.write_bytes(b"pretend-a-face")
+    items = ["plain line", {"title": "with a face", "icon": str(icon)}]
+    body = {"payload": {"kind": "list", "items": items}}
+    item_id = (await client.post(ITEMS, json=body)).json()["id"]
+    response = await client.get(f"/api/v1/media/{item_id}/icon/1")
+    assert response.status_code == 200
+    assert response.content == b"pretend-a-face"
+    assert (await client.get(f"/api/v1/media/{item_id}/icon/0")).status_code == 404

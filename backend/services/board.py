@@ -41,14 +41,22 @@ def set_background(background: Background | None) -> Background | None:
     return repo.set_background(background)
 
 
-def icon_path(item: ItemRead) -> str | None:
-    """The picture an item's icon points at, or ``None`` when it names a glyph.
+def icon_path(item: ItemRead, index: int | None = None) -> str | None:
+    """The picture an icon points at, or ``None`` when it names a glyph.
 
     An icon is either a name from a closed set, which the browser draws itself,
     or a file on this machine, which only we can serve — and we serve it by the
     item's id, so the path never appears in a URL.
+
+    Without an index this is the widget's own icon; with one it is that entry's,
+    since a list carries an icon per line and they need telling apart.
     """
-    icon = getattr(item.payload, "icon", None)
+    if index is None:
+        icon = getattr(item.payload, "icon", None)
+    else:
+        entries = getattr(item.payload, "items", [])
+        entry = entries[index] if 0 <= index < len(entries) else None
+        icon = getattr(entry, "icon", None)
     return icon if isinstance(icon, str) and icon.startswith("/") else None
 
 

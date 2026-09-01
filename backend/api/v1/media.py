@@ -44,6 +44,17 @@ async def get_media(item_id: str) -> FileResponse:
     return _stream(item.payload.path)
 
 
+def _icon(item_id: str, index: int | None) -> FileResponse:
+    """Send back the picture an icon points at, if that is what it is."""
+    item = repo.get(item_id)
+    path = service.icon_path(item, index) if item else None
+    if path is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No icon image for that id"
+        )
+    return _stream(path)
+
+
 @router.get("/{item_id}/icon")
 async def get_icon(item_id: str) -> FileResponse:
     """Stream the picture a widget's icon points at, when it is a path.
@@ -52,10 +63,14 @@ async def get_icon(item_id: str) -> FileResponse:
     that names a glyph has nothing to serve and is a 404 here, because the
     browser draws that one itself.
     """
-    item = repo.get(item_id)
-    path = service.icon_path(item) if item else None
-    if path is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="No icon image for that id"
-        )
-    return _stream(path)
+    return _icon(item_id, None)
+
+
+@router.get("/{item_id}/icon/{index}")
+async def get_entry_icon(item_id: str, index: int) -> FileResponse:
+    """Stream the picture one entry of a list points at.
+
+    A list carries an icon per line, so the id alone does not say which; the
+    index is the entry's place in the list, which is how the widget drew it.
+    """
+    return _icon(item_id, index)
