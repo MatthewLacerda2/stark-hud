@@ -20,10 +20,19 @@ export interface TextPayload {
   size: "sm" | "md" | "lg" | "xl";
 }
 
+/** One line of a list, when a plain string is not enough for it. */
+export interface ListEntry {
+  title: string;
+  body: string | null;
+  /** A name from the icon set, or an absolute path to a local image. */
+  icon: string | null;
+}
+
 export interface ListPayload {
   kind: "list";
   title: string | null;
-  items: string[];
+  /** A plain line, or one with a body and an icon of its own. Mixing is allowed. */
+  items: (string | ListEntry)[];
   empty: string | null;
   /** Heading and entries can be coloured apart; null takes the widget's colour. */
   title_color: string | null;

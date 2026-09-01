@@ -61,6 +61,29 @@ class BoxPayload(_Payload):
     stroke: str | None = None
 
 
+class ListEntry(BaseModel):
+    """One line of a list, when a bare string is not enough for it.
+
+    Most entries are strings — something printed them and they are rewritten
+    whole every few seconds — so this is the other case: a line a person put
+    there on purpose, which may want a second line under it and a picture
+    beside it.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: str
+    body: str | None = None
+    # A name from the icon set, or a path to a picture on this machine. A
+    # picture is served by the id of the widget holding it, never by its path.
+    icon: str | None = None
+
+    @field_validator("icon")
+    @classmethod
+    def _known_icon(cls, value: str | None) -> str | None:
+        return check_icon(value)
+
+
 class ListPayload(_Payload):
     """A heading and the things under it.
 
@@ -71,7 +94,10 @@ class ListPayload(_Payload):
 
     kind: Literal["list"] = "list"
     title: str | None = None
-    items: list[str] = []
+    # A line is a string or a ListEntry, and the two may be mixed. Strings stay
+    # because that is what a script prints: the panels on this board are fed by
+    # `tools/agent.py`, and making them build objects would buy nothing.
+    items: list[str | ListEntry] = []
     empty: str | None = None
     # A heading and its entries may be coloured apart. Either left out falls
     # back to the widget's own colour, so a plain list still needs no colours.

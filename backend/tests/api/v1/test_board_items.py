@@ -48,3 +48,19 @@ async def test_clear_reports_how_many_it_dropped(client: AsyncClient) -> None:
 async def test_missing_item_is_404(client: AsyncClient) -> None:
     """An unknown id is not found, not a server error."""
     assert (await client.patch(f"{ITEMS}/nope", json={"x": 0})).status_code == 404
+
+
+async def test_a_list_holds_plain_lines_and_richer_ones_together(client: AsyncClient) -> None:
+    """Strings are what a script prints; a line a person wrote may want more."""
+    items = ["17:02 up", {"title": "deploy", "body": "waiting on review", "icon": "rocket"}]
+    response = await client.post(ITEMS, json={"payload": {"kind": "list", "items": items}})
+    assert response.status_code == 201
+    stored = response.json()["payload"]["items"]
+    assert stored[0] == "17:02 up"
+    assert stored[1]["body"] == "waiting on review"
+
+
+async def test_a_list_entry_icon_must_be_a_name_or_a_path(client: AsyncClient) -> None:
+    """A typo would draw nothing and explain nothing, so it is refused here."""
+    body = {"payload": {"kind": "list", "items": [{"title": "x", "icon": "rockit"}]}}
+    assert (await client.post(ITEMS, json=body)).status_code == 422
