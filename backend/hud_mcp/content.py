@@ -175,10 +175,23 @@ def register(server: MCPServer) -> None:
         The board never fetches or polls: send the numbers. `chart` is line, bar,
         pie or area. `x_key` names the field on the x axis and `series` names the
         fields to plot. To update a chart, remove it and add it again.
+
+        `colors` is one CSS colour per series. An eight-digit hex carries alpha —
+        `#33ccffaa` — which leaves the video behind the board showing through the
+        marks.
         """
         if chart not in {"line", "bar", "pie", "area"}:
             return f"Not added: chart must be line, bar, pie or area (got {chart!r})"
-        payload = ChartPayload(chart=chart, data=data, x_key=x_key, series=series, title=title)
+        payload = ChartPayload(
+            chart=chart,
+            data=data,
+            x_key=x_key,
+            series=series,
+            title=title,
+            max=max,
+            unit=unit,
+            colors=colors or [],
+        )
         return await add(payload, x, y, w, h)
 
     @server.tool()

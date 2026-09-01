@@ -38,6 +38,9 @@ Widgets are dark by convention: this is a TV in a dim room and a pale one glares
 On charts, pass `max` whenever the numbers have a ceiling — without it the axis
 fits the data and 21% draws as nearly full.
 
+Anywhere a colour is taken, an eight-digit hex carries its own alpha — `#33ccffaa`
+— which lets text and chart marks read through the video the board sits on.
+
 The board is kept on disk and comes back after a restart, widgets and
 notifications alike, so what you leave there is what a human finds later.
 
