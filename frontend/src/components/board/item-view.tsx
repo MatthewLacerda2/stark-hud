@@ -37,7 +37,7 @@ export function ItemView({
     case "inbox":
       return <Inbox payload={payload} notifications={notifications} />;
     case "feed":
-      return <Feed payload={payload} />;
+      return <Feed id={item.id} payload={payload} />;
     case "clock":
       // Its height decides whether the date fits; the payload says nothing.
       return <Clock rows={item.h} />;
