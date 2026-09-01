@@ -41,6 +41,10 @@ fits the data and 21% draws as nearly full.
 The board is kept on disk and comes back after a restart, widgets and
 notifications alike, so what you leave there is what a human finds later.
 
+It holds more than one screenful as pages, and shows exactly one. New widgets
+land on the page being shown; show_page turns it, for everyone at once. Only do
+that when asked — the TV cannot turn it back.
+
 Use notify to say something finished. Notifications are not widgets — they all go
 into one inbox, like a phone's shade, and drop out after 48 hours. Put your
 project name in the source field so a human can tell which Claude is speaking.\

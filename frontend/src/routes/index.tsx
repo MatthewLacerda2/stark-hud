@@ -1,10 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { boardStatus } from "@/lib/api/board";
+import { useCallback } from "react";
+import { boardStatus, showPage } from "@/lib/api/board";
 import { Background } from "@/components/board/background";
 import { BoardGrid } from "@/components/board/board-grid";
+import { PageDots } from "@/components/board/page-dots";
 import { useBoard } from "@/hooks/use-board";
+import { usePageTurn } from "@/hooks/use-page-turn";
 
 /**
  * The board. This page is what the TV shows, so it is full-bleed, dark, and has
@@ -12,7 +15,7 @@ import { useBoard } from "@/hooks/use-board";
  */
 function BoardPage() {
   const { t } = useTranslation();
-  const { items, background, notifications, connected } = useBoard();
+  const { items, background, notifications, page, connected } = useBoard();
   const status = useQuery({
     queryKey: ["board", "status"],
     queryFn: boardStatus,
@@ -21,19 +24,34 @@ function BoardPage() {
   const cols = status.data?.cols ?? 12;
   const rows = status.data?.rows ?? 8;
 
+  // One more than the furthest page in use, so there is always an empty one to
+  // move a widget onto — the way a phone grows a screen when you drag past the
+  // last one.
+  const pages = items.reduce((most, i) => Math.max(most, i.page), 0) + 2;
+  const shown = items.filter((i) => i.page === page);
+
+  const go = useCallback((to: number) => {
+    // Fire and forget: the socket delivers the new page to every client,
+    // including this one, so nothing here has to guess it worked.
+    void showPage(Math.max(0, to)).catch(() => {});
+  }, []);
+  usePageTurn(useCallback((delta: number) => go(page + delta), [go, page]));
+
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-background">
       <Background background={background} />
 
       <div className="relative size-full">
         <BoardGrid
-          items={items}
+          items={shown}
           notifications={notifications}
           cols={cols}
           rows={rows}
         />
 
-        {items.length === 0 && connected ? (
+        <PageDots page={page} pages={pages} onPick={go} />
+
+        {shown.length === 0 && connected ? (
           <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-h1 text-muted-foreground">
             {t("board.empty")}
           </p>

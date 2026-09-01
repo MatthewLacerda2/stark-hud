@@ -44,6 +44,7 @@ class HudFile(BaseModel):
 
     hud: int = FORMAT
     saved_at: datetime | None = None
+    page: int = 0
     items: list[ItemRead] = []
     background: Background | None = None
     notifications: list[Notification] = []
@@ -127,6 +128,7 @@ def _salvage(document: dict) -> HudFile:
 
     return HudFile(
         hud=document.get("hud", FORMAT),
+        page=document.get("page") or 0,
         items=kept,
         notifications=notes,
         background=background,

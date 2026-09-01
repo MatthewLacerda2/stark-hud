@@ -198,11 +198,13 @@ class ItemCreate(BaseModel):
     """Payload to add an item.
 
     Omit ``x``/``y`` to let the auto-placer choose a free slot. ``w``/``h``
-    default to a size that suits the kind.
+    default to a size that suits the kind. Omit ``page`` and it lands on the one
+    being shown, which is the only page anybody can see.
     """
 
     payload: Payload
     key: str | None = None
+    page: int | None = Field(default=None, ge=0)
     opacity: float | None = Field(default=None, ge=0, le=1)
     color: str | None = None
     scale: float | None = Field(default=None, ge=0.25, le=4)
@@ -219,6 +221,7 @@ class ItemUpdate(BaseModel):
 
     payload: Payload | None = None
     key: str | None = None
+    page: int | None = Field(default=None, ge=0)
     opacity: float | None = Field(default=None, ge=0, le=1)
     color: str | None = None
     scale: float | None = Field(default=None, ge=0.25, le=4)
@@ -248,6 +251,10 @@ class ItemRead(BaseModel):
     # widget, this just moves the whole range.
     scale: float | None = None
     payload: Payload
+    # Which screen this widget is on. Pages exist because the grid never
+    # scrolls: a second screenful is the only way to have more than fits, and
+    # the board shows exactly one at a time.
+    page: int = 0
     x: int
     y: int
     w: int
@@ -276,6 +283,9 @@ class BoardSnapshot(BaseModel):
     items: list[ItemRead]
     background: Background | None
     notifications: list[Notification]
+    # The page being shown. One number for every client, so turning the page on
+    # a laptop turns it on the TV, which has nothing to turn it with.
+    page: int = 0
 
 
 class BoardStatus(BaseModel):
@@ -283,6 +293,9 @@ class BoardStatus(BaseModel):
 
     cols: int
     rows: int
+    # Occupancy is per page: each page is its own grid of the same size.
+    page: int
+    pages: int
     cells_total: int
     cells_used: int
     cells_free: int

@@ -17,6 +17,9 @@ from schemas.board import Background, ItemRead, Payload
 
 _items: dict[str, ItemRead] = {}
 _background: Background | None = None
+# Which page every client is looking at. One number, not one per client: the TV
+# has no way to turn its own page, so turning it anywhere turns it there.
+_page: int = 0
 
 
 def list_items() -> list[ItemRead]:
@@ -47,6 +50,7 @@ def add(
     parent_id: str | None,
     pinned: bool,
     key: str | None = None,
+    page: int = 0,
     opacity: float | None = None,
     color: str | None = None,
     scale: float | None = None,
@@ -59,6 +63,7 @@ def add(
         color=color,
         scale=scale,
         payload=payload,
+        page=page,
         x=x,
         y=y,
         w=w,
@@ -107,6 +112,19 @@ def clear() -> int:
     return count
 
 
+def get_page() -> int:
+    """Return the page every client is showing."""
+    return _page
+
+
+def set_page(page: int) -> int:
+    """Change the page every client shows."""
+    global _page  # noqa: PLW0603 - module-level store, same as _items
+    _page = page
+    store.touch()
+    return _page
+
+
 def get_background() -> Background | None:
     """Return the current video background, if any."""
     return _background
@@ -120,12 +138,13 @@ def set_background(background: Background | None) -> Background | None:
     return _background
 
 
-def load(items: list[ItemRead], background: Background | None) -> None:
+def load(items: list[ItemRead], background: Background | None, page: int = 0) -> None:
     """Replace everything with what came off disk.
 
     Deliberately not marked dirty: what was just read is what is already there.
     """
-    global _background  # noqa: PLW0603 - module-level store, same as _items
+    global _background, _page  # noqa: PLW0603 - module-level store, same as _items
     _items.clear()
     _items.update({item.id: item for item in items})
     _background = background
+    _page = page

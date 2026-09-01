@@ -47,10 +47,21 @@ def _grid() -> tuple[int, int]:
     return settings.GRID_COLS, settings.GRID_ROWS
 
 
-def _resolve(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> Placement:
-    """Work out where an item goes, honouring explicit coordinates when given."""
+def page_of(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> int:
+    """Which page an item belongs on: what was asked, what it had, or what shows."""
+    if data.page is not None:
+        return data.page
+    return current.page if current else repo.get_page()
+
+
+def _resolve(data: ItemCreate | ItemUpdate, current: ItemRead | None, page: int) -> Placement:
+    """Work out where an item goes, honouring explicit coordinates when given.
+
+    Only widgets on the same page are in the way. Each page is its own grid of
+    the same size, so the same slot is free on one and taken on another.
+    """
     cols, rows = _grid()
-    items = repo.list_items()
+    items = [i for i in repo.list_items() if i.page == page]
     dw, dh = default_size(data.payload) if data.payload else (3, 2)
 
     base_w = current.w if current else dw
@@ -72,7 +83,8 @@ def _resolve(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> Placeme
 
 def create(data: ItemCreate) -> ItemRead:
     """Add an item, auto-placing it when coordinates are omitted."""
-    place = _resolve(data, None)
+    page = page_of(data, None)
+    place = _resolve(data, None, page)
     return repo.add(
         data.payload,
         place.x,
@@ -82,16 +94,19 @@ def create(data: ItemCreate) -> ItemRead:
         data.parent_id,
         data.pinned,
         data.key,
+        page,
     )
 
 
 def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
     """Apply a partial update, revalidating placement when geometry changes."""
-    place = _resolve(data, item)
+    page = page_of(data, item)
+    place = _resolve(data, item, page)
     return repo.replace(
         item.model_copy(
             update={
                 "payload": data.payload if data.payload is not None else item.payload,
+                "page": page,
                 "x": place.x,
                 "y": place.y,
                 "w": place.w,
@@ -107,15 +122,23 @@ def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
     )
 
 
+def page_count() -> int:
+    """How many pages exist: as many as the furthest one with anything on it."""
+    return max((i.page for i in repo.list_items()), default=0) + 1
+
+
 def status() -> BoardStatus:
-    """Report occupancy so a caller can look before it leaps."""
+    """Report occupancy of the page being shown, so a caller can look first."""
     cols, rows = _grid()
-    items = repo.list_items()
+    page = repo.get_page()
+    items = [i for i in repo.list_items() if i.page == page]
     used = sum(i.w * i.h for i in items)
     total = cols * rows
     return BoardStatus(
         cols=cols,
         rows=rows,
+        page=page,
+        pages=page_count(),
         cells_total=total,
         cells_used=used,
         cells_free=total - used,

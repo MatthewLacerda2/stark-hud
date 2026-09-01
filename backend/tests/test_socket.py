@@ -18,7 +18,7 @@ def test_snapshot_carries_everything_a_client_needs() -> None:
         message = socket.receive_json()
 
     assert message["event"] == "board.snapshot"
-    assert set(message["data"]) == {"items", "background", "notifications"}
+    assert set(message["data"]) == {"items", "background", "notifications", "page"}
 
 
 def test_a_new_item_reaches_a_connected_client() -> None:

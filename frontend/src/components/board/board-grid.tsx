@@ -36,6 +36,13 @@ function colourOf(item: Item): string | undefined {
 // Sides resize one axis, corners resize both.
 const HANDLES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
 
+// No compaction, and no shoving either. `noCompactor` alone still displaces
+// whatever a drag lands on, and with a fixed number of rows the displaced
+// widget is pushed off the bottom of a board that cannot scroll — gone until
+// someone reloads the page. Refusing the move instead is also what the server
+// does with an overlapping placement, so the two now agree.
+const NO_SHOVING = { ...noCompactor, preventCollision: true };
+
 /**
  * The board, as a fixed grid that can be rearranged with a mouse.
  *
@@ -133,7 +140,7 @@ export function BoardGrid({
         <GridLayout
           width={width}
           layout={layout}
-          compactor={noCompactor}
+          compactor={NO_SHOVING}
           gridConfig={{
             cols,
             maxRows: rows,
