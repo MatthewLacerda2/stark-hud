@@ -73,7 +73,7 @@ command = "python3 {collectors}/github_commits.py --org TrussInt --org pgbezerra
 every = 120
 timeout = 60
 place = { x = 12, y = 5, w = 6, h = 13 }
-panel = { kind = "feed", title = "commits", empty = "nenhum commit recente" }
+panel = { kind = "feed", title = "github", icon = "github", empty = "nenhum commit recente" }
 
 
 # No command: the inbox is filled over the socket, not by polling. This entry
@@ -82,4 +82,4 @@ panel = { kind = "feed", title = "commits", empty = "nenhum commit recente" }
 name = "inbox"
 every = 60
 place = { x = 23, y = 5, w = 9, h = 13 }
-panel = { kind = "inbox", title = "notificações" }
+panel = { kind = "inbox" }

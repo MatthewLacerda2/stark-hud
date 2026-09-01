@@ -1,5 +1,6 @@
 """The board has to come back after a restart, widgets and notifications alike."""
 
+import json
 from pathlib import Path
 
 from repositories import board, notifications, store
@@ -56,6 +57,43 @@ def test_a_board_we_cannot_read_is_left_where_it_is(tmp_path, monkeypatch):
 
     assert target.exists()
     assert not target.with_suffix(".hud.bad").exists()
+
+
+def test_a_widget_this_build_cannot_read_costs_only_that_widget(tmp_path, monkeypatch):
+    """A schema change must not take the whole board with it.
+
+    This is not hypothetical: removing one field from a feed entry emptied the
+    board — background, clock and every notification — because the file was
+    validated as one document.
+    """
+    target = _point_at(tmp_path, monkeypatch)
+    board.add(NotePayload(text="keeps"), 0, 0, 4, 2, None, False, key="good")
+    notifications.add(NotificationCreate(title="also keeps"))
+    persistence.save()
+
+    document = json.loads(target.read_text(encoding="utf-8"))
+    document["items"].append(
+        {
+            "id": "stale0000000",
+            "payload": {"kind": "note", "text": "from an older build", "gone": 1},
+            "x": 8,
+            "y": 0,
+            "w": 4,
+            "h": 2,
+            "parent_id": None,
+            "pinned": False,
+            "created_at": "2026-01-01T00:00:00Z",
+        }
+    )
+    target.write_text(json.dumps(document), encoding="utf-8")
+
+    board.clear()
+    notifications.clear()
+    persistence.restore()
+
+    assert [i.key for i in board.list_items()] == ["good"]
+    assert [n.title for n in notifications.list_all()] == ["also keeps"]
+    assert target.exists(), "a file we could partly read is not spoiled"
 
 
 def test_a_mutation_marks_the_board_dirty(tmp_path, monkeypatch):

@@ -70,18 +70,18 @@ export interface InboxPayload {
   title: string | null;
 }
 
-/** One line in a feed: a notification's shape, minus level, plus a badge. */
+/** One line in a feed: a notification's shape, minus level and icon. */
 export interface FeedEntry {
   title: string;
   source: string | null;
-  /** Two to four letters where a notification has its icon. */
-  badge: string | null;
   at: string | null;
 }
 
 export interface FeedPayload {
   kind: "feed";
   title: string | null;
+  /** A name from the notification icon set, drawn beside the heading. */
+  icon: string | null;
   entries: FeedEntry[];
   empty: string | null;
 }
