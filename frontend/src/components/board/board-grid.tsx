@@ -16,16 +16,10 @@ const PADDING = 8;
 // vanishing on the way.
 const CONTROLS_LINGER_MS = 3000;
 
-// How solid each kind's background is when nobody has said otherwise. A chart
-// reads through its own marks; prose does not.
-const DEFAULT_ALPHA: Record<string, number> = {
-  chart: 0.25,
-  note: 0.65,
-  list: 0.6,
-  inbox: 0.6,
-  clock: 0.5,
-  feed: 0.6,
-};
+/* A widget's background starts invisible, whatever its kind. The board sits on
+   a video and most widgets read better straight on top of it; the ones that
+   need a panel get one from the opacity slider, one widget at a time. */
+const DEFAULT_ALPHA = 0;
 
 /** The widget's background: what its kind implies. `item.color` is for its text. */
 function colourOf(item: Item): string | undefined {
@@ -81,8 +75,7 @@ export function BoardGrid({
   }, []);
 
   const alphaOf = useCallback(
-    (item: Item) =>
-      preview[item.id] ?? item.opacity ?? DEFAULT_ALPHA[item.payload.kind] ?? 1,
+    (item: Item) => preview[item.id] ?? item.opacity ?? DEFAULT_ALPHA,
     [preview],
   );
 

@@ -64,17 +64,14 @@ One word per thing, so a conversation and the code do not drift apart.
 
 ## Version control
 
-This repository is **local only**. There is no remote, no issues, and no pull
-requests — that machinery from the template does not apply here yet.
+This repository lives on GitHub as a **private** repo. Issues and pull
+requests are in use.
 
 - Commit freely and in small steps, so any change can be walked back.
-- A commit message says *why*, not just what. `git log` is the only record of
-  intent this project has.
-- Work on `main` directly. Branch when an experiment might not survive.
-
-If this ever gains a remote, the template's issue and PR rules can come back
-wholesale — they were removed because they were unused, not because they were
-wrong.
+- A commit message says *why*, not just what. `git log` is the record of intent.
+- Small fixes go straight to `main`. Anything worth a second opinion goes on a
+  branch and through a PR, because the user reviews the board by looking at it,
+  not by reading a diff — see the worktree workflow below.
 
 ## Working agreement
 
