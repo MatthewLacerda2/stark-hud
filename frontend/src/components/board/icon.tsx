@@ -21,6 +21,7 @@ import {
   Zap,
 } from "lucide-react";
 import type { ComponentType } from "react";
+import { cn } from "@/lib/utils";
 
 /**
  * The GitHub mark, drawn here because lucide dropped its brand icons.
@@ -68,14 +69,37 @@ export const NAMED: Record<string, ComponentType<{ className?: string }>> = {
   wrench: Wrench,
 };
 
-/** One glyph from the closed set, for anything that is not a notification. */
-export function NamedIcon({
+// A picture is given a little more room than a glyph: a photograph cropped to
+// the size of a line of text reads as a smudge.
+const GLYPH = "size-[1.2em] shrink-0";
+const IMAGE = "size-[1.4em] shrink-0 rounded object-cover";
+
+/**
+ * An icon on a widget: one of the named glyphs, or a picture on this machine.
+ *
+ * Notifications used to be the only thing that could point at a picture, and
+ * every other widget could only name a glyph. There is no reason for that split
+ * — an icon is an icon — so both live here and any widget can take either.
+ *
+ * A picture is fetched by the id of whatever holds it, which is what `src` is
+ * for: a filesystem path never appears in a URL.
+ */
+export function Icon({
   name,
-  className = "size-[1.2em] shrink-0",
+  src,
+  fallback: Fallback,
+  className,
 }: {
-  name: string;
+  name: string | null;
+  /** Where the picture is served from, when `name` is a path. */
+  src?: string;
+  /** What to draw when nothing was named, for callers that have a default. */
+  fallback?: ComponentType<{ className?: string }>;
   className?: string;
 }) {
-  const Glyph = NAMED[name];
-  return Glyph ? <Glyph className={className} /> : null;
+  if (name?.startsWith("/") && src) {
+    return <img src={src} alt="" className={cn(IMAGE, className)} />;
+  }
+  const Glyph = (name && NAMED[name]) || Fallback;
+  return Glyph ? <Glyph className={cn(GLYPH, className)} /> : null;
 }

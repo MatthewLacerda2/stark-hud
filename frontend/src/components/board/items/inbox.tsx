@@ -1,8 +1,15 @@
+import {
+  AlertTriangle,
+  Check,
+  Info,
+  XCircle,
+  type LucideIcon,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { InboxPayload, Notification } from "@/lib/schemas/board";
-import { NotificationIcon } from "@/components/board/notification-icon";
+import { EntryRow } from "@/components/board/entry-row";
+import { Icon } from "@/components/board/icon";
 import { useClock } from "@/hooks/use-clock";
-import { when } from "@/lib/when";
 
 const LEVEL_TINT: Record<Notification["level"], string> = {
   info: "text-info",
@@ -11,43 +18,18 @@ const LEVEL_TINT: Record<Notification["level"], string> = {
   error: "text-destructive",
 };
 
+/** What a level looks like when the notification brought no icon of its own. */
+const LEVEL_GLYPH: Record<Notification["level"], LucideIcon> = {
+  info: Info,
+  success: Check,
+  warn: AlertTriangle,
+  error: XCircle,
+};
+
 // The default for an entry's text, whatever colour the widget itself is: an
 // inbox is read line by line, and a line that has to stand out says so for
 // itself.
 const DEFAULT_TEXT = "#fff";
-
-function Row({ notification }: { notification: Notification }) {
-  const { t } = useTranslation();
-  return (
-    <li className="flex gap-3 py-2 text-node-sm">
-      <span className={`mt-[0.15em] ${LEVEL_TINT[notification.level]}`}>
-        <NotificationIcon notification={notification} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-baseline justify-between gap-2 opacity-60">
-          <span className="truncate">{notification.source ?? "—"}</span>
-          <span className="shrink-0">
-            {when(notification.created_at, t("inbox.justNow"))}
-          </span>
-        </div>
-        <p
-          className="truncate font-semibold"
-          style={{ color: notification.title_color ?? DEFAULT_TEXT }}
-        >
-          {notification.title}
-        </p>
-        {notification.body ? (
-          <p
-            className="line-clamp-2 opacity-75"
-            style={{ color: notification.body_color ?? DEFAULT_TEXT }}
-          >
-            {notification.body}
-          </p>
-        ) : null}
-      </div>
-    </li>
-  );
-}
 
 /**
  * The notification shade.
@@ -79,7 +61,23 @@ export function Inbox({
       {notifications.length > 0 ? (
         <ul className="min-h-0 flex-1 divide-y divide-current/10 overflow-hidden">
           {notifications.map((notification) => (
-            <Row key={notification.id} notification={notification} />
+            <EntryRow
+              key={notification.id}
+              icon={
+                <Icon
+                  name={notification.icon}
+                  src={`/api/v1/notifications/${notification.id}/icon`}
+                  fallback={LEVEL_GLYPH[notification.level]}
+                  className={LEVEL_TINT[notification.level]}
+                />
+              }
+              source={notification.source}
+              at={notification.created_at}
+              title={notification.title}
+              titleColor={notification.title_color ?? DEFAULT_TEXT}
+              body={notification.body}
+              bodyColor={notification.body_color ?? DEFAULT_TEXT}
+            />
           ))}
         </ul>
       ) : (
