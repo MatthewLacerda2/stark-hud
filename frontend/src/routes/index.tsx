@@ -24,10 +24,11 @@ function BoardPage() {
   const cols = status.data?.cols ?? 12;
   const rows = status.data?.rows ?? 8;
 
-  // One more than the furthest page in use, so there is always an empty one to
-  // move a widget onto — the way a phone grows a screen when you drag past the
-  // last one.
-  const pages = items.reduce((most, i) => Math.max(most, i.page), 0) + 2;
+  // Only the pages that have something on them. An extra empty one used to be
+  // offered here, the way a phone grows a screen when you drag past the last —
+  // but a phone shows you the widget you are dragging, and this board showed a
+  // dot that led to an empty grid on a TV nobody can swipe back.
+  const pages = items.reduce((most, i) => Math.max(most, i.page), 0) + 1;
   const shown = items.filter((i) => i.page === page);
 
   const go = useCallback((to: number) => {
