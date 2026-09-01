@@ -5,6 +5,7 @@ from mcp.server.mcpserver import MCPServer
 
 from core.config import get_settings
 from hud_mcp.server import build_server
+from repositories import board as repo
 
 COLS = get_settings().GRID_COLS
 ROWS = get_settings().GRID_ROWS
@@ -18,6 +19,7 @@ EXPECTED = {
     "add_feed",
     "show_page",
     "add_list",
+    "add_to_list",
     "add_note",
     "add_text",
     "add_video",
@@ -29,6 +31,7 @@ EXPECTED = {
     "list_notifications",
     "move_item",
     "notify",
+    "remove_from_list",
     "remove_item",
     "resize_item",
     "set_background",
@@ -81,3 +84,31 @@ async def test_status_reports_the_largest_free_rectangle(server: MCPServer) -> N
     await call(server, "add_note", text="x", x=0, y=0, w=COLS, h=6)
     expected = f"Largest free rectangle: {COLS}x{ROWS - 6} at (0,6)"
     assert expected in await call(server, "board_status")
+
+
+async def _a_list(server: MCPServer, *items: str) -> str:
+    """Put a list on the board and return its id."""
+    await call(server, "add_list", items=list(items), title="todo")
+    return repo.list_items()[0].id
+
+
+async def test_a_list_grows_one_entry_at_a_time(server: MCPServer) -> None:
+    """Appending needs no knowledge of what is already there, and loses none of it."""
+    item_id = await _a_list(server, "bread")
+    assert "2 entries" in await call(server, "add_to_list", item_id=item_id, title="milk")
+    assert repo.get(item_id).payload.items == ["bread", "milk"]
+
+
+async def test_an_entry_with_a_body_keeps_its_shape(server: MCPServer) -> None:
+    """A title alone stays a plain line; anything more is stored as an entry."""
+    item_id = await _a_list(server, "bread")
+    await call(server, "add_to_list", item_id=item_id, title="milk", body="the oat one")
+    assert repo.get(item_id).payload.items[-1].body == "the oat one"
+
+
+async def test_removing_names_the_lines_it_could_not_find(server: MCPServer) -> None:
+    """A session that misremembers the wording is told what is actually there."""
+    item_id = await _a_list(server, "bread")
+    assert "'bread'" in await call(server, "remove_from_list", item_id=item_id, title="brood")
+    assert "0 left" in await call(server, "remove_from_list", item_id=item_id, title=" BREAD ")
+    assert repo.get(item_id).payload.items == []
