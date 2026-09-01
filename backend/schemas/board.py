@@ -4,14 +4,46 @@ Every item carries a payload discriminated by ``kind``, so a chart can never be
 validated as a note and the frontend can switch on one field.
 """
 
+import re
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, field_validator
 
 from schemas.notifications import ICONS, Notification
 
 ChartKind = Literal["line", "bar", "pie", "area", "radial"]
+
+# What counts as a colour anywhere on the board. Hex in any of CSS's four
+# lengths, a `var(--chart-2)` reaching for a theme token, a function like
+# `rgb(...)` or `oklch(...)`, or a bare keyword such as `white`.
+#
+# The four-digit and eight-digit hex forms carry an alpha channel — `#rrggbbaa`
+# — and that is the point of allowing them: a colour that is partly transparent
+# is how text and chart marks are made to read over the video the board sits on,
+# without a second field anywhere to say how solid they are.
+_HEX = re.compile(r"#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\Z")
+_FUNCTION = re.compile(r"[a-zA-Z-]+\([^;]*\)\Z")
+_KEYWORD = re.compile(r"[a-zA-Z]+\Z")
+
+
+def _is_colour(value: str) -> str:
+    """Refuse anything the browser would not read as a colour.
+
+    A colour it cannot parse does not fail loudly: the declaration is dropped and
+    the widget renders with no colour at all, which looks like the board losing
+    the item rather than like a typo. Better to say so here, in a sentence.
+    """
+    text = value.strip()
+    if not (_HEX.match(text) or _FUNCTION.match(text) or _KEYWORD.match(text)):
+        raise ValueError(
+            f"{value!r} is not a colour: pass hex (#rgb, #rrggbb, or #rrggbbaa "
+            f"for one with alpha), a CSS function like rgb(...), or a name"
+        )
+    return text
+
+
+Colour = Annotated[str, AfterValidator(_is_colour)]
 
 
 class _Payload(BaseModel):
@@ -25,7 +57,7 @@ class NotePayload(_Payload):
 
     kind: Literal["note"] = "note"
     text: str
-    color: str | None = None
+    color: Colour | None = None
 
 
 class TextPayload(_Payload):
@@ -41,8 +73,8 @@ class BoxPayload(_Payload):
 
     kind: Literal["box"] = "box"
     label: str | None = None
-    fill: str | None = None
-    stroke: str | None = None
+    fill: Colour | None = None
+    stroke: Colour | None = None
 
 
 class ListPayload(_Payload):
@@ -59,8 +91,8 @@ class ListPayload(_Payload):
     empty: str | None = None
     # A heading and its entries may be coloured apart. Either left out falls
     # back to the widget's own colour, so a plain list still needs no colours.
-    title_color: str | None = None
-    item_color: str | None = None
+    title_color: Colour | None = None
+    item_color: Colour | None = None
 
 
 class ImagePayload(_Payload):
@@ -106,7 +138,7 @@ class ChartPayload(_Payload):
     # One CSS colour per series, cycled if shorter. Any colour the browser
     # understands, so `var(--chart-2)` picks a theme token and anything else is
     # literal. Empty means the default palette.
-    colors: list[str] = []
+    colors: list[Colour] = []
 
 
 class InboxPayload(_Payload):
@@ -206,7 +238,7 @@ class ItemCreate(BaseModel):
     key: str | None = None
     page: int | None = Field(default=None, ge=0)
     opacity: float | None = Field(default=None, ge=0, le=1)
-    color: str | None = None
+    color: Colour | None = None
     scale: float | None = Field(default=None, ge=0.25, le=4)
     x: int | None = Field(default=None, ge=0)
     y: int | None = Field(default=None, ge=0)
@@ -223,7 +255,7 @@ class ItemUpdate(BaseModel):
     key: str | None = None
     page: int | None = Field(default=None, ge=0)
     opacity: float | None = Field(default=None, ge=0, le=1)
-    color: str | None = None
+    color: Colour | None = None
     scale: float | None = Field(default=None, ge=0.25, le=4)
     x: int | None = Field(default=None, ge=0)
     y: int | None = Field(default=None, ge=0)

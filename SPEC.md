@@ -148,6 +148,10 @@ Dados **inline** no `add_chart`. O board nao busca nada, nao conhece fonte de
 dados, nao faz polling. Quem tem o numero e o Claude; ele manda o array pronto.
 Atualizar um chart = chamar de novo com os dados novos.
 
+Cor, em qualquer lugar que o board aceite uma: hex de 8 digitos carrega alpha
+(`#33ccffaa`), entao texto e marcas de chart podem deixar o video de fundo
+aparecer atraves delas.
+
 ## Passivo por padrao
 
 O board **desenha e nada mais**. Nao troca a entrada da TV, nao mexe no sistema

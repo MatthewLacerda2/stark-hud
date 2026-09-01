@@ -71,6 +71,8 @@ def register(server: MCPServer) -> None:
 
         `color` is any CSS colour for the widget's **text**, `var(--chart-2)`
         included. A widget's background is its kind's, at whatever `opacity` says.
+        An eight-digit hex carries alpha — `#ffffff80` — so the text itself can be
+        made to read through rather than over the video the board sits on.
 
         `scale` multiplies the text inside, 0.25 to 4. Type already grows with
         the widget; this moves the whole range.
