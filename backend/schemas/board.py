@@ -14,6 +14,22 @@ from schemas.notifications import ICONS, Notification
 ChartKind = Literal["line", "bar", "pie", "area", "radial"]
 
 
+def check_icon(value: str | None) -> str | None:
+    """Refuse an icon that is neither a name from the set nor a path to a picture.
+
+    The same vocabulary a notification's icon has: a widget may point at a file
+    on this machine instead of picking a glyph. Refused rather than quietly
+    dropped, so a typo is visible to whoever wrote it. Whether the file is still
+    there is a separate question, answered when the picture is asked for.
+    """
+    if value is not None and value not in ICONS and not value.startswith("/"):
+        raise ValueError(
+            f"{value!r} is not an icon: pass one of {', '.join(sorted(ICONS))}, "
+            "or an absolute path to an image file"
+        )
+    return value
+
+
 class _Payload(BaseModel):
     """Base for every item payload; unknown keys are a client bug, not a default."""
 
@@ -45,6 +61,29 @@ class BoxPayload(_Payload):
     stroke: str | None = None
 
 
+class ListEntry(BaseModel):
+    """One line of a list, when a bare string is not enough for it.
+
+    Most entries are strings — something printed them and they are rewritten
+    whole every few seconds — so this is the other case: a line a person put
+    there on purpose, which may want a second line under it and a picture
+    beside it.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: str
+    body: str | None = None
+    # A name from the icon set, or a path to a picture on this machine. A
+    # picture is served by the id of the widget holding it, never by its path.
+    icon: str | None = None
+
+    @field_validator("icon")
+    @classmethod
+    def _known_icon(cls, value: str | None) -> str | None:
+        return check_icon(value)
+
+
 class ListPayload(_Payload):
     """A heading and the things under it.
 
@@ -55,7 +94,10 @@ class ListPayload(_Payload):
 
     kind: Literal["list"] = "list"
     title: str | None = None
-    items: list[str] = []
+    # A line is a string or a ListEntry, and the two may be mixed. Strings stay
+    # because that is what a script prints: the panels on this board are fed by
+    # `tools/agent.py`, and making them build objects would buy nothing.
+    items: list[str | ListEntry] = []
     empty: str | None = None
     # A heading and its entries may be coloured apart. Either left out falls
     # back to the widget's own colour, so a plain list still needs no colours.
@@ -146,8 +188,8 @@ class FeedPayload(_Payload):
 
     kind: Literal["feed"] = "feed"
     title: str | None = None
-    # A name from the notification icon set, drawn beside the heading. Refused
-    # rather than dropped if it is not one, so a typo is visible.
+    # A name from the icon set, or a path to a picture, drawn beside the
+    # heading. A picture is served by this item's id, never by its path.
     icon: str | None = None
     entries: list[FeedEntry] = []
     empty: str | None = None
@@ -155,9 +197,7 @@ class FeedPayload(_Payload):
     @field_validator("icon")
     @classmethod
     def _known_icon(cls, value: str | None) -> str | None:
-        if value is not None and value not in ICONS:
-            raise ValueError(f"{value!r} is not an icon: pass one of {', '.join(sorted(ICONS))}")
-        return value
+        return check_icon(value)
 
 
 class ClockPayload(_Payload):

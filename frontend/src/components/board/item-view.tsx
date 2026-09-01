@@ -25,7 +25,7 @@ export function ItemView({
     case "text":
       return <Text payload={payload} />;
     case "list":
-      return <List payload={payload} />;
+      return <List id={item.id} payload={payload} />;
     case "box":
       return <Box payload={payload} />;
     case "image":
@@ -37,7 +37,7 @@ export function ItemView({
     case "inbox":
       return <Inbox payload={payload} notifications={notifications} />;
     case "feed":
-      return <Feed payload={payload} />;
+      return <Feed id={item.id} payload={payload} />;
     case "clock":
       // Its height decides whether the date fits; the payload says nothing.
       return <Clock rows={item.h} />;

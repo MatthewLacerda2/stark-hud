@@ -11,6 +11,7 @@ from schemas.board import (
     FeedPayload,
     ImagePayload,
     InboxPayload,
+    ListEntry,
     ListPayload,
     NotePayload,
     TextPayload,
@@ -61,7 +62,7 @@ def register(server: MCPServer) -> None:
 
     @server.tool()
     async def add_list(
-        items: list[str],
+        items: list[str | dict],
         title: str | None = None,
         empty: str | None = None,
         title_color: str | None = None,
@@ -77,12 +78,23 @@ def register(server: MCPServer) -> None:
         are drawn at different sizes and weights, which a single string cannot
         express. `empty` is what to show when the list has nothing in it.
 
+        An entry is a plain line of text, or `{"title": ..., "body": ...,
+        "icon": ...}` when one line is not enough: `body` is a second, fainter
+        line under the title, and `icon` is a name from the notification icon
+        set or an absolute path to a picture on this machine. A list of plain
+        strings reads as running text; one rich entry turns them all into rows,
+        so pick one shape and stay in it.
+
         The heading and the entries can be coloured apart; left alone they both
         take the widget's colour, which is usually what you want.
         """
+        try:
+            entries = [e if isinstance(e, str) else ListEntry(**e) for e in items]
+        except (TypeError, ValueError) as exc:
+            return f"Not added: {exc}"
         payload = ListPayload(
             title=title,
-            items=items,
+            items=entries,
             empty=empty,
             title_color=title_color,
             item_color=item_color,
