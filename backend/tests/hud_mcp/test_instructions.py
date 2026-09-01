@@ -25,5 +25,6 @@ def test_instructions_cover_what_a_session_cannot_guess() -> None:
         "drag",  # why an item may have moved under it
         "dark",  # the widget convention
         "notify",  # how to announce finishing
+        "written whole",  # why a list is the one thing you add to
     ):
         assert fact in instructions, f"instructions no longer mention {fact!r}"
