@@ -14,6 +14,9 @@ used_kb = total_kb - fields.get("MemAvailable", fields["MemFree"])
 to_gb = 1024 * 1024
 
 print(json.dumps([{
-    "label": f"{used_kb / to_gb:.1f}/{total_kb / to_gb:.1f} GB",
+    # Empty: the gauge shows an icon and its ring, nothing written.
+    # ``size`` keeps the figure on the board for whoever reads it back.
+    "label": "",
+    "size": f"{used_kb / to_gb:.1f}/{total_kb / to_gb:.1f} GB",
     "use": round(used_kb / total_kb * 100, 1),
 }]))
