@@ -65,9 +65,46 @@ class Settings(BaseSettings):
     # doubles what every sentence the board says takes out of the month.
     ELEVENLABS_MODEL_ID: str = "eleven_flash_v2_5"
 
+    # How the voice reads a line: the vendor's own `voice_settings`, which the
+    # board used to leave unsent, so every sentence went out at whatever
+    # ElevenLabs happens to default to this month. Named here instead, because a
+    # board whose voice changes tone on its own is one nobody trusts.
+    #
+    # Every value below is the vendor's own default except the speed, so writing
+    # them down changes nothing anybody can hear today. The ranges are the
+    # vendor's too, and they are checked here on purpose: a value out of range is
+    # a backend that refuses to start and says which field is wrong, rather than
+    # a 422 at the moment somebody wanted a sentence read out.
+    #
+    # Two things to know before tuning any of these, both measured against the
+    # real API rather than assumed:
+    #
+    #   * The vendor caches a line on its text, its voice and its model — and the
+    #     cache key does not include these settings. A sentence the board has
+    #     already said comes back byte-identical however these numbers change:
+    #     instantly, and as far as the character counter shows, free. So change a
+    #     value, hear no difference, and the conclusion is not "the setting is
+    #     broken" — it is "that sentence is a recording". Tune on a line the
+    #     board has never said, or nothing will ever seem to work.
+    #   * `speed` is honoured by `eleven_flash_v2_5`, whatever one assumes about
+    #     a cheap model ignoring the finer fields. The same sentence came back
+    #     0.975s at 1.0 and 1.440s at 0.7 — the ratio that was asked for, to
+    #     within noise. It is not a dead setting waiting to be cleaned away.
+    ELEVENLABS_STABILITY: float = Field(default=0.5, ge=0.0, le=1.0)
+    ELEVENLABS_SIMILARITY_BOOST: float = Field(default=0.75, ge=0.0, le=1.0)
+    ELEVENLABS_STYLE: float = Field(default=0.0, ge=0.0, le=1.0)
+    ELEVENLABS_USE_SPEAKER_BOOST: bool = True
+
+    # The one value that is not the vendor's. At 1.0 this voice reads a shade
+    # fast for a room, and five percent slower is the whole of the difference.
+    # Outside 0.7-1.2 the vendor refuses the request, so that is the bound.
+    ELEVENLABS_SPEED: float = Field(default=0.95, ge=0.7, le=1.2)
+
     # Where a spoken line is kept until the browser has fetched it. Under the
     # state directory because that is the one place the backend owns and the one
-    # volume it can write to.
+    # volume it can write to. Relative here, like `STATE_FILE` and for the same
+    # reason: it is right for a backend run from `backend/`, and the container
+    # points it at the mounted volume instead — see `docker-compose.yml`.
     SPEECH_DIR: str = "state/speech"
 
     # How many spoken lines are kept before the oldest are deleted. Deleting one

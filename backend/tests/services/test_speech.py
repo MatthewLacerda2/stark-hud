@@ -71,6 +71,15 @@ async def test_a_line_is_bought_in_the_voice_and_model_that_were_settled_on(vend
     assert spoken.text == "Build's green."
 
 
+async def test_the_voice_settings_are_sent_and_not_left_to_the_vendor(vendor) -> None:
+    """Sending nothing lets ElevenLabs pick, and what it picks is theirs to change."""
+    await speech.say("Build's green.")
+    sent = vendor.calls[0]["voice_settings"]
+    assert (sent.stability, sent.similarity_boost, sent.style) == (0.5, 0.75, 0.0)
+    assert sent.use_speaker_boost is True
+    assert sent.speed == 0.95
+
+
 async def test_what_the_page_is_handed_is_a_url_and_never_a_path(vendor) -> None:
     """An id is the handle, the way every other file this API serves is addressed."""
     spoken = await speech.say("Build's green.")

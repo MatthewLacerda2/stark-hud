@@ -32,9 +32,10 @@ from typing import Any
 
 from elevenlabs.client import ElevenLabs
 from elevenlabs.core.api_error import ApiError
+from elevenlabs.types import VoiceSettings
 from pydantic import ValidationError
 
-from core.config import get_settings
+from core.config import Settings, get_settings
 from schemas.speech import MAX_CHARS, SpeechRequest, Spoken
 
 # The audio the television gets. 128 kbps MP3 is the cheapest format the free
@@ -127,12 +128,36 @@ def _checked(text: str) -> str:
         ) from exc
 
 
+def _voice(settings: Settings) -> VoiceSettings:
+    """How the line is to be read, said out of configuration rather than left open.
+
+    Sending nothing here is not the same as sending the defaults: it lets the
+    vendor pick, and what it picks is theirs to change. These are the same
+    numbers, but they are ours, and `core.config` says which one is not the
+    vendor's and why.
+    """
+    return VoiceSettings(
+        stability=settings.ELEVENLABS_STABILITY,
+        similarity_boost=settings.ELEVENLABS_SIMILARITY_BOOST,
+        style=settings.ELEVENLABS_STYLE,
+        use_speaker_boost=settings.ELEVENLABS_USE_SPEAKER_BOOST,
+        speed=settings.ELEVENLABS_SPEED,
+    )
+
+
 def _convert(text: str) -> bytes:
     """Buy the audio for one line. Blocking, so it is called off the event loop.
 
     The SDK streams the MP3 back in chunks; the whole line is a few seconds and
     is joined here, because what the page plays is a file at a URL and not a
     stream.
+
+    A line the board has said before does not come back here at all in any real
+    sense: the vendor caches on the text, the voice and the model, answers a
+    repeat instantly, and does not appear to charge for it. The voice settings
+    are not part of that key, so a sentence already spoken keeps the speed it was
+    first spoken at no matter what is sent below. That is the trap in tuning
+    these values, and `core.config` says so where somebody would change them.
     """
     settings = get_settings()
     client = ElevenLabs(api_key=settings.ELEVENLABS_API_KEY)
@@ -141,6 +166,7 @@ def _convert(text: str) -> bytes:
             voice_id=settings.ELEVENLABS_VOICE_ID,
             model_id=settings.ELEVENLABS_MODEL_ID,
             output_format=OUTPUT_FORMAT,
+            voice_settings=_voice(settings),
             text=text,
         )
         return b"".join(chunks)

@@ -1,4 +1,4 @@
-"""Settings: grid bounds and CORS parsing."""
+"""Settings: grid bounds, CORS parsing, and the voice's own numbers."""
 
 import pytest
 from pydantic import ValidationError
@@ -23,3 +23,25 @@ def test_cors_origins_are_split_and_stripped() -> None:
     """The comma-separated env var becomes a clean list."""
     settings = Settings(CORS_ORIGINS="http://a ,  http://b ,")
     assert settings.cors_origins_list == ["http://a", "http://b"]
+
+
+def test_the_board_reads_a_shade_slower_than_the_vendor_would() -> None:
+    """The one voice setting that is not ElevenLabs': at 1.0 it is fast for a room."""
+    assert Settings().ELEVENLABS_SPEED == 0.95
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("ELEVENLABS_SPEED", 1.5),
+        ("ELEVENLABS_STABILITY", 2.0),
+        ("ELEVENLABS_SIMILARITY_BOOST", -0.1),
+        ("ELEVENLABS_STYLE", 1.1),
+    ],
+)
+def test_a_voice_setting_out_of_range_stops_the_backend_and_names_itself(
+    field: str, value: float
+) -> None:
+    """Caught at startup, not as a 422 the moment somebody wanted to hear something."""
+    with pytest.raises(ValidationError, match=field):
+        Settings(**{field: value})
