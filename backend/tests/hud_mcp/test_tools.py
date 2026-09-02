@@ -180,6 +180,49 @@ async def test_a_chart_draws_both_axes_unless_told_otherwise(server: MCPServer) 
     assert repo.list_items()[0].payload.axes == "both"
 
 
+async def test_a_chart_keeps_its_thresholds_in_the_order_it_was_given(
+    server: MCPServer,
+) -> None:
+    """The list is carried through as written; the frontend decides which one wins."""
+    await call(
+        server,
+        "add_chart",
+        chart="radial",
+        data=[{"d": 90}],
+        x_key="d",
+        series=["d"],
+        thresholds=[{"at": 80, "color": "#ff3b30"}, {"at": 60, "color": "#ffaa33"}],
+    )
+    marks = repo.list_items()[0].payload.thresholds
+    assert [mark.at for mark in marks] == [80, 60]
+    assert marks[0].color == "#ff3b30"
+
+
+async def test_a_chart_without_thresholds_says_so_with_an_empty_list(
+    server: MCPServer,
+) -> None:
+    """Colour only means something here because most charts have none."""
+    await call(server, "add_chart", chart="bar", data=[{"d": 1}], x_key="d", series=["d"])
+    assert repo.list_items()[0].payload.thresholds == []
+
+
+async def test_a_threshold_colour_is_checked_like_every_other_colour(
+    server: MCPServer,
+) -> None:
+    """A typo comes back as a sentence rather than as a chart that draws nothing."""
+    message = await call(
+        server,
+        "add_chart",
+        chart="bar",
+        data=[{"d": 1}],
+        x_key="d",
+        series=["d"],
+        thresholds=[{"at": 80, "color": "not a colour at all"}],
+    )
+    assert "is not a colour" in message
+    assert repo.list_items() == []
+
+
 async def test_a_chart_names_the_axes_it_will_accept(server: MCPServer) -> None:
     """A wrong value comes back as a sentence, the way every other enum does."""
     message = await call(

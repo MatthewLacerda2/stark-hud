@@ -15,6 +15,8 @@ import { Chart } from "@/components/board/items/chart";
 import "@/i18n";
 
 const TRANSLUCENT = "#33ccffaa";
+const ATTENTION = "#ffaa33";
+const ALARM = "#ff3b30";
 const SIZE = { width: 640, height: 360 };
 
 beforeAll(() => {
@@ -87,6 +89,7 @@ const BARS: ChartPayload = {
   axes: "both",
   unfilled: null,
   colors: [TRANSLUCENT],
+  thresholds: [],
 };
 
 const GAUGE: ChartPayload = {
@@ -109,6 +112,21 @@ function outerRadius(path: Element | null): number {
 /** The shape of one of a radial chart's sectors, as it was actually drawn. */
 function sectorPath(host: HTMLElement, selector: string): string {
   return host.querySelector(selector)?.getAttribute("d") ?? "";
+}
+
+/** What each bar was painted with, in the order they were drawn. */
+function barFills(host: HTMLElement): (string | null)[] {
+  return [...host.querySelectorAll(".recharts-rectangle")].map((bar) =>
+    bar.getAttribute("fill"),
+  );
+}
+
+/** What a gauge's filled arc was painted with — the track behind it aside. */
+function arcFill(host: HTMLElement): string | null {
+  return (
+    host.querySelector(".recharts-radial-bar-sector")?.getAttribute("fill") ??
+    null
+  );
 }
 
 /** How far in from the left edge the marks start. */
@@ -257,5 +275,73 @@ describe("a gauge", () => {
     });
 
     expect(host.querySelector('span > svg > path[d="M4 4h16"]')).not.toBe(null);
+  });
+});
+
+describe("a threshold", () => {
+  it("turns the bar that passed it and leaves its neighbour alone", async () => {
+    // Monday is 3 and Tuesday is 7. Only Tuesday has anything to say.
+    const host = await render({
+      ...BARS,
+      thresholds: [{ at: 5, color: ALARM }],
+    });
+
+    expect(barFills(host)).toEqual(["var(--color-hits)", ALARM]);
+  });
+
+  it("colours a gauge over the line, and not one under it", async () => {
+    const hot = await render({
+      ...GAUGE,
+      thresholds: [{ at: 30, color: ALARM }],
+    });
+    const calm = await render({
+      ...GAUGE,
+      thresholds: [{ at: 60, color: ALARM }],
+    });
+
+    // The gauge reads 42, so 30 is passed and 60 is not.
+    expect(arcFill(hot)).toBe(ALARM);
+    expect(arcFill(calm)).toBe(TRANSLUCENT);
+  });
+
+  it("gives way to the highest one the value has cleared", async () => {
+    // Listed alarm first, so anything that takes the first or the last match
+    // instead of the highest would answer with the attention colour.
+    const host = await render({
+      ...GAUGE,
+      thresholds: [
+        { at: 40, color: ALARM },
+        { at: 30, color: ATTENTION },
+      ],
+    });
+
+    expect(arcFill(host)).toBe(ALARM);
+  });
+
+  it("means nothing to a pie or a line, which colour by series", async () => {
+    const crossed = [{ at: 1, color: ALARM }];
+
+    const pie = await render({ ...BARS, chart: "pie", thresholds: crossed });
+    expect(pie.querySelector(".recharts-sector")?.getAttribute("fill")).toBe(
+      TRANSLUCENT,
+    );
+
+    const line = await render({ ...BARS, chart: "line", thresholds: crossed });
+    expect(
+      line.querySelector(".recharts-line-curve")?.getAttribute("stroke"),
+    ).toBe("var(--color-hits)");
+  });
+
+  it("leaves a chart exactly as it was when there is none to cross", async () => {
+    const plain = await render(BARS);
+    const unreached = await render({
+      ...BARS,
+      thresholds: [{ at: 100, color: ALARM }],
+    });
+
+    // An empty list is what every chart on this board carries, so it has to
+    // paint the marks with the colour they were asked for and nothing else.
+    expect(barFills(plain)).toEqual(["var(--color-hits)", "var(--color-hits)"]);
+    expect(barFills(unreached)).toEqual(barFills(plain));
   });
 });

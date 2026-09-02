@@ -130,6 +130,24 @@ class VideoPayload(_Payload):
     muted: bool = True
 
 
+class ChartThreshold(BaseModel):
+    """A value a mark changes colour above.
+
+    The board's charts are all one tone on purpose, so nothing on the wall
+    shouts. This is how something earns the right to: a mark above ``at`` stops
+    being that tone and turns, and colour reads as a signal rather than as
+    decoration.
+
+    ``at`` is in the units of the plotted value. A gauge that plots a percentage
+    is crossed at ``77``, not at the twelve gigabytes that percentage stands for.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    at: float
+    color: Colour
+
+
 class ChartPayload(_Payload):
     """A chart drawn from data supplied inline.
 
@@ -175,6 +193,14 @@ class ChartPayload(_Payload):
     # understands, so `var(--chart-2)` picks a theme token and anything else is
     # literal. Empty means the default palette.
     colors: list[Colour] = []
+    # Values above which a mark turns. The highest one a value clears wins, so
+    # an "attention" and an "alarm" level can sit on the same chart; a value
+    # under all of them keeps the colour it would have had anyway. Bar and
+    # radial only: a bar decides one bar at a time and a gauge decides on its
+    # single value, while a pie and a line already give every series a colour of
+    # its own and a threshold on top of that would fight what the colour means.
+    # Empty is the default, so a chart that names none looks exactly as it did.
+    thresholds: list[ChartThreshold] = []
 
 
 class InboxPayload(_Payload):
@@ -254,6 +280,7 @@ __all__ = [
     "ChartAxes",
     "ChartKind",
     "ChartPayload",
+    "ChartThreshold",
     "ClockPayload",
     "FeedEntry",
     "FeedPayload",

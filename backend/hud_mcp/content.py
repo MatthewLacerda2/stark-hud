@@ -196,6 +196,7 @@ def register(server: MCPServer) -> None:
         unit: str | None = None,
         axes: str = "both",
         colors: list[str] | None = None,
+        thresholds: list[dict] | None = None,
         x: int | None = None,
         y: int | None = None,
         w: int | None = None,
@@ -215,6 +216,24 @@ def register(server: MCPServer) -> None:
         `colors` is one CSS colour per series. An eight-digit hex carries alpha —
         `#33ccffaa` — which leaves the video behind the board showing through the
         marks.
+
+        `thresholds` is how a chart on this board is allowed to shout. The board
+        is deliberately one tone, so a colour that appears means something went
+        past a line. Pass a list of `{"at": 90, "color": "#ff5c33"}`: a mark
+        above `at` takes that colour, and anything under every threshold keeps
+        the colour it already had. Give two and the highest one a value clears
+        wins, which is how an attention level and an alarm level live on the
+        same chart.
+
+        `at` is in the units of the plotted value, not of what the number means
+        to a human. The memory gauge plots a percentage, so "above 12 GB of
+        15.6" is `at: 77`, not `at: 12`.
+
+        Only bar and radial read `thresholds`. A bar decides one bar at a time,
+        so a single hot core turns while the rest stay as they were, and a gauge
+        decides on its one value. A pie and a line chart already give every
+        series a colour of its own — that is what those charts are for — so they
+        ignore the field completely rather than half-honouring it.
 
         A radial is a gauge: it reads the first row of `data` only and draws it
         as an arc of a ring whose ceiling is `max`, so always pass `max`. The
@@ -251,6 +270,7 @@ def register(server: MCPServer) -> None:
                 unit=unit,
                 axes=axes,
                 colors=colors or [],
+                thresholds=thresholds or [],
             )
         except (TypeError, ValueError) as exc:
             return f"Not added: {exc}"

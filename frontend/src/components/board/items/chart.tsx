@@ -15,7 +15,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type { ChartPayload } from "@/lib/schemas/board";
+import type { ChartPayload, ChartThreshold } from "@/lib/schemas/board";
 import {
   ChartContainer,
   ChartLegend,
@@ -43,6 +43,22 @@ function pick(colors: string[], i: number): string {
   return colors.length > 0
     ? colors[i % colors.length]
     : `var(--chart-${(i % SLOTS) + 1})`;
+}
+
+/**
+ * The colour a value has earned by going past a line, or null if it has not.
+ *
+ * Every chart here is one tone, so a mark that turns is saying something rather
+ * than being decorated. The highest threshold the value clears wins — that way
+ * an attention level and an alarm level can be given in either order and the
+ * alarm still shows when both are past.
+ */
+function crossed(marks: ChartThreshold[], value: number): string | null {
+  let hit: ChartThreshold | null = null;
+  for (const mark of marks) {
+    if (value > mark.at && (hit === null || mark.at > hit.at)) hit = mark;
+  }
+  return hit?.color ?? null;
 }
 
 /** True when a colour states its own alpha, as `#rgba` or `#rrggbbaa` do. */
@@ -95,6 +111,11 @@ function Gauge({ id, payload }: { id: string; payload: ChartPayload }) {
   // and pushing it left only looks like a mistake.
   const paired = Boolean(payload.icon && payload.title);
   const reading = String(row[payload.x_key] ?? "");
+  // A gauge has one value, so that value alone decides whether the ring is
+  // still the board's white or has turned into a warning.
+  const arc =
+    crossed(payload.thresholds, Number(row[payload.series[0]])) ??
+    pick(payload.colors, 0);
 
   return (
     <div className="relative size-full" style={SIZED}>
@@ -128,7 +149,7 @@ function Gauge({ id, payload }: { id: string; payload: ChartPayload }) {
             dataKey={payload.series[0]}
             background={{ fill: payload.unfilled ?? UNFILLED }}
             cornerRadius={999}
-            fill={pick(payload.colors, 0)}
+            fill={arc}
           />
         </RadialBarChart>
       </ChartContainer>
@@ -176,7 +197,7 @@ function Gauge({ id, payload }: { id: string; payload: ChartPayload }) {
 }
 
 function Body({ payload }: { payload: ChartPayload }) {
-  const { data, x_key: xKey, series, colors, axes } = payload;
+  const { data, x_key: xKey, series, colors, axes, thresholds } = payload;
   // Hoisted so TypeScript can narrow it; a property access stays nullable.
   const ceiling = payload.max;
 
@@ -233,7 +254,23 @@ function Body({ payload }: { payload: ChartPayload }) {
       {series.map((key, i) => {
         const color = `var(--color-${key})`;
         if (payload.chart === "bar") {
-          return <Bar key={key} dataKey={key} fill={color} radius={6} />;
+          // Every bar answers for itself, so one hot core turns while the rest
+          // stay the board's white — that is the whole point of a threshold on a
+          // bar chart. Recharts reads cells by position, so it is all of them or
+          // none: with no thresholds there are no cells and the bar is drawn
+          // exactly as it was before this existed.
+          return (
+            <Bar key={key} dataKey={key} fill={color} radius={6}>
+              {thresholds.length === 0
+                ? null
+                : data.map((row, r) => (
+                    <Cell
+                      key={`${String(row[xKey])}-${r}`}
+                      fill={crossed(thresholds, Number(row[key])) ?? color}
+                    />
+                  ))}
+            </Bar>
+          );
         }
         // Line and area carry history, and Recharts would tween every point
         // between the old data and the new — the whole shape morphs instead of

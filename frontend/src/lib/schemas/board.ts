@@ -148,6 +148,17 @@ export interface Playback {
   at: string;
 }
 
+/**
+ * A value a mark changes colour above.
+ *
+ * `at` is in the units of the plotted value, so a gauge drawing a percentage is
+ * crossed at 77, not at the twelve gigabytes that percentage stands for.
+ */
+export interface ChartThreshold {
+  at: number;
+  color: string;
+}
+
 export interface ChartPayload {
   kind: "chart";
   chart: ChartKind;
@@ -168,6 +179,13 @@ export interface ChartPayload {
   unfilled: string | null;
   /** One CSS colour per series, cycled. Empty means the default palette. */
   colors: string[];
+  /**
+   * Values above which a mark turns, so colour is a signal and not decoration.
+   * The highest one a value clears wins; under all of them the mark keeps the
+   * colour it had. Bar and radial only — a pie and a line colour by series
+   * already, so they ignore this. Empty is the default.
+   */
+  thresholds: ChartThreshold[];
 }
 
 export interface InboxPayload {
