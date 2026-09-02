@@ -74,7 +74,7 @@ One word per thing, so a conversation and the code do not drift apart.
 
 ## Version control
 
-This repository lives on GitHub as a **private** repo. Issues and pull
+This repository lives on GitHub as a **public** repo. Issues and pull
 requests are in use.
 
 - Commit freely and in small steps, so any change can be walked back.

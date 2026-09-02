@@ -29,7 +29,7 @@ name = "mem"
 command = "python3 {collectors}/mem.py"
 every = 5
 place = { x = 12, y = 0, w = 5, h = 5 }
-panel = { kind = "chart", chart = "radial", x_key = "label", series = ["use"], max = 100, colors = ["#ffffff"], unfilled = "#00000059", icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12v-2"/><path d="M12 18v-2"/><path d="M16 12v-2"/><path d="M16 18v-2"/><path d="M2 11h1.5"/><path d="M20 18v-2"/><path d="M20.5 11H22"/><path d="M4 18v-2"/><path d="M8 12v-2"/><path d="M8 18v-2"/><rect x="2" y="6" width="20" height="10" rx="2"/></svg>' }
+panel = { kind = "chart", chart = "radial", x_key = "label", series = ["use"], max = 100, colors = ["#ffffff"], unfilled = "#00000059", icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12v-2"/><path d="M12 18v-2"/><path d="M16 12v-2"/><path d="M16 18v-2"/><path d="M2 11h1.5"/><path d="M20 18v-2"/><path d="M20.5 11H22"/><path d="M4 18v-2"/><path d="M8 12v-2"/><path d="M8 18v-2"/><rect x="2" y="6" width="20" height="10" rx="2"/></svg>' , thresholds = [{ at = 77, color = "#ff5c33" }] }
 
 # A darker green than the CPU's, because it is the other vendor's chip. Not a
 # warning colour: orange and red on a dashboard mean something is wrong.
