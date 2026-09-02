@@ -137,14 +137,11 @@ needs a running app, ask them to start it.
 
 ## Upgrade paths (intentionally deferred)
 
-Each of these is deliberate, not forgotten. See `SPEC.md` for why.
+Each of these is deliberate, not forgotten. See `SPEC.md` for why. Persistence
+and drag-and-resize used to be listed here and have both shipped — the board is
+a `.hud` file on disk, and a widget can be dragged.
 
-- **Persistence:** the board is a dict in `repositories/board.py`. Items are
-  serializable models, so a `.hudtv` file is a rewrite of that module alone.
 - **Auth:** none. The board is open to the LAN on purpose. A token would go in
   the API client and one dependency, not through the layers.
-- **Drag and resize:** placement is decided server-side, so the frontend only
-  renders cells. Adding `react-grid-layout` means writing layout changes back,
-  and deciding who wins when the server and a browser disagree.
 - **Typed SDK:** generate `lib/schemas/` from the backend OpenAPI spec instead
   of maintaining `board.ts` by hand alongside `board.py`.
