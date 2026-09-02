@@ -6,6 +6,8 @@ from mcp.server.mcpserver import MCPServer
 from core.config import get_settings
 from hud_mcp.server import build_server
 from repositories import board as repo
+from schemas.media import PlaybackReport
+from services import media as media_service
 
 COLS = get_settings().GRID_COLS
 ROWS = get_settings().GRID_ROWS
@@ -19,6 +21,7 @@ EXPECTED = {
     "add_feed",
     "show_page",
     "add_list",
+    "add_media",
     "add_to_list",
     "add_note",
     "add_text",
@@ -26,6 +29,7 @@ EXPECTED = {
     "board_status",
     "clear_background",
     "clear_board",
+    "control_media",
     "dismiss_notification",
     "list_items",
     "list_notifications",
@@ -35,6 +39,8 @@ EXPECTED = {
     "remove_item",
     "resize_item",
     "set_background",
+    "set_media_mode",
+    "set_media_queue",
     "set_style",
     "set_parent",
     "set_description",
@@ -181,3 +187,73 @@ async def test_a_chart_names_the_axes_it_will_accept(server: MCPServer) -> None:
     )
     assert "both, x, y or none" in message
     assert repo.list_items() == []
+
+
+def _album(tmp_path, tracks: int = 3) -> str:
+    """A directory of tracks shaped like the album this widget was built for."""
+    folder = tmp_path / "AC DC - Greatest Hell's Hits" / "CD1"
+    folder.mkdir(parents=True)
+    for n in range(1, tracks + 1):
+        (folder / f"{n:02d} - Track {n}.mp3").write_bytes(b"id3")
+    return str(folder)
+
+
+async def test_a_whole_album_is_one_argument(server: MCPServer, tmp_path) -> None:
+    """A caller that had to name nineteen files in order would get the order wrong."""
+    message = await call(server, "add_media", tracks=[_album(tmp_path)])
+    assert "1 of 3" in message
+    assert [t.title for t in repo.list_items()[0].payload.tracks] == [
+        "01 - Track 1",
+        "02 - Track 2",
+        "03 - Track 3",
+    ]
+
+
+async def test_the_remote_is_a_call_because_the_television_has_no_buttons(
+    server: MCPServer, tmp_path
+) -> None:
+    """Five verbs, one tool: each takes nothing but the widget it is pointed at."""
+    await call(server, "add_media", tracks=[_album(tmp_path)])
+    item_id = repo.list_items()[0].id
+    assert "2 of 3" in await call(server, "control_media", item_id=item_id, action="next")
+    assert "paused on" in await call(server, "control_media", item_id=item_id, action="pause")
+    assert "1 of 3" in await call(server, "control_media", item_id=item_id, action="stop")
+    assert repo.get(item_id).payload.playing is False
+
+
+async def test_the_transport_names_the_verbs_it_takes(server: MCPServer, tmp_path) -> None:
+    """A wrong action comes back as a sentence, the way every other enum does."""
+    await call(server, "add_media", tracks=[_album(tmp_path)])
+    item_id = repo.list_items()[0].id
+    message = await call(server, "control_media", item_id=item_id, action="rewind")
+    assert "play, pause, stop, next or back" in message
+
+
+async def test_looping_and_maximising_are_flags_not_verbs(server: MCPServer, tmp_path) -> None:
+    """They persist, so they are set once rather than driven like a transport."""
+    await call(server, "add_media", tracks=[_album(tmp_path)])
+    item_id = repo.list_items()[0].id
+    await call(server, "set_media_mode", item_id=item_id, loop=True, maximised=True)
+    payload = repo.get(item_id).payload
+    assert (payload.loop, payload.maximised) == (True, True)
+    assert "at least one" in await call(server, "set_media_mode", item_id=item_id)
+
+
+async def test_a_queue_can_be_replaced_whole(server: MCPServer, tmp_path) -> None:
+    """A queue is put on, not added to: the old one goes."""
+    await call(server, "add_media", tracks=[_album(tmp_path)])
+    item_id = repo.list_items()[0].id
+    one = f"{tmp_path}/AC DC - Greatest Hell's Hits/CD1/02 - Track 2.mp3"
+    assert "1 of 1" in await call(server, "set_media_queue", item_id=item_id, tracks=[one])
+    assert len(repo.get(item_id).payload.tracks) == 1
+
+
+async def test_what_a_widget_reports_is_on_the_line_a_session_already_reads(
+    server: MCPServer, tmp_path
+) -> None:
+    """A player that is silently failing should say so where somebody is looking."""
+    await call(server, "add_media", tracks=[_album(tmp_path)])
+    item = repo.list_items()[0]
+    media_service.report(item, PlaybackReport(state="failed", track=0, error="no codec"))
+    listed = await call(server, "list_items")
+    assert "[failed '01 - Track 1': no codec]" in listed
