@@ -100,6 +100,18 @@ def _resolve(data: ItemCreate | ItemUpdate, current: ItemRead | None, page: int)
     return place
 
 
+def _described(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> str | None:
+    """The note an item is left with.
+
+    Every field on an update treats ``None`` as "untouched", and this one does
+    too — which leaves nothing meaning "take it off". An empty string is that: a
+    note nobody wrote is the same as no note, so writing one erases it.
+    """
+    if data.description is None:
+        return current.description if current else None
+    return data.description.strip() or None
+
+
 def create(data: ItemCreate) -> ItemRead:
     """Add an item, auto-placing it when coordinates are omitted."""
     page = page_of(data, None)
@@ -114,6 +126,7 @@ def create(data: ItemCreate) -> ItemRead:
         data.pinned,
         data.key,
         page,
+        description=_described(data, None),
     )
 
 
@@ -131,6 +144,7 @@ def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
                 "w": place.w,
                 "h": place.h,
                 "key": data.key if data.key is not None else item.key,
+                "description": _described(data, item),
                 "opacity": data.opacity if data.opacity is not None else item.opacity,
                 "color": data.color if data.color is not None else item.color,
                 "scale": data.scale if data.scale is not None else item.scale,

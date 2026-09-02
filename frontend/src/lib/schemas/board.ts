@@ -147,6 +147,12 @@ export interface Item {
   id: string;
   /** A name given by whoever writes this panel repeatedly, so it can find it. */
   key: string | null;
+  /**
+   * A note left by whatever drives the board, for whatever drives it next.
+   * Nothing renders it — it is deliberately invisible on the TV. It is mirrored
+   * here so that a drag, which PATCHes the item, cannot drop it on the way back.
+   */
+  description: string | null;
   /** How solid this widget's background is, 0 to 1. Null means its kind's default. */
   opacity: number | null;
   /** The widget's background colour. Null means its kind's default. */

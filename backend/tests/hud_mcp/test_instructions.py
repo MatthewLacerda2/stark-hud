@@ -26,5 +26,6 @@ def test_instructions_cover_what_a_session_cannot_guess() -> None:
         "dark",  # the widget convention
         "notify",  # how to announce finishing
         "written whole",  # why a list is the one thing you add to
+        "set_description",  # the note on a widget that the TV never shows
     ):
         assert fact in instructions, f"instructions no longer mention {fact!r}"

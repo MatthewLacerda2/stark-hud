@@ -37,6 +37,7 @@ EXPECTED = {
     "set_background",
     "set_style",
     "set_parent",
+    "set_description",
 }
 
 
@@ -146,6 +147,25 @@ async def test_removing_names_the_lines_it_could_not_find(server: MCPServer) -> 
     assert "'bread'" in await call(server, "remove_from_list", item_id=item_id, title="brood")
     assert "0 left" in await call(server, "remove_from_list", item_id=item_id, title=" BREAD ")
     assert repo.get(item_id).payload.items == []
+
+
+async def test_a_widget_carries_a_note_only_sessions_read(server: MCPServer) -> None:
+    """Written when the widget is made, and read back where a session already looks."""
+    await call(server, "add_note", text="hello", description="the standup board")
+    item_id = repo.list_items()[0].id
+    assert repo.get(item_id).description == "the standup board"
+    assert "the standup board" in await call(server, "list_items")
+
+
+async def test_a_note_can_be_changed_and_taken_off(server: MCPServer) -> None:
+    """One tool sets it afterwards, and an empty string is how it goes away."""
+    await call(server, "add_note", text="hello", description="the old reason")
+    item_id = repo.list_items()[0].id
+    await call(server, "set_description", item_id=item_id, description="waiting on the API key")
+    assert repo.get(item_id).description == "waiting on the API key"
+    await call(server, "set_description", item_id=item_id)
+    assert repo.get(item_id).description is None
+    assert "—" not in await call(server, "list_items")
 
 
 async def test_a_chart_draws_both_axes_unless_told_otherwise(server: MCPServer) -> None:

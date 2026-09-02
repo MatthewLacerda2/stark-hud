@@ -15,8 +15,15 @@ from services.placement import BoardFullError
 
 
 def describe(item: ItemRead) -> str:
-    """One line an agent can read back to itself."""
-    return f"{item.payload.kind} {item.id} at ({item.x},{item.y}) size {item.w}x{item.h}"
+    """One line an agent can read back to itself.
+
+    The description rides along here rather than waiting behind a tool of its
+    own. A session is told to call list_items instead of remembering where
+    things are, so this is the line it already reads — and a note it has to ask
+    for separately is a note nobody asks for.
+    """
+    line = f"{item.payload.kind} {item.id} at ({item.x},{item.y}) size {item.w}x{item.h}"
+    return f"{line} — {item.description}" if item.description else line
 
 
 async def add(
@@ -26,10 +33,15 @@ async def add(
     w: int | None = None,
     h: int | None = None,
     parent_id: str | None = None,
+    description: str | None = None,
 ) -> str:
     """Create an item, broadcast it, and describe what happened."""
     try:
-        item = service.create(ItemCreate(payload=payload, x=x, y=y, w=w, h=h, parent_id=parent_id))
+        item = service.create(
+            ItemCreate(
+                payload=payload, x=x, y=y, w=w, h=h, parent_id=parent_id, description=description
+            )
+        )
     except BoardFullError as exc:
         return (
             f"Not added: {exc}. Free a slot with remove_item, ask for a smaller "

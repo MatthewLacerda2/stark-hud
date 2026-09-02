@@ -1,4 +1,11 @@
-"""MCP tools that put things on the board."""
+"""MCP tools that put things on the board.
+
+Every one of them takes an optional ``description``: a note about the widget
+that only a session ever reads, never drawn on the TV. It is a parameter here
+rather than a second call because the moment a session knows why a widget exists
+is the moment it makes one, and a follow-up call is a call that gets skipped.
+``set_description`` changes or clears it afterwards.
+"""
 
 from mcp.server.mcpserver import MCPServer
 
@@ -30,6 +37,7 @@ def register(server: MCPServer) -> None:
         y: int | None = None,
         w: int | None = None,
         h: int | None = None,
+        description: str | None = None,
     ) -> str:
         """Put a sticky note on the board.
 
@@ -40,7 +48,7 @@ def register(server: MCPServer) -> None:
         widgets are dark by convention — a pale note is a lamp pointed at whoever
         is watching, and white text on it is unreadable.
         """
-        return await add(NotePayload(text=text, color=color), x, y, w, h)
+        return await add(NotePayload(text=text, color=color), x, y, w, h, description=description)
 
     @server.tool()
     async def add_text(
@@ -50,6 +58,7 @@ def register(server: MCPServer) -> None:
         y: int | None = None,
         w: int | None = None,
         h: int | None = None,
+        description: str | None = None,
     ) -> str:
         """Put bare text on the board, with no card behind it.
 
@@ -58,7 +67,7 @@ def register(server: MCPServer) -> None:
         """
         if size not in {"sm", "md", "lg", "xl"}:
             return f"Not added: size must be sm, md, lg or xl (got {size!r})"
-        return await add(TextPayload(text=text, size=size), x, y, w, h)
+        return await add(TextPayload(text=text, size=size), x, y, w, h, description=description)
 
     @server.tool()
     async def add_list(
@@ -73,6 +82,7 @@ def register(server: MCPServer) -> None:
         y: int | None = None,
         w: int | None = None,
         h: int | None = None,
+        description: str | None = None,
     ) -> str:
         """Put a heading and a list of lines on the board.
 
@@ -109,7 +119,7 @@ def register(server: MCPServer) -> None:
             )
         except (TypeError, ValueError) as exc:
             return f"Not added: {exc}"
-        return await add(payload, x, y, w, h)
+        return await add(payload, x, y, w, h, description=description)
 
     @server.tool()
     async def add_box(
@@ -120,13 +130,16 @@ def register(server: MCPServer) -> None:
         y: int | None = None,
         w: int | None = None,
         h: int | None = None,
+        description: str | None = None,
     ) -> str:
         """Put a labelled container on the board.
 
         Other items can name it as their parent with set_parent. Colours are CSS
         strings; leave them out to use the theme.
         """
-        return await add(BoxPayload(label=label, fill=fill, stroke=stroke), x, y, w, h)
+        return await add(
+            BoxPayload(label=label, fill=fill, stroke=stroke), x, y, w, h, description=description
+        )
 
     @server.tool()
     async def add_image(
@@ -137,13 +150,16 @@ def register(server: MCPServer) -> None:
         w: int | None = None,
         h: int | None = None,
         parent_id: str | None = None,
+        description: str | None = None,
     ) -> str:
         """Show a local image file.
 
         The path must exist on the machine running the board. If the file later
         moves, the widget shows a "file not found" placeholder instead of breaking.
         """
-        return await add(ImagePayload(path=path, alt=alt), x, y, w, h, parent_id)
+        return await add(
+            ImagePayload(path=path, alt=alt), x, y, w, h, parent_id, description=description
+        )
 
     @server.tool()
     async def add_video(
@@ -156,6 +172,7 @@ def register(server: MCPServer) -> None:
         w: int | None = None,
         h: int | None = None,
         parent_id: str | None = None,
+        description: str | None = None,
     ) -> str:
         """Show a local video file.
 
@@ -163,7 +180,7 @@ def register(server: MCPServer) -> None:
         unmute when the video is the point of the board right now.
         """
         payload = VideoPayload(path=path, autoplay=autoplay, loop=loop, muted=muted)
-        return await add(payload, x, y, w, h, parent_id)
+        return await add(payload, x, y, w, h, parent_id, description=description)
 
     @server.tool()
     async def add_chart(
@@ -180,6 +197,7 @@ def register(server: MCPServer) -> None:
         y: int | None = None,
         w: int | None = None,
         h: int | None = None,
+        description: str | None = None,
     ) -> str:
         """Draw a chart from data you supply inline.
 
@@ -210,7 +228,7 @@ def register(server: MCPServer) -> None:
             axes=axes,
             colors=colors or [],
         )
-        return await add(payload, x, y, w, h)
+        return await add(payload, x, y, w, h, description=description)
 
     @server.tool()
     async def add_inbox(
@@ -219,6 +237,7 @@ def register(server: MCPServer) -> None:
         y: int | None = None,
         w: int | None = None,
         h: int | None = None,
+        description: str | None = None,
     ) -> str:
         """Put the notification inbox on the board.
 
@@ -226,7 +245,7 @@ def register(server: MCPServer) -> None:
         taller to show more at once and wider to fit more of each line. There is
         no reason to have two.
         """
-        return await add(InboxPayload(title=title), x, y, w, h)
+        return await add(InboxPayload(title=title), x, y, w, h, description=description)
 
     @server.tool()
     async def add_feed(
@@ -237,6 +256,7 @@ def register(server: MCPServer) -> None:
         y: int | None = None,
         w: int | None = None,
         h: int | None = None,
+        description: str | None = None,
     ) -> str:
         """Put a feed of things that happened on the board, newest first.
 
@@ -252,7 +272,14 @@ def register(server: MCPServer) -> None:
             rows = [FeedEntry(**entry) for entry in entries]
         except (TypeError, ValueError) as exc:
             return f"Not added: {exc}"
-        return await add(FeedPayload(title=title, entries=rows, empty=empty), x, y, w, h)
+        return await add(
+            FeedPayload(title=title, entries=rows, empty=empty),
+            x,
+            y,
+            w,
+            h,
+            description=description,
+        )
 
     @server.tool()
     async def add_clock(
@@ -260,6 +287,7 @@ def register(server: MCPServer) -> None:
         y: int | None = None,
         w: int | None = None,
         h: int | None = None,
+        description: str | None = None,
     ) -> str:
         """Put a clock on the board: the time now, and the date under it.
 
@@ -267,4 +295,4 @@ def register(server: MCPServer) -> None:
         time. Two rows tall it shows only the time; give it three or more for
         the date as well.
         """
-        return await add(ClockPayload(), x, y, w, h)
+        return await add(ClockPayload(), x, y, w, h, description=description)

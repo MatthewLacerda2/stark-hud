@@ -87,6 +87,25 @@ def register(server: MCPServer) -> None:
         return await _patch(item_id, update, "restyled")
 
     @server.tool()
+    async def set_description(item_id: str, description: str = "") -> str:
+        """Leave a note on a widget for whoever drives this board next.
+
+        Nobody ever sees it on the TV. It is context a later session cannot get
+        back by looking: what this widget is for, what it is waiting on, what
+        its number means, that it should be updated after Friday. Write down
+        what you would have to explain to yourself in a week.
+
+        It is kept on the widget, not in what the widget shows, so a panel that
+        is rewritten every few seconds keeps its note. It comes back with
+        list_items, on the same line as the widget, which is where you will find
+        one somebody else left.
+
+        Pass nothing, or an empty string, to take the note off. Find the id with
+        list_items.
+        """
+        return await _patch(item_id, ItemUpdate(description=description), "described")
+
+    @server.tool()
     async def set_parent(parent_id: str, item_id: str) -> str:
         """Record an item as belonging to a box."""
         if repo.get(parent_id) is None:
