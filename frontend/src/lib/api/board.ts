@@ -14,6 +14,7 @@ export interface ItemCreate {
   description?: string;
   page?: number;
   opacity?: number;
+  background?: string;
   color?: string;
   scale?: number;
   x?: number;

@@ -23,6 +23,9 @@ const DEFAULT_ALPHA = 0;
 
 /** The widget's background: what its kind implies. `item.color` is for its text. */
 function colourOf(item: Item): string | undefined {
+  // A widget told what it is made of wins. A note's own colour still works,
+  // because a sticky note that had one before this existed should keep it.
+  if (item.background) return item.background;
   if (item.payload.kind === "note" && item.payload.color)
     return item.payload.color;
   return undefined;
