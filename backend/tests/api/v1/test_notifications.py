@@ -65,3 +65,10 @@ async def test_search_matches_title_body_or_source(client: AsyncClient) -> None:
     assert len(repo.search("deploy")) == 2
     assert [n.title for n in repo.search("TRM")] == ["unrelated"]
     assert repo.search("nothing like this") == []
+
+
+async def test_the_claude_mark_is_an_icon(client: AsyncClient) -> None:
+    """A session announcing itself can say which one it is."""
+    response = await client.post(URL, json={"title": "done", "icon": "claude"})
+    assert response.status_code == 201
+    assert response.json()["icon"] == "claude"
