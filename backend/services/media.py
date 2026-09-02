@@ -18,6 +18,7 @@ from schemas.media import (
     Playback,
     PlaybackReport,
     kind_of,
+    youtube_id,
 )
 
 # A picture beside the tracks, in the order we would rather have it. Windows
@@ -47,14 +48,25 @@ def _expand(source: str) -> list[str]:
 
 
 def tracks_from(sources: list[str]) -> list[MediaTrack]:
-    """Build a queue from paths, directories and globs, in the order given.
+    """Build a queue from paths, directories, globs and YouTube links, in order.
 
     A plain file path is taken at its word and not checked: the file may appear
     later, and an item pointing at something that has moved shows a placeholder
     rather than breaking, which is how every other local-file widget behaves.
+
+    A YouTube link is one track and is never expanded — there is no directory on
+    this machine to look inside. It is otherwise an entry like any other, so a
+    single queue can hold an album and a video from the internet next to each
+    other and play straight through them.
     """
-    paths = [path for source in sources for path in _expand(source)]
-    return [MediaTrack(path=path) for path in paths]
+    queue: list[MediaTrack] = []
+    for source in sources:
+        video = youtube_id(source)
+        if video is not None:
+            queue.append(MediaTrack(youtube=video))
+            continue
+        queue.extend(MediaTrack(path=path) for path in _expand(source))
+    return queue
 
 
 def _payload(item: ItemRead | None) -> MediaPayload | None:
@@ -65,7 +77,12 @@ def _payload(item: ItemRead | None) -> MediaPayload | None:
 
 
 def track_path(item: ItemRead, index: int) -> str | None:
-    """The file one track names, or ``None`` when there is no such track."""
+    """The file one track names, or ``None`` when there is no such file.
+
+    A YouTube track has none, and that is not an error: nothing about it is
+    served from here, so asking this board for its bytes is a 404 in the same
+    way asking for track twenty of a nineteen-track album is.
+    """
     payload = _payload(item)
     if payload is None or not 0 <= index < len(payload.tracks):
         return None

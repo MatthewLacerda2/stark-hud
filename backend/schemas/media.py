@@ -1,4 +1,4 @@
-"""The media widget: a queue of local files, and what the browser says it did.
+"""The media widget: a queue of things to play, and what the browser says it did.
 
 Its own module rather than another block in ``schemas.payloads`` for the reason
 ``colour.py`` and ``icon.py`` are: a widget with a queue, a transport and a
@@ -6,14 +6,18 @@ report is several models, and the payload file is already at the house limit.
 Everything here is re-exported from ``schemas.payloads`` and ``schemas.board``,
 so nothing outside has to know it moved.
 
-A track is named by a path on this machine and served by the widget's id and the
-track's place in the queue. A filesystem path never appears in a URL — the same
-rule the image and video widgets have always followed.
+A track is either a file on this machine or a video on YouTube. A local track is
+named by a path and served by the widget's id and the track's place in the
+queue: a filesystem path never appears in a URL, the same rule the image and
+video widgets have always followed. A YouTube track is named by its video id and
+played by YouTube's own player, so nothing about it is served from here.
 """
 
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal, get_args
+from urllib.parse import parse_qs, urlparse
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -23,7 +27,21 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 AUDIO_SUFFIXES = frozenset({".mp3", ".flac", ".m4a", ".aac", ".ogg", ".oga", ".opus", ".wav"})
 VIDEO_SUFFIXES = frozenset({".mp4", ".m4v", ".webm", ".mkv", ".mov", ".ogv"})
 
-TrackKind = Literal["audio", "video"]
+# Audio and video are what a local file turns out to be; ``youtube`` is the
+# third because where a track comes from decides how it is played, and this is
+# the one field that already travels with every track.
+TrackKind = Literal["audio", "video", "youtube"]
+
+# Every host a YouTube link arrives on. The short one is what the Share button
+# gives, and the music and mobile ones are what a phone pastes.
+YOUTUBE_HOSTS = frozenset(
+    {"youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"}
+)
+
+# A video id is eleven characters of URL-safe base64 and has been for the life
+# of the site. Nothing else matches it: an absolute path has slashes in it and a
+# filename has a dot, and neither is in this alphabet.
+_VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 
 # States the widget can be in, in the browser's words. Four of them are events a
 # media element fires; ``idle`` is the fifth because an empty queue is genuinely
@@ -48,25 +66,73 @@ def kind_of(path: str) -> TrackKind | None:
     return None
 
 
-class MediaTrack(BaseModel):
-    """One entry in the queue.
+def youtube_id(source: str) -> str | None:
+    """The video id inside whatever a person pasted, or ``None`` when it is not YouTube.
 
-    ``kind`` and ``title`` are filled in from the path when nobody says
-    otherwise, so a caller that has nineteen filenames and no metadata still gets
-    a queue that reads properly on the TV. Both can be overridden: a filename is
-    a guess at a title, not the title.
+    A watch URL from the address bar, a ``youtu.be`` link from the Share button
+    and a bare id from ``yt-dlp`` all come out as the same eleven characters,
+    because all three are what somebody actually has to hand.
+
+    A link that is plainly YouTube and yet carries no id raises instead of
+    falling through to being treated as a filename, which would come back as
+    "not an audio or video file" — a true sentence about the wrong problem.
+    """
+    text = source.strip()
+    if _VIDEO_ID.match(text):
+        return text
+    # A pasted link often has no scheme on it. Prefixing the authority marker
+    # makes ``youtube.com/watch?v=…`` parse as a host rather than as a path.
+    parsed = urlparse(text if "//" in text else f"//{text}", scheme="https")
+    if (parsed.hostname or "").lower() not in YOUTUBE_HOSTS:
+        return None
+    # The watch URL carries the id in a query; every other shape — the short
+    # link, a Short, an embed, a stream — carries it as the last path segment.
+    found = parse_qs(parsed.query).get("v", [parsed.path.rsplit("/", 1)[-1]])[0]
+    if not _VIDEO_ID.match(found):
+        raise ValueError(f"{source!r} is a YouTube link with no video id in it")
+    return found
+
+
+class MediaTrack(BaseModel):
+    """One entry in the queue: a file on this machine, or a video on YouTube.
+
+    Exactly one of ``path`` and ``youtube`` is set, and which one it is decides
+    how the widget plays it. Everything else about a track — its place in the
+    queue, its title, the transport that drives it — is the same either way,
+    which is why this is one model and not two widgets.
+
+    ``kind`` and ``title`` are filled in from whichever was given when nobody
+    says otherwise, so a caller that has nineteen filenames and no metadata still
+    gets a queue that reads properly on the TV. Both can be overridden: a
+    filename is a guess at a title, not the title.
     """
 
     model_config = ConfigDict(extra="forbid")
 
-    path: str
+    path: str | None = None
+    # A YouTube video id. Accepts any shape of link on the way in and keeps only
+    # the id, so what is stored is the one thing every caller agrees on.
+    youtube: str | None = None
     title: str | None = None
     kind: TrackKind | None = None
 
     @model_validator(mode="after")
     def _fill_in(self) -> "MediaTrack":
-        """Derive what the path already says, and refuse what cannot be played."""
-        if self.kind is None:
+        """Derive what the source already says, and refuse what cannot be played."""
+        if (self.path is None) == (self.youtube is None):
+            raise ValueError("a track is either a path or a youtube video, and not both")
+        if self.youtube is not None:
+            found = youtube_id(self.youtube)
+            if found is None:
+                raise ValueError(f"{self.youtube!r} is not a YouTube video id or link")
+            self.youtube = found
+            self.kind = "youtube"
+            # The id is a poor thing to read across a room, but it is the only
+            # name a link carries. The page replaces it with the real title once
+            # YouTube's player hands one over.
+            self.title = self.title or found
+            return self
+        if self.kind is None or self.kind == "youtube":
             kind = kind_of(self.path)
             if kind is None:
                 raise ValueError(f"{self.path!r} is not an audio or video file this board can play")
@@ -77,7 +143,7 @@ class MediaTrack(BaseModel):
 
 
 class MediaPayload(BaseModel):
-    """A queue of local files, and where in it the widget is.
+    """A queue of files and YouTube videos, and where in it the widget is.
 
     One kind for audio and video rather than two, because everything a queue
     needs — an order, a place in it, a transport, a loop — is the same either
