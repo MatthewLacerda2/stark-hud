@@ -32,12 +32,13 @@ Base: template **GoldStandard**, com o Postgres e o login removidos.
 | Back         | FastAPI + Pydantic, 4 camadas do template                 |
 | Tempo real   | WebSocket, broadcast do board pra todos os clientes       |
 | MCP          | servidor HTTP em `0.0.0.0`, exposto na LAN                |
-| Estado       | dict em memoria, atras de `repositories/`                 |
+| Estado       | arquivo `.hud` (JSON), atras de `repositories/`            |
 
 **Sai do template:** `sqlalchemy`, `asyncpg`, `pyjwt`, `models/user.py`,
 `repositories/users.py`, docker-compose do Postgres, fluxo de login.
 
-**Fica:** Makefile como unico portao de qualidade, CI que roda os mesmos alvos,
+**Fica:** Makefile como unico portao de qualidade (nao ha CI: rodava os mesmos
+alvos e gastava minutos por isso),
 linters e regras de eslint proprias, `CLAUDE.md` como contrato operacional,
 separacao estrita de 4 camadas.
 
@@ -57,14 +58,19 @@ separacao estrita de 4 camadas.
 ```
 
 O board vive atras de `repositories/` mesmo sem banco. Persistir depois =
-trocar a implementacao desse repositorio por uma que serializa num `.hudtv`.
+isso ja aconteceu: `repositories/store.py` serializa num `.hud`.
 Nada fora dessa camada deve tocar o estado.
 
 ## Modelo do grid
 
-- **12 colunas x 8 linhas**, fixo, **sem scroll**.
+- **32 colunas x 18 linhas**, fixo, **sem scroll vertical**.
   Motivo: a TV nao rola. Board que passa da tela fica com metade invisivel
-  pra sempre. Em 1080p isso da celulas de ~150x125px.
+  pra sempre. Em 1080p isso da celulas de ~52x52px — quadradas, o que faz
+  proporcao em celulas virar proporcao na tela.
+  Comecou em 12x8 e cresceu: celula grande demais obriga a arredondar tudo
+  pra cima, e widget pequeno nao cabia sem ficar gordo.
+- O que nao cabe em uma tela vira **pagina**. O board mostra uma por vez e
+  `show_page` vira, para todos os clientes ao mesmo tempo.
 - Cada item tem `x`, `y`, `w`, `h` em **celulas**, nunca em pixels.
 - Fonte e espacamento calibrados para leitura a distancia de sofa, nao para
   densidade de dashboard de escritorio.
@@ -87,8 +93,14 @@ avisa o usuario. `board_status` informa ocupacao antes de tentar.
 
 ## Tipos de item
 
-Portados do kinesis: `note`, `text`, `box` (aceita filhos), `image`, `arrow`.
-Novos: `chart`, `video`, `notification`.
+`note`, `text`, `box` (aceita filhos), `image`, `video`, `chart`, `list`,
+`feed`, `inbox`, `clock`, `media`.
+
+`list` e o mais geral: titulo opcional com icone e cor, e entradas com icone,
+titulo e descricao, cada parte colorivel. `text`, `note` e `feed` sao casos
+particulares dele e existem por compatibilidade.
+
+`arrow` nunca foi feito.
 
 Fora de escopo: handtracking, camera, gestos.
 

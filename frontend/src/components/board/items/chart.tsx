@@ -16,19 +16,17 @@ import {
   YAxis,
 } from "recharts";
 import type { ChartPayload, ChartThreshold } from "@/lib/schemas/board";
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
+import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icon } from "@/components/board/icon";
 import { cn } from "@/lib/utils";
 
 const SLOTS = 5;
+
+// No tooltip and no legend anywhere in here. A tooltip needs a pointer and the
+// screen this is drawn on has none; a legend is a second thing to read on a
+// chart meant to be understood without reading. What a series is belongs in the
+// widget's own title, or in the icon beside it.
 
 // Recharts paints axis labels with SVG `fill`, which the widget's `color` never
 // reaches. Handed to them by name instead, with shadcn's own muted-foreground as
@@ -204,9 +202,6 @@ function Body({ payload }: { payload: ChartPayload }) {
   if (payload.chart === "pie") {
     return (
       <PieChart>
-        <ChartTooltip
-          content={<ChartTooltipContent nameKey={xKey} hideLabel />}
-        />
         <Pie data={data} dataKey={series[0]} nameKey={xKey} innerRadius="45%">
           {data.map((row, i) => (
             <Cell key={String(row[xKey])} fill={pick(colors, i)} />
@@ -247,10 +242,6 @@ function Body({ payload }: { payload: ChartPayload }) {
         domain={ceiling == null ? undefined : [0, ceiling]}
         hide={axes === "x" || axes === "none"}
       />
-      <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-      {series.length > 1 ? (
-        <ChartLegend content={<ChartLegendContent />} />
-      ) : null}
       {series.map((key, i) => {
         const color = `var(--color-${key})`;
         if (payload.chart === "bar") {
