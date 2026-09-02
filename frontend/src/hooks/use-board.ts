@@ -26,6 +26,17 @@ interface BoardState {
   background: Background | null;
   notifications: Notification[];
   page: number;
+  /**
+   * Which widgets have been told work is coming, counted rather than flagged:
+   * a widget woken again while it is already awake gets a new number, which is
+   * how the acknowledgement knows to hold for another spell instead of ending
+   * on the first one's timer.
+   *
+   * Nothing here is board state — it is what somebody said they were about to
+   * do, and a fresh connection knows none of it. That is why a snapshot starts
+   * it empty.
+   */
+  wakes: Record<string, number>;
 }
 
 const EMPTY: BoardState = {
@@ -33,9 +44,21 @@ const EMPTY: BoardState = {
   background: null,
   notifications: [],
   page: 0,
+  wakes: {},
 };
 
-function reduce(state: BoardState, message: BoardEvent): BoardState {
+/** The same wakes without the one for `id`. */
+function settled(wakes: Record<string, number>, id: string) {
+  if (!(id in wakes)) return wakes;
+  const rest = { ...wakes };
+  delete rest[id];
+  return rest;
+}
+
+export function reduceBoard(
+  state: BoardState,
+  message: BoardEvent,
+): BoardState {
   switch (message.event) {
     case "board.snapshot":
       return {
@@ -43,27 +66,45 @@ function reduce(state: BoardState, message: BoardEvent): BoardState {
         background: message.data.background,
         notifications: message.data.notifications,
         page: message.data.page,
+        wakes: {},
       };
     case "board.cleared":
       // The background is not an item; clearing the board leaves it alone.
-      return { ...state, items: [] };
+      return { ...state, items: [], wakes: {} };
     case "board.page":
       return { ...state, page: message.data.page };
     case "background.changed":
       return { ...state, background: message.data };
     case "item.created":
-      return { ...state, items: [...state.items, message.data] };
+      return {
+        ...state,
+        items: [...state.items, message.data],
+        wakes: settled(state.wakes, message.data.id),
+      };
     case "item.updated":
+      // The answer landed, so the widget stops waiting for it. Dropping the
+      // wake here rather than letting it time out is what makes the arrival
+      // and the acknowledgement one movement instead of two.
       return {
         ...state,
         items: state.items.map((i) =>
           i.id === message.data.id ? message.data : i,
         ),
+        wakes: settled(state.wakes, message.data.id),
+      };
+    case "item.waking":
+      return {
+        ...state,
+        wakes: {
+          ...state.wakes,
+          [message.data.id]: (state.wakes[message.data.id] ?? 0) + 1,
+        },
       };
     case "item.removed":
       return {
         ...state,
         items: state.items.filter((i) => i.id !== message.data.id),
+        wakes: settled(state.wakes, message.data.id),
       };
     default:
       return state;
@@ -90,7 +131,7 @@ export function useBoard(): BoardState & { connected: boolean } {
 
       socket.onmessage = (event) => {
         setState((current) =>
-          reduce(current, JSON.parse(event.data as string)),
+          reduceBoard(current, JSON.parse(event.data as string)),
         );
       };
 

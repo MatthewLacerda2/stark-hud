@@ -16,7 +16,8 @@ import { maximisedIn } from "@/lib/maximised";
  */
 function BoardPage() {
   const { t } = useTranslation();
-  const { items, background, notifications, page, connected } = useBoard();
+  const { items, background, notifications, page, wakes, connected } =
+    useBoard();
   const status = useQuery({
     queryKey: ["board", "status"],
     queryFn: boardStatus,
@@ -52,6 +53,7 @@ function BoardPage() {
         <BoardGrid
           items={shown}
           notifications={notifications}
+          wakes={wakes}
           cols={cols}
           rows={rows}
         />

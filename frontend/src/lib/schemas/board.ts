@@ -321,6 +321,9 @@ export type BoardEvent =
   | { event: "board.page"; data: { page: number } }
   | { event: "item.created"; data: Item }
   | { event: "item.updated"; data: Item }
+  /* Work is coming for this widget; nothing about it has changed yet. Sent by
+     whoever is about to write to it, before they go and work out what to write. */
+  | { event: "item.waking"; data: { id: string } }
   | { event: "item.removed"; data: { id: string } }
   | { event: "notification.created"; data: Notification }
   | { event: "notification.removed"; data: { id: string } }

@@ -384,3 +384,75 @@
     transparent
   );
 }
+
+/* --------------------------------------------------------------------------
+   A widget acknowledging that work is coming.
+
+   The film's trick is that the geometry answers immediately and the content
+   lands a beat later, so this is the widget's own edge coming up — not a
+   badge, not a spinner, and nothing that would still be there on a board
+   nobody is writing to.
+
+   Two channels, deliberately, so they never collide. The breath lives on the
+   pseudo-element and the release lives on the element around it, which means
+   the answer arriving fades the whole thing out from wherever the breath had
+   got to, instead of cutting one animation off to start another.
+   -------------------------------------------------------------------------- */
+@utility widget-wake {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 1;
+  /* Must match SETTLE_MS in widget-wake.tsx. */
+  transition: opacity 520ms ease-out;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-lg);
+    border: 2px solid color-mix(in oklab, var(--color-info) 70%, transparent);
+    /* Thrown outwards rather than inwards: a dim room reads a widget lifting
+       off the video behind it, and an inner glow would only wash the content. */
+    box-shadow: 0 0 2.5rem -0.5rem
+      color-mix(in oklab, var(--color-info) 45%, transparent);
+    /* The rise is its own animation so the breath's loop is seamless: it begins
+       and ends at full and never has to double as an entrance. */
+    animation:
+      widget-wake-rise 420ms ease-out,
+      widget-wake-breath 2600ms ease-in-out 420ms infinite;
+  }
+
+  /* Asked for stillness, it appears and goes and does nothing in between. */
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      animation: widget-wake-rise 420ms ease-out;
+    }
+  }
+}
+
+/* The release, set by the component the moment the answer lands. */
+@utility widget-wake-out {
+  opacity: 0;
+}
+
+@keyframes widget-wake-rise {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Slow enough to be breathing rather than blinking, from a sofa in the dark. */
+@keyframes widget-wake-breath {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
