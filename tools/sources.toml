@@ -22,14 +22,14 @@ every = 3
 place = { x = 0, y = 0, w = 12, h = 7 }
 # Only the core numbers along the bottom. The vertical scale was a gutter of
 # labels for a bar chart whose ceiling is already fixed at 100.
-panel = { kind = "chart", chart = "bar", title = "CPU por núcleo", x_key = "core", series = ["use"], max = 100, axes = "x", colors = ["#06b6d499"] }
+panel = { kind = "chart", chart = "bar", title = "CPU por núcleo", x_key = "core", series = ["use"], max = 100, axes = "x", colors = ["#ffffffcc"] }
 
 [[source]]
 name = "mem"
 command = "python3 {collectors}/mem.py"
 every = 5
 place = { x = 12, y = 0, w = 5, h = 5 }
-panel = { kind = "chart", chart = "radial", x_key = "label", series = ["use"], max = 100, colors = ["#22c55e99"], icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12v-2"/><path d="M12 18v-2"/><path d="M16 12v-2"/><path d="M16 18v-2"/><path d="M2 11h1.5"/><path d="M20 18v-2"/><path d="M20.5 11H22"/><path d="M4 18v-2"/><path d="M8 12v-2"/><path d="M8 18v-2"/><rect x="2" y="6" width="20" height="10" rx="2"/></svg>' }
+panel = { kind = "chart", chart = "radial", x_key = "label", series = ["use"], max = 100, colors = ["#ffffff"], unfilled = "#00000059", icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12v-2"/><path d="M12 18v-2"/><path d="M16 12v-2"/><path d="M16 18v-2"/><path d="M2 11h1.5"/><path d="M20 18v-2"/><path d="M20.5 11H22"/><path d="M4 18v-2"/><path d="M8 12v-2"/><path d="M8 18v-2"/><rect x="2" y="6" width="20" height="10" rx="2"/></svg>' }
 
 # A darker green than the CPU's, because it is the other vendor's chip. Not a
 # warning colour: orange and red on a dashboard mean something is wrong.
@@ -38,14 +38,14 @@ name = "gpu"
 command = "python3 {collectors}/gpu.py util"
 every = 3
 place = { x = 17, y = 0, w = 5, h = 5 }
-panel = { kind = "chart", chart = "radial", x_key = "label", series = ["pct"], max = 100, colors = ["#22c55e99"], icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(-30 12 11)"><path d="M2.5 10.5 L12.5 5.5 L21.5 10 L11.5 15 Z"/><path d="M11.5 15 L11.5 18 L21.5 13 L21.5 10"/><path d="M7.32 9.71 L13.08 12.59"/><path d="M9.32 8.71 L15.08 11.59"/><path d="M11.32 7.71 L17.08 10.59"/></g></svg>' }
+panel = { kind = "chart", chart = "radial", x_key = "label", series = ["pct"], max = 100, colors = ["#ffffff"], unfilled = "#00000059", icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(-30 12 11)"><path d="M2.5 10.5 L12.5 5.5 L21.5 10 L11.5 15 Z"/><path d="M11.5 15 L11.5 18 L21.5 13 L21.5 10"/><path d="M7.32 9.71 L13.08 12.59"/><path d="M9.32 8.71 L15.08 11.59"/><path d="M11.32 7.71 L17.08 10.59"/></g></svg>' }
 
 [[source]]
 name = "vram"
 command = "python3 {collectors}/gpu.py vram"
 every = 3
 place = { x = 22, y = 0, w = 5, h = 5 }
-panel = { kind = "chart", chart = "radial", x_key = "label", series = ["pct"], max = 100, colors = ["#22c55e99"], icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12h4"/><path d="M10 17h4"/><path d="M10 7h4"/><path d="M18 12h2"/><path d="M18 18h2"/><path d="M18 6h2"/><path d="M4 12h2"/><path d="M4 18h2"/><path d="M4 6h2"/><rect x="6" y="2" width="12" height="20" rx="2"/></svg>' }
+panel = { kind = "chart", chart = "radial", x_key = "label", series = ["pct"], max = 100, colors = ["#ffffff"], unfilled = "#00000059", icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12h4"/><path d="M10 17h4"/><path d="M10 7h4"/><path d="M18 12h2"/><path d="M18 18h2"/><path d="M18 6h2"/><path d="M4 12h2"/><path d="M4 18h2"/><path d="M4 6h2"/><rect x="6" y="2" width="12" height="20" rx="2"/></svg>' }
 
 # One reading each time; `history` turns it into four minutes of line.
 # 90 °C is the ceiling we chose to draw against, not a hardware limit.
@@ -56,7 +56,7 @@ every = 20
 place = { x = 0, y = 7, w = 12, h = 5 }
 # As cores vivem aqui porque o agente reescreve o payload a cada volta: posto
 # no item pela API, o verde duraria 20 segundos.
-panel = { kind = "list", title = "tmux", empty = "nenhuma sessão", title_color = "#16a34a", item_color = "#4ade80" }
+panel = { kind = "list", title = "tmux", empty = "nenhuma sessão", title_color = "#ffffff", item_color = "#ffffff" }
 
 
 # Two minutes: each pass is one call per feed plus one per push to fetch the
