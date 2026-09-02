@@ -9,7 +9,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 from starlette.applications import Starlette
 
 from core.config import get_settings
-from hud_mcp import background, content, layout, lists, media, notifications
+from hud_mcp import background, content, layout, lists, media, notifications, speech
 
 # Written to be read by a model that has never seen this board. The grid size is
 # interpolated rather than typed out: it has already changed once, and stale
@@ -65,6 +65,13 @@ is its remote, because the television has nothing to press. It plays the queue
 through on its own, and list_items reports what it says it is actually doing —
 including a file it could not play.
 
+The board also has a voice: speak says one short line out loud through the
+television, into a room where somebody may be. Every line is bought from a
+speech service on a free tier of a few thousand characters a month, so it is for
+something worth interrupting a room for and not for reading back what a tool has
+already returned as text. At most 100 characters, refused rather than trimmed —
+and the voice reads any language, so write the line in the user's.
+
 Use notify to say something finished. Notifications are not widgets — they all go
 into one inbox, like a phone's shade, and drop out after 48 hours. Put your
 project name in the source field so a human can tell which Claude is speaking.\
@@ -82,6 +89,7 @@ def build_server() -> MCPServer:
     lists.register(server)
     media.register(server)
     notifications.register(server)
+    speech.register(server)
     return server
 
 

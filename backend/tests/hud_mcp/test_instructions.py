@@ -27,5 +27,6 @@ def test_instructions_cover_what_a_session_cannot_guess() -> None:
         "notify",  # how to announce finishing
         "written whole",  # why a list is the one thing you add to
         "set_description",  # the note on a widget that the TV never shows
+        "free tier",  # what saying something out loud costs, and who pays
     ):
         assert fact in instructions, f"instructions no longer mention {fact!r}"

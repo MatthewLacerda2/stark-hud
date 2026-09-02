@@ -4,6 +4,7 @@ import type {
   BoardEvent,
   Item,
   Notification,
+  Spoken,
 } from "@/lib/schemas/board";
 
 /**
@@ -21,11 +22,22 @@ const WS_URL =
 const RETRY_MIN_MS = 500;
 const RETRY_MAX_MS = 10_000;
 
+/** How many spoken lines the page remembers. Enough to outlast a burst. */
+const SPOKEN_KEPT = 8;
+
 interface BoardState {
   items: Item[];
   background: Background | null;
   notifications: Notification[];
   page: number;
+  /**
+   * Lines the board has been told to say out loud since this page connected.
+   *
+   * A queue rather than the latest one: two agents speaking at the same moment
+   * arrive as two messages in one tick, and a single slot would drop the first.
+   * Trimmed to the last few, because nothing here reads an old one twice.
+   */
+  spoken: Spoken[];
 }
 
 const EMPTY: BoardState = {
@@ -33,6 +45,7 @@ const EMPTY: BoardState = {
   background: null,
   notifications: [],
   page: 0,
+  spoken: [],
 };
 
 function reduce(state: BoardState, message: BoardEvent): BoardState {
@@ -43,6 +56,15 @@ function reduce(state: BoardState, message: BoardEvent): BoardState {
         background: message.data.background,
         notifications: message.data.notifications,
         page: message.data.page,
+        // A reconnect does not replay what was said while the page was away: a
+        // television reading out the afternoon's announcements because someone
+        // restarted the browser is worse than one that misses a line.
+        spoken: [],
+      };
+    case "speech.spoken":
+      return {
+        ...state,
+        spoken: [...state.spoken, message.data].slice(-SPOKEN_KEPT),
       };
     case "board.cleared":
       // The background is not an item; clearing the board leaves it alone.

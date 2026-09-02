@@ -26,6 +26,14 @@ services:
       # the times an agent reads back out of the inbox, for one — is hours off
       # from the clock on the wall next to the screen.
       TZ: ${TZ:-America/Fortaleza}
+      # The board's voice. Passed through from a `.env` beside this file, which
+      # git ignores and a human fills in: this repository is public, and a key
+      # in it would be a key on the internet. Empty is a working board that
+      # simply cannot speak and says so when something asks it to.
+      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      # Spoken lines land beside the board file, in the one volume the backend
+      # can write to. Only the newest few are kept.
+      SPEECH_DIR: /data/speech
       # The board itself, kept across restarts. Plain JSON under a name of our
       # own, so it can be backed up, edited or swapped for another board.
       STATE_FILE: /data/board.hud
