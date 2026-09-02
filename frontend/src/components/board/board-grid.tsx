@@ -190,9 +190,22 @@ export function BoardGrid({
         </GridLayout>
       ) : null}
 
+      {/* No padding, and a ground of its own.
+
+          This layer used to carry the same 8px the grid puts around every
+          widget, which is right for a widget among widgets and wrong for the
+          only thing on the screen: a 1920x1080 film was being fitted into
+          1904x1064, so it letterboxed itself to 1892x1064 and left 14px of the
+          background video down each side and 8px along the top and bottom. The
+          padding is the grid's, not the picture's, and here there is no grid.
+
+          The ground is opaque because a film that is not 16:9 legitimately has
+          bars, and the background behind this layer is a wallpaper video that
+          has been paused — so without it the bars would be a frozen still of
+          something else rather than black. */}
       {maximised ? (
         <div
-          className="@container absolute inset-0 z-30 p-2"
+          className="@container absolute inset-0 z-30 bg-background"
           style={widgetVars(maximised, alphaOf(maximised))}
         >
           <ItemView

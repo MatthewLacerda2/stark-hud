@@ -130,6 +130,8 @@ async function grid(): Promise<{
   show: (maximised: boolean) => Promise<void>;
   sources: () => (string | null)[];
   text: () => string;
+  layer: () => HTMLElement;
+  frames: () => string[];
 }> {
   const host = document.createElement("div");
   document.body.appendChild(host);
@@ -155,6 +157,17 @@ async function grid(): Promise<{
     sources: () =>
       [...host.querySelectorAll("video")].map((v) => v.getAttribute("src")),
     text: () => host.textContent ?? "",
+    // The layer over the board, found by the one thing only it has: it is the
+    // only element on the board lifted above the grid.
+    layer: () =>
+      [...host.querySelectorAll("div")].find((d) =>
+        d.className.split(/\s+/).includes("z-30"),
+      ) as HTMLElement,
+    // Every widget's own outer frame, which is where a corner radius lives.
+    frames: () =>
+      [...host.querySelectorAll("div")]
+        .filter((d) => d.className.includes("widget-surface"))
+        .map((d) => d.className),
   };
 }
 
@@ -197,5 +210,55 @@ describe("a widget with the whole board", () => {
       "/api/v1/media/loop",
     ]);
     expect(text()).toContain("Buy milk");
+  });
+});
+
+/**
+ * A film with the whole board takes the whole screen, to the pixel.
+ *
+ * It used to take 1892x1064 of a 1920x1080 television, because the layer it is
+ * drawn in carried the same 8px the grid puts around every widget: 1904x1064 of
+ * room, which a 16:9 picture then letterboxed itself inside. What was left was
+ * 14 pixels of the background video down each side and 8 along the top and
+ * bottom — the seam the board was reported for.
+ *
+ * jsdom measures nothing, so these ask for the two properties that decide the
+ * measurement rather than the measurement itself: no padding around the layer,
+ * and no radius on the frame inside it. Both are pinned because both had to go
+ * for the picture to reach the edge, and either one coming back brings the seam
+ * back with it.
+ */
+describe("a film takes the exact screen", () => {
+  it("is drawn in a layer with no padding of its own", async () => {
+    const { show, layer } = await grid();
+    await show(true);
+
+    expect(layer().className).toMatch(/\binset-0\b/);
+    expect(layer().className).not.toMatch(/\bp-\d/);
+  });
+
+  it("has a ground of its own, for a film that is not 16:9", async () => {
+    // A 2.39:1 film keeps its bars, which is the film's shape and not a bug.
+    // They have to be black: the wallpaper behind this layer is paused while a
+    // film plays, so without a ground the bars would be a frozen still of it.
+    const { show, layer } = await grid();
+    await show(true);
+
+    expect(layer().className).toMatch(/\bbg-background\b/);
+  });
+
+  it("squares off the corners the grid had rounded", async () => {
+    const { show, frames } = await grid();
+
+    // One widget among many is told apart from the next by its corners.
+    await show(false);
+    expect(frames().every((c) => c.includes("rounded-xl"))).toBe(true);
+
+    // With the whole screen there is no next widget, and a rounded corner is a
+    // bite out of the film. The album still playing in its own slot keeps its.
+    await show(true);
+    const [slot, whole] = frames();
+    expect(slot).toContain("rounded-xl");
+    expect(whole).not.toContain("rounded-xl");
   });
 });
