@@ -46,6 +46,8 @@ if mode == "vram":
     row = {"label": f"{used / 1024:.1f} de {total / 1024:.0f} GB",
            "pct": round(used / total * 100, 1)}
 else:
-    row = {"label": "uso", "pct": util}
+    # No reading line: "uso" was a word where a number should be, and the ring
+    # already says how much. The gauge draws nothing when the label is empty.
+    row = {"label": "", "pct": util}
 
 print(json.dumps([row]))
