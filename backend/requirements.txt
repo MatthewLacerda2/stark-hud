@@ -8,3 +8,7 @@ mcp==2.1.1
 # Reads the title, artist and album out of a music file. Pure Python, no system
 # libraries behind it, and one dictionary over ID3, Vorbis comments and MP4.
 mutagen==1.48.1
+# The board's voice. The vendor's own SDK rather than a hand-rolled client: it
+# carries the error bodies that tell a good key missing a scope apart from a bad
+# one, which is the whole of the difference between two identical 401s.
+elevenlabs==2.65.0

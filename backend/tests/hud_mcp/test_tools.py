@@ -43,6 +43,7 @@ EXPECTED = {
     "set_media_mode",
     "set_media_queue",
     "set_style",
+    "speak",
     "set_parent",
     "set_description",
     "wake_item",

@@ -4,6 +4,7 @@ import type {
   BoardEvent,
   Item,
   Notification,
+  Spoken,
 } from "@/lib/schemas/board";
 
 /**
@@ -21,12 +22,16 @@ const WS_URL =
 const RETRY_MIN_MS = 500;
 const RETRY_MAX_MS = 10_000;
 
+/** How many spoken lines the page remembers. Enough to outlast a burst. */
+const SPOKEN_KEPT = 8;
+
 interface BoardState {
   items: Item[];
   background: Background | null;
   notifications: Notification[];
   page: number;
   /**
+<<<<<<< HEAD
    * Which widgets have been told work is coming, counted rather than flagged:
    * a widget woken again while it is already awake gets a new number, which is
    * how the acknowledgement knows to hold for another spell instead of ending
@@ -37,6 +42,15 @@ interface BoardState {
    * it empty.
    */
   wakes: Record<string, number>;
+=======
+   * Lines the board has been told to say out loud since this page connected.
+   *
+   * A queue rather than the latest one: two agents speaking at the same moment
+   * arrive as two messages in one tick, and a single slot would drop the first.
+   * Trimmed to the last few, because nothing here reads an old one twice.
+   */
+  spoken: Spoken[];
+>>>>>>> origin/voice
 }
 
 const EMPTY: BoardState = {
@@ -44,7 +58,11 @@ const EMPTY: BoardState = {
   background: null,
   notifications: [],
   page: 0,
+<<<<<<< HEAD
   wakes: {},
+=======
+  spoken: [],
+>>>>>>> origin/voice
 };
 
 /** The same wakes without the one for `id`. */
@@ -66,7 +84,19 @@ export function reduceBoard(
         background: message.data.background,
         notifications: message.data.notifications,
         page: message.data.page,
+<<<<<<< HEAD
         wakes: {},
+=======
+        // A reconnect does not replay what was said while the page was away: a
+        // television reading out the afternoon's announcements because someone
+        // restarted the browser is worse than one that misses a line.
+        spoken: [],
+      };
+    case "speech.spoken":
+      return {
+        ...state,
+        spoken: [...state.spoken, message.data].slice(-SPOKEN_KEPT),
+>>>>>>> origin/voice
       };
     case "board.cleared":
       // The background is not an item; clearing the board leaves it alone.

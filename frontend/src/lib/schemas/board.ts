@@ -313,6 +313,19 @@ export interface BoardStatus {
   largest_free_rect: Placement | null;
 }
 
+/**
+ * A line the board has been told to say out loud, already synthesised.
+ *
+ * `url` is where the audio is, addressed by id: the backend has no speakers, so
+ * the page is the only thing here that can actually say it.
+ */
+export interface Spoken {
+  id: string;
+  text: string;
+  url: string;
+  created_at: string;
+}
+
 /** Events pushed over the board socket. */
 export type BoardEvent =
   | { event: "board.snapshot"; data: BoardSnapshot }
@@ -327,4 +340,5 @@ export type BoardEvent =
   | { event: "item.removed"; data: { id: string } }
   | { event: "notification.created"; data: Notification }
   | { event: "notification.removed"; data: { id: string } }
-  | { event: "notifications.cleared"; data: { removed: number } };
+  | { event: "notifications.cleared"; data: { removed: number } }
+  | { event: "speech.spoken"; data: Spoken };

@@ -8,6 +8,7 @@ import { BoardGrid } from "@/components/board/board-grid";
 import { PageDots } from "@/components/board/page-dots";
 import { useBoard } from "@/hooks/use-board";
 import { usePageTurn } from "@/hooks/use-page-turn";
+import { useSpeech } from "@/hooks/use-speech";
 import { maximisedIn } from "@/lib/maximised";
 
 /**
@@ -16,8 +17,12 @@ import { maximisedIn } from "@/lib/maximised";
  */
 function BoardPage() {
   const { t } = useTranslation();
-  const { items, background, notifications, page, wakes, connected } =
+  const { items, background, notifications, page, wakes, spoken, connected } =
     useBoard();
+  // The board's voice. Nothing is drawn for it: the browser is the only part of
+  // this board with a speaker, so saying a line is something the page does
+  // rather than something a widget shows.
+  useSpeech(spoken);
   const status = useQuery({
     queryKey: ["board", "status"],
     queryFn: boardStatus,
