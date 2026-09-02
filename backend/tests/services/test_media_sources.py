@@ -27,7 +27,9 @@ def _album(tmp_path: Path, tracks: int = 19) -> Path:
     folder.mkdir(parents=True)
     for n in range(1, tracks + 1):
         (folder / f"{n:02d} - Track {n}.mp3").write_bytes(b"id3")
-    (folder / "AlbumArt_{ABC-123}_Large.jpg").write_bytes(b"jpeg")
+    (folder / "AlbumArt_{ABC-123}_Large.jpg").write_bytes(b"jpeg" * 200)
+    (folder / "AlbumArtSmall.jpg").write_bytes(b"jpeg")
+    (folder / "folder.jpg").write_bytes(b"jpeg" * 50)
     (folder / "album.m3u").write_text("not a track")
     return folder
 
@@ -63,11 +65,10 @@ def test_something_the_browser_cannot_play_is_refused(tmp_path: Path) -> None:
         raise AssertionError("a text file was accepted into a queue")
 
 
-def test_the_art_beside_an_album_is_found(tmp_path: Path) -> None:
-    """Whatever the ripper called it, as long as it starts the way they all do."""
-    folder = _album(tmp_path)
-    item = _item(str(folder))
-    assert Path(service.art_path(item, 0)).name.startswith("AlbumArt")
+def test_the_art_beside_an_album_is_the_big_one(tmp_path: Path) -> None:
+    """A ripper leaves a thumbnail beside the picture; on a television that is a smudge."""
+    item = _item(str(_album(tmp_path)))
+    assert Path(service.art_path(item, 0)).name == "AlbumArt_{ABC-123}_Large.jpg"
 
 
 def test_an_album_with_no_picture_simply_has_none(tmp_path: Path) -> None:
