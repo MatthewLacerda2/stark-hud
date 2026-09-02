@@ -37,6 +37,7 @@ ICONS = frozenset(
         "rocket",
         "wrench",
         "github",
+        "claude",
     }
 )
 
