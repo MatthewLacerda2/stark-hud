@@ -64,6 +64,17 @@ async def test_a_named_icon_has_no_picture_to_serve(client: AsyncClient) -> None
     assert (await client.get(f"/api/v1/media/{item_id}/icon")).status_code == 404
 
 
+async def test_a_list_has_an_icon_of_its_own_as_well_as_its_entries(
+    client: AsyncClient, tmp_path: Path
+) -> None:
+    """The widget's icon resolves like any other, so the same route serves it."""
+    icon = tmp_path / "mark.png"
+    icon.write_bytes(b"pretend-a-mark")
+    body = {"payload": {"kind": "list", "title": "todo", "icon": str(icon)}}
+    item_id = (await client.post(ITEMS, json=body)).json()["id"]
+    assert (await client.get(f"/api/v1/media/{item_id}/icon")).content == b"pretend-a-mark"
+
+
 async def test_a_list_entry_icon_is_served_by_its_place(
     client: AsyncClient, tmp_path: Path
 ) -> None:

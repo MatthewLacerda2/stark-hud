@@ -106,6 +106,40 @@ async def test_an_entry_with_a_body_keeps_its_shape(server: MCPServer) -> None:
     assert repo.get(item_id).payload.items[-1].body == "the oat one"
 
 
+async def test_a_list_lets_the_caller_colour_every_part_of_it(server: MCPServer) -> None:
+    """Whoever writes the list decides its colours, down to one line's icon."""
+    await call(
+        server,
+        "add_list",
+        items=[{"title": "milk", "body": "the oat one", "icon_color": "#00ff8840"}],
+        title="todo",
+        icon="check",
+        title_color="#ffffffbf",
+        icon_color="#33ccffaa",
+        item_color="#ff8800",
+    )
+    payload = repo.list_items()[0].payload
+    assert (payload.icon, payload.icon_color) == ("check", "#33ccffaa")
+    assert payload.items[0].icon_color == "#00ff8840"
+    # What the caller said nothing about stays unset, so the widget still decides.
+    assert payload.items[0].title_color is None
+
+
+async def test_a_list_refuses_an_icon_it_could_not_draw(server: MCPServer) -> None:
+    """A typo comes back as a sentence naming the vocabulary, not an exception."""
+    message = await call(server, "add_list", items=[], title="todo", icon="sparkle")
+    assert "is not an icon" in message
+    assert repo.list_items() == []
+
+
+async def test_an_appended_entry_can_carry_its_own_colours(server: MCPServer) -> None:
+    """A line added later says as much about itself as one written up front."""
+    item_id = await _a_list(server, "bread")
+    await call(server, "add_to_list", item_id=item_id, title="milk", title_color="#ff8800")
+    entry = repo.get(item_id).payload.items[-1]
+    assert (entry.title_color, entry.body) == ("#ff8800", None)
+
+
 async def test_removing_names_the_lines_it_could_not_find(server: MCPServer) -> None:
     """A session that misremembers the wording is told what is actually there."""
     item_id = await _a_list(server, "bread")
