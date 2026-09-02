@@ -6,7 +6,15 @@ import type {
   BoardStatus,
   Item,
   Payload,
+  Playback,
 } from "@/lib/schemas/board";
+
+/** What the page tells the server a media widget is doing. */
+export interface PlaybackReport {
+  state: Playback["state"];
+  track?: number;
+  error?: string;
+}
 
 export interface ItemCreate {
   payload: Payload;
@@ -49,6 +57,22 @@ export function createItem(body: ItemCreate): Promise<Item> {
 
 export function updateItem(id: string, body: ItemUpdate): Promise<Item> {
   return request<Item>(`/board/items/${id}`, { method: "PATCH", body });
+}
+
+/**
+ * Say what a media widget is doing. The only call that runs this direction.
+ *
+ * A finished track is also how the queue moves on: the server decides what
+ * follows it, because loop-or-stop is one rule and it lives in one place.
+ */
+export function reportPlayback(
+  id: string,
+  body: PlaybackReport,
+): Promise<Item> {
+  return request<Item>(`/board/items/${id}/playback`, {
+    method: "POST",
+    body,
+  });
 }
 
 export function removeItem(id: string): Promise<void> {

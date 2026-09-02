@@ -78,6 +78,45 @@ export interface VideoPayload {
   muted: boolean;
 }
 
+/** One entry in a media widget's queue. Served by the widget's id and this
+ * track's place in it, so the path never leaves the server. */
+export interface MediaTrack {
+  path: string;
+  title: string | null;
+  kind: "audio" | "video";
+}
+
+/**
+ * A queue of local files that plays itself through.
+ *
+ * The transport is state, not a stream of commands: the server holds what is
+ * true and the page renders it, so a reload finds the widget where it left it.
+ * What the page then managed to do about it is `Item.playback`, not here.
+ */
+export interface MediaPayload {
+  kind: "media";
+  tracks: MediaTrack[];
+  /** Which track the widget is on. */
+  index: number;
+  /** Whether it should be playing. Not whether it is — that is the report. */
+  playing: boolean;
+  /** What happens when the queue runs out: start again, or stop. */
+  loop: boolean;
+  muted: boolean;
+  /** Takes the whole board and gives it back; the grid slot is kept either way. */
+  maximised: boolean;
+  title: string | null;
+}
+
+/** What the page last told the server this widget was doing. */
+export interface Playback {
+  state: "idle" | "playing" | "paused" | "ended" | "failed";
+  track: number | null;
+  title: string | null;
+  error: string | null;
+  at: string;
+}
+
 export interface ChartPayload {
   kind: "chart";
   chart: ChartKind;
@@ -145,6 +184,7 @@ export type Payload =
   | BoxPayload
   | ImagePayload
   | VideoPayload
+  | MediaPayload
   | ChartPayload
   | InboxPayload
   | ClockPayload
@@ -170,6 +210,13 @@ export interface Item {
   /** Multiplies the text sizes inside the widget. Null means 1. */
   scale: number | null;
   payload: Payload;
+  /**
+   * What the browser says this widget is actually doing. Only a media widget
+   * ever has one, and only the browser can know it: a file may be gone, or in a
+   * codec it will not decode. It is kept beside `description` rather than in the
+   * payload so that rewriting the widget does not erase it.
+   */
+  playback: Playback | null;
   /** Which screen this widget is on. The board shows exactly one at a time. */
   page: number;
   x: number;
