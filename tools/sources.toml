@@ -63,7 +63,9 @@ panel = { kind = "list", title = "tmux", empty = "nenhuma sessão", title_color 
 # message, and there is no hurry — a commit is not news by the second.
 [[source]]
 name = "commits"
-command = "python3 {collectors}/github_commits.py --org TrussInt --org pgbezerra-org --limit 10"
+# Which organisations to include is personal, so it lives in the agent's
+# environment (HUD_GITHUB_ORGS), never in this file.
+command = "python3 {collectors}/github_commits.py --limit 10"
 every = 120
 timeout = 60
 place = { x = 12, y = 5, w = 11, h = 13 }

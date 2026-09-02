@@ -20,11 +20,12 @@ Nothing is remembered between runs. It asks for the last N pushes every time
 and prints them all, so there is no cursor to lose and a restart changes
 nothing — the same lesson the panels themselves learned.
 
-    github_commits.py --org TrussInt --org pgbezerra-org --limit 10
+    HUD_GITHUB_ORGS=acme,other github_commits.py --limit 10
 """
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 
@@ -75,7 +76,14 @@ def pushes(user: str, orgs: list[str], limit: int) -> list[dict]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--user", help="defaults to whoever gh is logged in as")
-    parser.add_argument("--org", action="append", default=[])
+    # Which organisations to look in is the user's, not the project's, so the
+    # default comes from the environment. Naming an employer in a file the repo
+    # tracks puts personal data in source control, and this repo is public.
+    parser.add_argument(
+        "--org",
+        action="append",
+        default=[o for o in os.environ.get("HUD_GITHUB_ORGS", "").split(",") if o],
+    )
     parser.add_argument("--limit", type=int, default=10)
     args = parser.parse_args()
 
