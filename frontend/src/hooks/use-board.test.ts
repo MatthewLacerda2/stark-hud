@@ -6,7 +6,7 @@
  * the page would still be correct, it would just never acknowledge anything.
  */
 import { describe, expect, it } from "vitest";
-import type { BoardEvent, Item } from "@/lib/schemas/board";
+import type { BoardEvent, Item, Spoken } from "@/lib/schemas/board";
 import { reduceBoard } from "@/hooks/use-board";
 
 const EMPTY = {
@@ -15,6 +15,7 @@ const EMPTY = {
   notifications: [],
   page: 0,
   wakes: {} as Record<string, number>,
+  spoken: [] as Spoken[],
 };
 
 function note(id: string, text: string): Item {

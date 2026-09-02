@@ -9,11 +9,16 @@ from mcp.server.transport_security import TransportSecuritySettings
 from starlette.applications import Starlette
 
 from core.config import get_settings
-<<<<<<< HEAD
-from hud_mcp import background, content, layout, lists, media, notifications, wake
-=======
-from hud_mcp import background, content, layout, lists, media, notifications, speech
->>>>>>> origin/voice
+from hud_mcp import (
+    background,
+    content,
+    layout,
+    lists,
+    media,
+    notifications,
+    speech,
+    wake,
+)
 
 # Written to be read by a model that has never seen this board. The grid size is
 # interpolated rather than typed out: it has already changed once, and stale
@@ -69,7 +74,6 @@ is its remote, because the television has nothing to press. It plays the queue
 through on its own, and list_items reports what it says it is actually doing —
 including a file it could not play.
 
-<<<<<<< HEAD
 Anything you are about to do that takes more than a moment — reading files,
 searching, running a command, working out an answer — call wake_item on the
 widget it is going to land in *first*, and then go and do it. The widget
@@ -78,14 +82,12 @@ instead of sitting dead until the answer arrives. Every tool here returns in
 milliseconds, so the only thing anybody ever waits for is you; this is the one
 signal that can go before you know the answer. It settles by itself and it never
 replaces the write that follows.
-=======
 The board also has a voice: speak says one short line out loud through the
 television, into a room where somebody may be. Every line is bought from a
 speech service on a free tier of a few thousand characters a month, so it is for
 something worth interrupting a room for and not for reading back what a tool has
 already returned as text. At most 100 characters, refused rather than trimmed —
 and the voice reads any language, so write the line in the user's.
->>>>>>> origin/voice
 
 Use notify to say something finished. Notifications are not widgets — they all go
 into one inbox, like a phone's shade, and drop out after 48 hours. Put your
@@ -104,11 +106,8 @@ def build_server() -> MCPServer:
     lists.register(server)
     media.register(server)
     notifications.register(server)
-<<<<<<< HEAD
     wake.register(server)
-=======
     speech.register(server)
->>>>>>> origin/voice
     return server
 
 
