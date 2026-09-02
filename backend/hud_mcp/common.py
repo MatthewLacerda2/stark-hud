@@ -14,6 +14,19 @@ from services.board import SlotTakenError
 from services.placement import BoardFullError
 
 
+def _playing(item: ItemRead) -> str:
+    """What the browser last said this widget was doing, in a few words.
+
+    Read here rather than behind a tool of its own for the same reason the
+    description is: this is the line a session already reads, and a widget that
+    is silently failing to play anything should say so where somebody is looking.
+    """
+    playback = item.playback
+    assert playback is not None
+    said = f"{playback.state} {playback.title!r}" if playback.title else playback.state
+    return f"{said}: {playback.error}" if playback.error else said
+
+
 def describe(item: ItemRead) -> str:
     """One line an agent can read back to itself.
 
@@ -23,6 +36,8 @@ def describe(item: ItemRead) -> str:
     for separately is a note nobody asks for.
     """
     line = f"{item.payload.kind} {item.id} at ({item.x},{item.y}) size {item.w}x{item.h}"
+    if item.playback is not None:
+        line = f"{line} [{_playing(item)}]"
     return f"{line} — {item.description}" if item.description else line
 
 

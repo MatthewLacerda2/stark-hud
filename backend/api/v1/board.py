@@ -5,8 +5,16 @@ from pydantic import BaseModel, Field
 
 from core.hub import hub
 from repositories import board as repo
-from schemas.board import Background, BoardStatus, ItemCreate, ItemRead, ItemUpdate
+from schemas.board import (
+    Background,
+    BoardStatus,
+    ItemCreate,
+    ItemRead,
+    ItemUpdate,
+    PlaybackReport,
+)
 from services import board as service
+from services import media as media_service
 
 router = APIRouter(prefix="/board", tags=["board"])
 
@@ -117,6 +125,31 @@ async def upsert_by_key(key: str, payload: ItemCreate) -> ItemRead:
 async def update_item(item_id: str, payload: ItemUpdate) -> ItemRead:
     """Apply a partial update to an item."""
     item = service.update(_get_or_404(item_id), payload)
+    await hub.broadcast("item.updated", item.model_dump(mode="json"))
+    return item
+
+
+@router.post("/items/{item_id}/playback", response_model=ItemRead)
+async def report_playback(item_id: str, payload: PlaybackReport) -> ItemRead:
+    """Record what the browser says a media widget is doing.
+
+    The only route on this board that runs the other way. Everything else is
+    written by whoever drives the board and drawn by the TV; a file that is gone,
+    or in a codec the browser refuses, is a thing only the TV can find out — and
+    without somewhere to say it, it would be visible from the sofa and nowhere
+    else.
+
+    It lands on the item rather than in the payload, so a widget rewritten by its
+    owner keeps it. A finished track is also how the queue moves on: the rule for
+    what follows the last one lives in the service, not in the page.
+    """
+    item = _get_or_404(item_id)
+    if item.payload.kind != "media":
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Item {item_id} is a {item.payload.kind}, which plays nothing",
+        )
+    item = media_service.report(item, payload)
     await hub.broadcast("item.updated", item.model_dump(mode="json"))
     return item
 
