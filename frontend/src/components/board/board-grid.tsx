@@ -9,6 +9,7 @@ import { updateItem } from "@/lib/api/board";
 import { ItemView } from "@/components/board/item-view";
 import { WidgetControls } from "@/components/board/widget-controls";
 import { useContainerSize } from "@/hooks/use-container-size";
+import { drawn, maximisedIn } from "@/lib/maximised";
 
 const MARGIN = 8;
 const PADDING = 8;
@@ -51,19 +52,6 @@ function widgetVars(item: Item, alpha: number): React.CSSProperties {
 }
 
 /**
- * The widget that has been given the whole board, if one has.
- *
- * It is drawn in a layer over the grid rather than resized into it. The grid is
- * finite and never overlaps, so a widget asking for every cell would have to
- * push every other widget off a board that cannot scroll — and it has to be able
- * to give the room back. This way its own slot stays exactly where it was,
- * empty, and nothing moves underneath it.
- */
-function maximisedIn(items: Item[]): Item | undefined {
-  return items.find((i) => i.payload.kind === "media" && i.payload.maximised);
-}
-
-/**
  * The board, as a fixed grid that can be rearranged with a mouse.
  *
  * The server still owns placement: a drag or resize is a request, sent as a
@@ -73,6 +61,10 @@ function maximisedIn(items: Item[]): Item | undefined {
  *
  * Compaction is off. The server places things deliberately, and a grid that
  * pulls everything upwards would fight it.
+ *
+ * While a widget has the whole board the grid keeps every slot and draws almost
+ * nothing into them — see `drawn`. The layout is untouched, so giving the room
+ * back is one render and the board comes back exactly where it was.
  */
 export function BoardGrid({
   items,
@@ -181,9 +173,9 @@ export function BoardGrid({
               onMouseEnter={() => show(item.id)}
               onMouseLeave={hideSoon}
             >
-              {maximised?.id === item.id ? null : (
+              {drawn(item, maximised) ? (
                 <ItemView item={item} notifications={notifications} />
-              )}
+              ) : null}
               {hovered === item.id ? (
                 <WidgetControls
                   alpha={alphaOf(item)}

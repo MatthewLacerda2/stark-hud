@@ -8,6 +8,7 @@ import { BoardGrid } from "@/components/board/board-grid";
 import { PageDots } from "@/components/board/page-dots";
 import { useBoard } from "@/hooks/use-board";
 import { usePageTurn } from "@/hooks/use-page-turn";
+import { maximisedIn } from "@/lib/maximised";
 
 /**
  * The board. This page is what the TV shows, so it is full-bleed, dark, and has
@@ -30,6 +31,11 @@ function BoardPage() {
   // dot that led to an empty grid on a TV nobody can swipe back.
   const pages = items.reduce((most, i) => Math.max(most, i.page), 0) + 1;
   const shown = items.filter((i) => i.page === page);
+  // The background is behind everything, so a widget given the whole board hides
+  // it completely — and a hidden video is still a video the machine decodes.
+  // Asked of the shown page only: a maximised widget on a page nobody is looking
+  // at is not drawn, and covers nothing.
+  const covered = maximisedIn(shown) !== undefined;
 
   const go = useCallback((to: number) => {
     // Fire and forget: the socket delivers the new page to every client,
@@ -40,7 +46,7 @@ function BoardPage() {
 
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-background">
-      <Background background={background} />
+      <Background background={background} covered={covered} />
 
       <div className="relative size-full">
         <BoardGrid
