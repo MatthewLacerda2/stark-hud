@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { ListEntry, ListPayload } from "@/lib/schemas/board";
+import { cn } from "@/lib/utils";
 import { EntryRow } from "@/components/board/entry-row";
 import { Icon } from "@/components/board/icon";
 import { Scrolling } from "@/components/board/scrolling";
@@ -7,7 +8,14 @@ import { Scrolling } from "@/components/board/scrolling";
 /** A plain line, read as the entry it is the short form of. */
 function asEntry(item: string | ListEntry): ListEntry {
   return typeof item === "string"
-    ? { title: item, body: null, icon: null }
+    ? {
+        title: item,
+        body: null,
+        icon: null,
+        title_color: null,
+        body_color: null,
+        icon_color: null,
+      }
     : item;
 }
 
@@ -27,8 +35,10 @@ function asEntry(item: string | ListEntry): ListEntry {
  * They scroll when there are more of them than fit, because nobody can scroll
  * this screen — rows as much as text.
  *
- * The heading and the entries can be coloured apart. Left alone they both take
- * the widget's colour, which is the case that needs no thought.
+ * Every part of it can be coloured, and the rule is one sentence: an entry's
+ * own colour wins, then the widget-wide one — `title_color` for the heading and
+ * the icon beside it, `item_color` for anything inside an entry — then the
+ * widget's colour, which is the case that needs no thought.
  */
 export function List({ id, payload }: { id: string; payload: ListPayload }) {
   const { t } = useTranslation();
@@ -37,13 +47,25 @@ export function List({ id, payload }: { id: string; payload: ListPayload }) {
 
   return (
     <div className="flex size-full flex-col gap-2 rounded-xl widget-surface p-5 widget-text">
-      {payload.title ? (
+      {payload.title || payload.icon ? (
         <h3
-          className="shrink-0 text-node font-semibold tracking-tight"
+          className={cn(
+            "shrink-0 text-node font-semibold tracking-tight",
+            // Only an icon needs the heading to become a row; without one it is
+            // the heading it always was.
+            payload.icon && "flex items-center gap-2",
+          )}
           style={
             payload.title_color ? { color: payload.title_color } : undefined
           }
         >
+          {payload.icon ? (
+            <Icon
+              name={payload.icon}
+              src={`/api/v1/media/${id}/icon`}
+              color={payload.icon_color ?? undefined}
+            />
+          ) : null}
           {payload.title}
         </h3>
       ) : null}
@@ -65,11 +87,14 @@ export function List({ id, payload }: { id: string; payload: ListPayload }) {
                         <Icon
                           name={entry.icon}
                           src={`/api/v1/media/${id}/icon/${i}`}
+                          color={entry.icon_color ?? undefined}
                         />
                       ) : undefined
                     }
                     title={entry.title}
+                    titleColor={entry.title_color ?? undefined}
                     body={entry.body}
+                    bodyColor={entry.body_color ?? undefined}
                   />
                 );
               })}

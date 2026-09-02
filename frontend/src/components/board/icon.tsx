@@ -20,7 +20,7 @@ import {
   XCircle,
   Zap,
 } from "lucide-react";
-import type { ComponentType } from "react";
+import type { ComponentType, CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -30,13 +30,20 @@ import { cn } from "@/lib/utils";
  * traced by hand. Sized in `em` like every lucide glyph, so it lines up with
  * the text beside it whatever the widget is scaled to.
  */
-function GithubMark({ className }: { className?: string }) {
+function GithubMark({
+  className,
+  style,
+}: {
+  className?: string;
+  style?: CSSProperties;
+}) {
   return (
     <svg
       viewBox="0 0 24 24"
       fill="currentColor"
       aria-hidden
       className={className}
+      style={style}
     >
       <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
     </svg>
@@ -45,7 +52,10 @@ function GithubMark({ className }: { className?: string }) {
 
 // A closed set, named the same on both sides. Importing every lucide icon to
 // support names nobody picks would cost the whole library in the bundle.
-export const NAMED: Record<string, ComponentType<{ className?: string }>> = {
+export const NAMED: Record<
+  string,
+  ComponentType<{ className?: string; style?: CSSProperties }>
+> = {
   bell: Bell,
   check: Check,
   info: Info,
@@ -83,23 +93,35 @@ const IMAGE = "size-[1.4em] shrink-0 rounded object-cover";
  *
  * A picture is fetched by the id of whatever holds it, which is what `src` is
  * for: a filesystem path never appears in a URL.
+ *
+ * A glyph is drawn in whatever colour it inherits unless `color` says
+ * otherwise, so a caller that lets a widget decide its icons needs no colour at
+ * all. A picture ignores it: a photograph is not tinted by asking.
  */
 export function Icon({
   name,
   src,
   fallback: Fallback,
   className,
+  color,
 }: {
   name: string | null;
   /** Where the picture is served from, when `name` is a path. */
   src?: string;
   /** What to draw when nothing was named, for callers that have a default. */
-  fallback?: ComponentType<{ className?: string }>;
+  fallback?: ComponentType<{ className?: string; style?: CSSProperties }>;
   className?: string;
+  /** Overrides the colour the glyph would inherit. */
+  color?: string;
 }) {
   if (name?.startsWith("/") && src) {
     return <img src={src} alt="" className={cn(IMAGE, className)} />;
   }
   const Glyph = (name && NAMED[name]) || Fallback;
-  return Glyph ? <Glyph className={cn(GLYPH, className)} /> : null;
+  return Glyph ? (
+    <Glyph
+      className={cn(GLYPH, className)}
+      style={color ? { color } : undefined}
+    />
+  ) : null;
 }

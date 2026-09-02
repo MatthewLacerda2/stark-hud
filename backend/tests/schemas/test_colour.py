@@ -9,7 +9,14 @@ browser and the widget simply renders wrong, with nothing anywhere saying why.
 import pytest
 from pydantic import ValidationError
 
-from schemas.board import BoxPayload, ChartPayload, ItemCreate, ListPayload, NotePayload
+from schemas.board import (
+    BoxPayload,
+    ChartPayload,
+    ItemCreate,
+    ListEntry,
+    ListPayload,
+    NotePayload,
+)
 
 TEXT = NotePayload(text="x")
 
@@ -33,7 +40,12 @@ def test_alpha_survives_everywhere_a_colour_is_taken():
 
     assert NotePayload(text="x", color=translucent).color == translucent
     assert BoxPayload(fill=translucent, stroke=translucent).stroke == translucent
-    assert ListPayload(title_color=translucent, item_color=translucent).item_color == translucent
+    widget = ListPayload(title_color=translucent, icon_color=translucent, item_color=translucent)
+    assert widget.item_color == widget.icon_color == translucent
+    entry = ListEntry(
+        title="x", title_color=translucent, body_color=translucent, icon_color=translucent
+    )
+    assert entry.title_color == entry.body_color == entry.icon_color == translucent
     assert ChartPayload(
         chart="bar", data=[{"a": 1}], x_key="a", series=["a"], colors=[translucent]
     ).colors == [translucent]
