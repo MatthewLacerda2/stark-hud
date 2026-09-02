@@ -85,6 +85,7 @@ const BARS: ChartPayload = {
   max: null,
   unit: null,
   axes: "both",
+  unfilled: null,
   colors: [TRANSLUCENT],
 };
 

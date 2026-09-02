@@ -61,7 +61,7 @@ function toConfig(series: string[], colors: string[]): ChartConfig {
 // video still moves behind it. Solid white would glare on a television in a dim
 // room and compete with the mark sitting inside the ring. Every widget here sits
 // on the same dark video, so there is nothing for this to vary with.
-const UNFILLED = "#ffffff8c";
+const UNFILLED = "#ffffff40";
 
 // The middle of the ring is a circle, and what goes in it has to fit a square
 // inside that circle — 72% of the shorter side across, so about half of it on a
@@ -126,7 +126,7 @@ function Gauge({ id, payload }: { id: string; payload: ChartPayload }) {
           />
           <RadialBar
             dataKey={payload.series[0]}
-            background={{ fill: UNFILLED }}
+            background={{ fill: payload.unfilled ?? UNFILLED }}
             cornerRadius={999}
             fill={pick(payload.colors, 0)}
           />

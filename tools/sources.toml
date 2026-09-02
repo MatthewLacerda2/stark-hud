@@ -22,14 +22,14 @@ every = 3
 place = { x = 0, y = 0, w = 12, h = 7 }
 # Only the core numbers along the bottom. The vertical scale was a gutter of
 # labels for a bar chart whose ceiling is already fixed at 100.
-panel = { kind = "chart", chart = "bar", title = "CPU por núcleo", x_key = "core", series = ["use"], max = 100, axes = "x", colors = ["var(--chart-2)"] }
+panel = { kind = "chart", chart = "bar", title = "CPU por núcleo", x_key = "core", series = ["use"], max = 100, axes = "x", colors = ["#22d3eeb3"] }
 
 [[source]]
 name = "mem"
 command = "python3 {collectors}/mem.py"
 every = 5
 place = { x = 12, y = 0, w = 5, h = 5 }
-panel = { kind = "chart", chart = "radial", x_key = "label", series = ["use"], max = 100, colors = ["var(--chart-2)"], icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12v-2"/><path d="M12 18v-2"/><path d="M16 12v-2"/><path d="M16 18v-2"/><path d="M2 11h1.5"/><path d="M20 18v-2"/><path d="M20.5 11H22"/><path d="M4 18v-2"/><path d="M8 12v-2"/><path d="M8 18v-2"/><rect x="2" y="6" width="20" height="10" rx="2"/></svg>' }
+panel = { kind = "chart", chart = "radial", x_key = "label", series = ["use"], max = 100, colors = ["#22c55e"], icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12v-2"/><path d="M12 18v-2"/><path d="M16 12v-2"/><path d="M16 18v-2"/><path d="M2 11h1.5"/><path d="M20 18v-2"/><path d="M20.5 11H22"/><path d="M4 18v-2"/><path d="M8 12v-2"/><path d="M8 18v-2"/><rect x="2" y="6" width="20" height="10" rx="2"/></svg>' }
 
 # A darker green than the CPU's, because it is the other vendor's chip. Not a
 # warning colour: orange and red on a dashboard mean something is wrong.
@@ -38,14 +38,14 @@ name = "gpu"
 command = "python3 {collectors}/gpu.py util"
 every = 3
 place = { x = 17, y = 0, w = 5, h = 5 }
-panel = { kind = "chart", chart = "radial", x_key = "label", series = ["pct"], max = 100, colors = ["var(--chart-2)"], icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v2"/><path d="M12 2v2"/><path d="M17 20v2"/><path d="M17 2v2"/><path d="M2 12h2"/><path d="M2 17h2"/><path d="M2 7h2"/><path d="M20 12h2"/><path d="M20 17h2"/><path d="M20 7h2"/><path d="M7 20v2"/><path d="M7 2v2"/><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg>' }
+panel = { kind = "chart", chart = "radial", x_key = "label", series = ["pct"], max = 100, colors = ["#22c55e"], icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v2"/><path d="M12 2v2"/><path d="M17 20v2"/><path d="M17 2v2"/><path d="M2 12h2"/><path d="M2 17h2"/><path d="M2 7h2"/><path d="M20 12h2"/><path d="M20 17h2"/><path d="M20 7h2"/><path d="M7 20v2"/><path d="M7 2v2"/><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg>' }
 
 [[source]]
 name = "vram"
 command = "python3 {collectors}/gpu.py vram"
 every = 3
 place = { x = 22, y = 0, w = 5, h = 5 }
-panel = { kind = "chart", chart = "radial", x_key = "label", series = ["pct"], max = 100, colors = ["oklch(0.55 0.13 152)"], icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12h4"/><path d="M10 17h4"/><path d="M10 7h4"/><path d="M18 12h2"/><path d="M18 18h2"/><path d="M18 6h2"/><path d="M4 12h2"/><path d="M4 18h2"/><path d="M4 6h2"/><rect x="6" y="2" width="12" height="20" rx="2"/></svg>' }
+panel = { kind = "chart", chart = "radial", x_key = "label", series = ["pct"], max = 100, colors = ["#22c55e"], icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12h4"/><path d="M10 17h4"/><path d="M10 7h4"/><path d="M18 12h2"/><path d="M18 18h2"/><path d="M18 6h2"/><path d="M4 12h2"/><path d="M4 18h2"/><path d="M4 6h2"/><rect x="6" y="2" width="12" height="20" rx="2"/></svg>' }
 
 # One reading each time; `history` turns it into four minutes of line.
 # 90 °C is the ceiling we chose to draw against, not a hardware limit.
