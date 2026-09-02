@@ -4,6 +4,7 @@ import { Chart } from "@/components/board/items/chart";
 import { Clock } from "@/components/board/items/clock";
 import { Feed } from "@/components/board/items/feed";
 import { Image } from "@/components/board/items/image";
+import { Media } from "@/components/board/items/media";
 import { Video } from "@/components/board/items/video";
 import { Inbox } from "@/components/board/items/inbox";
 import { List } from "@/components/board/items/list";
@@ -32,6 +33,12 @@ export function ItemView({
       return <Image id={item.id} payload={payload} />;
     case "video":
       return <Video id={item.id} payload={payload} />;
+    case "media":
+      // Its size decides whether it draws a player or only a thumbnail, the way
+      // the clock's height decides whether the date fits.
+      return (
+        <Media id={item.id} payload={payload} cols={item.w} rows={item.h} />
+      );
     case "chart":
       return <Chart id={item.id} payload={payload} />;
     case "inbox":

@@ -11,7 +11,16 @@
     "emptyList": "nothing here"
   },
   "media": {
-    "missing": "File not found"
+    "missing": "File not found",
+    "emptyQueue": "Nothing queued",
+    "position": "{{index}} of {{total}}",
+    "state": {
+      "idle": "nothing queued",
+      "playing": "playing",
+      "paused": "paused",
+      "ended": "ended",
+      "failed": "will not play"
+    }
   },
   "chart": {
     "noData": "No data"

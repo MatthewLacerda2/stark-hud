@@ -40,6 +40,29 @@ const HANDLES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
 // does with an overlapping placement, so the two now agree.
 const NO_SHOVING = { ...noCompactor, preventCollision: true };
 
+/** The CSS variables that say what one widget is made of. */
+function widgetVars(item: Item, alpha: number): React.CSSProperties {
+  return {
+    "--widget-alpha": alpha,
+    "--widget-colour": colourOf(item),
+    "--widget-text": item.color ?? undefined,
+    "--widget-scale": item.scale ?? 1,
+  } as React.CSSProperties;
+}
+
+/**
+ * The widget that has been given the whole board, if one has.
+ *
+ * It is drawn in a layer over the grid rather than resized into it. The grid is
+ * finite and never overlaps, so a widget asking for every cell would have to
+ * push every other widget off a board that cannot scroll — and it has to be able
+ * to give the room back. This way its own slot stays exactly where it was,
+ * empty, and nothing moves underneath it.
+ */
+function maximisedIn(items: Item[]): Item | undefined {
+  return items.find((i) => i.payload.kind === "media" && i.payload.maximised);
+}
+
 /**
  * The board, as a fixed grid that can be rearranged with a mouse.
  *
@@ -63,6 +86,7 @@ export function BoardGrid({
   rows: number;
 }) {
   const { ref, width, height } = useContainerSize();
+  const maximised = maximisedIn(items);
   const [hovered, setHovered] = useState<string | null>(null);
   const [preview, setPreview] = useState<Record<string, number>>({});
   const linger = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -131,7 +155,7 @@ export function BoardGrid({
   );
 
   return (
-    <div ref={ref} className="size-full">
+    <div ref={ref} className="relative size-full">
       {width > 0 && height > 0 ? (
         <GridLayout
           width={width}
@@ -153,18 +177,13 @@ export function BoardGrid({
             <div
               key={item.id}
               className="@container relative min-h-0 min-w-0"
-              style={
-                {
-                  "--widget-alpha": alphaOf(item),
-                  "--widget-colour": colourOf(item),
-                  "--widget-text": item.color ?? undefined,
-                  "--widget-scale": item.scale ?? 1,
-                } as React.CSSProperties
-              }
+              style={widgetVars(item, alphaOf(item))}
               onMouseEnter={() => show(item.id)}
               onMouseLeave={hideSoon}
             >
-              <ItemView item={item} notifications={notifications} />
+              {maximised?.id === item.id ? null : (
+                <ItemView item={item} notifications={notifications} />
+              )}
               {hovered === item.id ? (
                 <WidgetControls
                   alpha={alphaOf(item)}
@@ -177,6 +196,20 @@ export function BoardGrid({
             </div>
           ))}
         </GridLayout>
+      ) : null}
+
+      {maximised ? (
+        <div
+          className="@container absolute inset-0 z-30 p-2"
+          style={widgetVars(maximised, alphaOf(maximised))}
+        >
+          <ItemView
+            // It is the whole board now, so that is the size it is told it has:
+            // what a widget draws depends on how many cells it was given.
+            item={{ ...maximised, w: cols, h: rows }}
+            notifications={notifications}
+          />
+        </div>
       ) : null}
     </div>
   );

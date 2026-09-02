@@ -11,7 +11,16 @@
     "emptyList": "nada aquí"
   },
   "media": {
-    "missing": "Archivo no encontrado"
+    "missing": "Archivo no encontrado",
+    "emptyQueue": "Nada en la cola",
+    "position": "{{index}} de {{total}}",
+    "state": {
+      "idle": "nada en la cola",
+      "playing": "sonando",
+      "paused": "en pausa",
+      "ended": "terminó",
+      "failed": "no se reproduce"
+    }
   },
   "chart": {
     "noData": "Sin datos"
