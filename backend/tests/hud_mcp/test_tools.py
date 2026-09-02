@@ -4,6 +4,7 @@ import pytest
 from mcp.server.mcpserver import MCPServer
 
 from core.config import get_settings
+from core.hub import hub
 from hud_mcp.server import build_server
 from repositories import board as repo
 from schemas.media import PlaybackReport
@@ -44,7 +45,39 @@ EXPECTED = {
     "set_style",
     "set_parent",
     "set_description",
+    "wake_item",
 }
+
+
+class Listener:
+    """A client that keeps whatever the hub pushed at it.
+
+    The wake is only ever an event: nothing about it lands on an item, so the
+    socket is the only place it can be observed at all.
+    """
+
+    def __init__(self) -> None:
+        self.messages: list[dict] = []
+
+    async def accept(self) -> None:
+        """The hub accepts a socket before it remembers it."""
+
+    async def send_json(self, message: dict) -> None:
+        """Record one broadcast."""
+        self.messages.append(message)
+
+    def events(self) -> list[str]:
+        """The names of what arrived, in order."""
+        return [m["event"] for m in self.messages]
+
+
+@pytest.fixture
+async def listening() -> Listener:
+    """A connected client, dropped again when the test ends."""
+    socket = Listener()
+    await hub.connect(socket)
+    yield socket
+    await hub.disconnect(socket)
 
 
 @pytest.fixture
@@ -350,3 +383,51 @@ async def test_what_a_widget_reports_is_on_the_line_a_session_already_reads(
     media_service.report(item, PlaybackReport(state="failed", track=0, error="no codec"))
     listed = await call(server, "list_items")
     assert "[failed '01 - Track 1': no codec]" in listed
+
+
+async def test_a_widget_can_be_woken_before_anything_is_written_to_it(
+    server: MCPServer, listening: Listener
+) -> None:
+    """The whole point: the signal carries no content and arrives without a write."""
+    await call(server, "add_note", text="hello")
+    item_id = repo.list_items()[0].id
+    listening.messages.clear()
+
+    assert item_id in await call(server, "wake_item", target=item_id)
+    assert listening.messages == [{"event": "item.waking", "data": {"id": item_id}}]
+    # Nothing was written: the board is exactly as it was.
+    assert repo.get(item_id).payload.text == "hello"
+
+
+async def test_a_panel_is_woken_by_the_name_its_writer_calls_it(
+    server: MCPServer, listening: Listener
+) -> None:
+    """A repeating writer knows its key and never sees an id; both reach the same widget."""
+    await call(server, "add_note", text="loading")
+    item = repo.list_items()[0]
+    repo.replace(item.model_copy(update={"key": "weather"}))
+    listening.messages.clear()
+
+    assert item.id in await call(server, "wake_item", target="weather")
+    assert listening.messages == [{"event": "item.waking", "data": {"id": item.id}}]
+    # And the key is on the line a session reads, or it could never pass one.
+    assert "keyed 'weather'" in await call(server, "list_items")
+
+
+async def test_waking_something_that_is_not_there_is_a_sentence(server: MCPServer) -> None:
+    """A widget that does not exist yet cannot acknowledge anything, and is told so."""
+    message = await call(server, "wake_item", target="nothing-like-this")
+    assert "Only a widget already on the board" in message
+
+
+async def test_slow_work_wakes_the_widget_at_its_own_door(
+    server: MCPServer, listening: Listener, tmp_path
+) -> None:
+    """Reading an album's tags off disk takes a while, and knows it before it starts."""
+    await call(server, "add_media", tracks=[])
+    item_id = repo.list_items()[0].id
+    listening.messages.clear()
+
+    await call(server, "set_media_queue", item_id=item_id, tracks=[_album(tmp_path)])
+    # Waking first is the whole value; the other order would be replaced in a frame.
+    assert listening.events() == ["item.waking", "item.updated"]
