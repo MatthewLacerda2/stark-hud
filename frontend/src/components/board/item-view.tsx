@@ -33,7 +33,7 @@ export function ItemView({
     case "video":
       return <Video id={item.id} payload={payload} />;
     case "chart":
-      return <Chart payload={payload} />;
+      return <Chart id={item.id} payload={payload} />;
     case "inbox":
       return <Inbox payload={payload} notifications={notifications} />;
     case "feed":

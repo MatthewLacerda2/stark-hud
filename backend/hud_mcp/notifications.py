@@ -36,7 +36,10 @@ def register(server: MCPServer) -> None:
         `icon` is one of: bell, check, info, alert-triangle, alert-circle,
         x-circle, terminal, git-branch, download, upload, cpu, hard-drive, mail,
         message-square, clock, zap, flame, bug, rocket, wrench — or an absolute
-        path to an image on this machine.
+        path to an image on this machine, or SVG markup, which is how you draw
+        one this list has no name for. Markup is sanitised on the way in, so
+        anything that loads or runs is dropped; paint it with `currentColor` and
+        it takes the colour of the line it sits on.
 
         The text is white unless you colour it. Leave the colours alone unless
         you were asked for one: an inbox where every line is its own colour is

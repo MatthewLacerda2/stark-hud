@@ -112,20 +112,36 @@ export const NAMED: Record<
 // the size of a line of text reads as a smudge.
 const GLYPH = "size-[1.2em] shrink-0";
 const IMAGE = "size-[1.4em] shrink-0 rounded object-cover";
+// Markup arrives with whatever `width` and `height` its author gave it, and a
+// 24-pixel icon beside text scaled to the widget would be a speck. The rule
+// beats the attributes, so the drawing fills the box we give it either way.
+const MARKUP = `${GLYPH} inline-block [&>svg]:size-full`;
+
+/** Markup, rather than a name or a path. The three forms are told apart the same
+ * way the backend tells them apart, so neither side can drift into the other. */
+function isMarkup(name: string): boolean {
+  return name.trimStart().startsWith("<svg");
+}
 
 /**
- * An icon on a widget: one of the named glyphs, or a picture on this machine.
+ * An icon on a widget: a named glyph, a picture on this machine, or SVG markup.
  *
  * Notifications used to be the only thing that could point at a picture, and
  * every other widget could only name a glyph. There is no reason for that split
- * — an icon is an icon — so both live here and any widget can take either.
+ * — an icon is an icon — so all three live here and any widget takes any of them.
  *
  * A picture is fetched by the id of whatever holds it, which is what `src` is
  * for: a filesystem path never appears in a URL.
  *
+ * Markup is written into the page as-is, and the only thing that makes that safe
+ * is that it was rebuilt from an allowlist in `schemas/svg.py` before it was
+ * stored. Nothing is sanitised here — this renders the sanitised value, and the
+ * board has no other way for markup to arrive.
+ *
  * A glyph is drawn in whatever colour it inherits unless `color` says
  * otherwise, so a caller that lets a widget decide its icons needs no colour at
- * all. A picture ignores it: a photograph is not tinted by asking.
+ * all. Markup follows, as far as it painted itself with `currentColor`. A
+ * picture ignores it: a photograph is not tinted by asking.
  */
 export function Icon({
   name,
@@ -135,7 +151,8 @@ export function Icon({
   color,
 }: {
   name: string | null;
-  /** Where the picture is served from, when `name` is a path. */
+  /** Where the picture is served from, when `name` is a path. Markup needs none:
+   * it is the icon, not a handle on one. */
   src?: string;
   /** What to draw when nothing was named, for callers that have a default. */
   fallback?: ComponentType<{ className?: string; style?: CSSProperties }>;
@@ -143,6 +160,16 @@ export function Icon({
   /** Overrides the colour the glyph would inherit. */
   color?: string;
 }) {
+  if (name && isMarkup(name)) {
+    return (
+      <span
+        aria-hidden
+        className={cn(MARKUP, className)}
+        style={color ? { color } : undefined}
+        dangerouslySetInnerHTML={{ __html: name }}
+      />
+    );
+  }
   if (name?.startsWith("/") && src) {
     return <img src={src} alt="" className={cn(IMAGE, className)} />;
   }

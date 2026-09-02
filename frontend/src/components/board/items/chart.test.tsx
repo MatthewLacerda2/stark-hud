@@ -62,7 +62,7 @@ async function render(payload: ChartPayload): Promise<HTMLElement> {
   const host = document.createElement("div");
   document.body.appendChild(host);
   await act(async () => {
-    createRoot(host).render(<Chart payload={payload} />);
+    createRoot(host).render(<Chart id="widget-1" payload={payload} />);
   });
   // Long enough for every mark's entrance animation to land on its final value.
   await act(async () => {
@@ -81,6 +81,7 @@ const BARS: ChartPayload = {
   x_key: "day",
   series: ["hits"],
   title: null,
+  icon: null,
   max: null,
   unit: null,
   axes: "both",
@@ -91,14 +92,22 @@ const GAUGE: ChartPayload = {
   ...BARS,
   chart: "radial",
   data: [{ day: "GPU", hits: 42 }],
+  title: "Memory",
   max: 100,
   unit: "%",
 };
 
 /** The widest arc a path draws: for a ring, the radius of its outer edge. */
 function outerRadius(path: Element | null): number {
-  const arcs = [...(path?.getAttribute("d") ?? "").matchAll(/A([\d.]+),/g)];
+  // A sector that closes the whole circle is written `A 179.6,...`, with the
+  // space a partial one does not have.
+  const arcs = [...(path?.getAttribute("d") ?? "").matchAll(/A\s*([\d.]+),/g)];
   return Math.max(...arcs.map((arc) => Number(arc[1])));
+}
+
+/** The shape of one of a radial chart's sectors, as it was actually drawn. */
+function sectorPath(host: HTMLElement, selector: string): string {
+  return host.querySelector(selector)?.getAttribute("d") ?? "";
 }
 
 /** How far in from the left edge the marks start. */
@@ -202,7 +211,50 @@ describe("a gauge", () => {
     // the widget, rather than sitting inside a margin and a bar gap.
     const track = host.querySelector(".recharts-radial-bar-background-sector");
     expect(outerRadius(track)).toBeGreaterThan(SIZE.height / 2 - 1);
-    // Filling the widget must not come at the cost of the reading in the hole.
-    expect(host.textContent).toContain("42");
+  });
+
+  it("closes the track around the whole circle, behind the value", async () => {
+    const TRACK = ".recharts-radial-bar-background-sector";
+    const BAR = ".recharts-radial-bar-sector";
+    const low = await render(GAUGE);
+    const high = await render({ ...GAUGE, data: [{ day: "GPU", hits: 90 }] });
+
+    // The value moves the bar and nothing else. When the chart's own angular
+    // extent was the value, the track could only be the arc the bar already
+    // covered — so it moved too, and the rest of the ring did not exist.
+    expect(sectorPath(low, BAR)).not.toBe(sectorPath(high, BAR));
+    expect(sectorPath(low, TRACK)).toBe(sectorPath(high, TRACK));
+    // And what it draws is the closed ring: one arc all the way round.
+    expect(sectorPath(low, TRACK)).toContain("1,1,");
+  });
+
+  it("says who it is, and stops saying what the ring already says", async () => {
+    const host = await render(GAUGE);
+
+    expect(host.textContent).toContain("Memory");
+    // The row's own label, spelled the way whatever collected it spelled it.
+    expect(host.textContent).toContain("GPU");
+    // The ring is the proportion; a big 42 beside it was saying it twice.
+    expect(host.textContent).not.toContain("42");
+    expect(host.textContent).not.toContain("%");
+  });
+
+  it("keeps its title out of the corner the chart card draws one in", async () => {
+    const host = await render(GAUGE);
+    const titled = await render({ ...BARS, title: "Memory" });
+
+    expect(host.querySelector("[data-slot=card-title]")).toBe(null);
+    expect(titled.querySelector("[data-slot=card-title]")?.textContent).toBe(
+      "Memory",
+    );
+  });
+
+  it("draws an icon given as markup, beside the label", async () => {
+    const host = await render({
+      ...GAUGE,
+      icon: '<svg viewBox="0 0 24 24"><path d="M4 4h16"/></svg>',
+    });
+
+    expect(host.querySelector('span > svg > path[d="M4 4h16"]')).not.toBe(null);
   });
 });

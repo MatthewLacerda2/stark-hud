@@ -72,3 +72,21 @@ async def test_the_claude_mark_is_an_icon(client: AsyncClient) -> None:
     response = await client.post(URL, json={"title": "done", "icon": "claude"})
     assert response.status_code == 201
     assert response.json()["icon"] == "claude"
+
+
+async def test_an_svg_icon_is_stored_sanitised(client: AsyncClient) -> None:
+    """The inbox takes markup like every other icon, and keeps only what draws."""
+    markup = '<svg viewBox="0 0 24 24"><script>alert(1)</script><path d="M1 1"/></svg>'
+    response = await client.post(URL, json={"title": "done", "icon": markup})
+
+    assert response.status_code == 201
+    assert "script" not in response.json()["icon"]
+    assert '<path d="M1 1"' in response.json()["icon"]
+
+
+async def test_svg_that_draws_nothing_is_refused(client: AsyncClient) -> None:
+    """Markup emptied by the allowlist would show as no icon at all."""
+    response = await client.post(URL, json={"title": "x", "icon": "<svg><title>x</title></svg>"})
+
+    assert response.status_code == 422
+    assert "nothing this board draws" in response.json()["detail"]

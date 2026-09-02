@@ -49,8 +49,9 @@ class NotificationCreate(BaseModel):
 
     title: str
     body: str | None = None
-    # A name from ICONS, or an absolute path to a local image. Anything else is
-    # refused rather than quietly dropped, so a typo is visible.
+    # A name from ICONS, an absolute path to a local image, or SVG markup —
+    # stored sanitised. Anything else is refused rather than quietly dropped, so
+    # a typo is visible.
     icon: str | None = None
     level: NotifyLevel = "info"
     source: str | None = None

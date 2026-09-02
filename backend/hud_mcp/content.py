@@ -90,7 +90,9 @@ def register(server: MCPServer) -> None:
         are drawn at different sizes and weights, which a single string cannot
         express. `empty` is what to show when the list has nothing in it, and
         `icon` is drawn beside the heading — a name from the notification icon
-        set, or an absolute path to a picture on this machine.
+        set, an absolute path to a picture on this machine, or SVG markup,
+        which is how you draw one the set has no name for. Markup is sanitised
+        on the way in; paint it with `currentColor` to take the widget's colour.
 
         An entry is a plain line of text, or `{"title": ..., "body": ...,
         "icon": ...}` when one line is not enough: `body` is a second, fainter
@@ -189,6 +191,7 @@ def register(server: MCPServer) -> None:
         x_key: str,
         series: list[str],
         title: str | None = None,
+        icon: str | None = None,
         max: float | None = None,
         unit: str | None = None,
         axes: str = "both",
@@ -202,8 +205,8 @@ def register(server: MCPServer) -> None:
         """Draw a chart from data you supply inline.
 
         The board never fetches or polls: send the numbers. `chart` is line, bar,
-        pie or area. `x_key` names the field on the x axis and `series` names the
-        fields to plot. To update a chart, remove it and add it again.
+        pie, area or radial. `x_key` names the field on the x axis and `series`
+        names the fields to plot. To update a chart, remove it and add it again.
 
         `axes` says which axes a line, bar or area chart draws: both (the
         default), x, y or none. Leave it out unless the numbers read on their
@@ -212,22 +215,45 @@ def register(server: MCPServer) -> None:
         `colors` is one CSS colour per series. An eight-digit hex carries alpha —
         `#33ccffaa` — which leaves the video behind the board showing through the
         marks.
+
+        A radial is a gauge: it reads the first row of `data` only and draws it
+        as an arc of a ring whose ceiling is `max`, so always pass `max`. The
+        ring is the message — it says the proportion from across the room — and
+        the middle of it is who the gauge is: `icon` and `title` side by side,
+        with `data[0][x_key]` under them for when a number is genuinely wanted,
+        the way "3.7 of 15.6 GB" is. Keep `title` to about six characters; a
+        longer one is not refused, it just runs out of ring to sit in. `unit`
+        does nothing on a radial, because there is no bare number for it to sit
+        against.
+
+        `icon` is a name from the notification icon set, an absolute path to a
+        picture on this machine, or SVG markup — `<svg viewBox="0 0 24 24" ...>`
+        with paths and shapes in it, which is how you draw something the icon
+        set has no name for. It is sanitised on the way in, so anything that
+        loads or runs is dropped. Paint it with `currentColor` and it takes the
+        widget's colour.
         """
-        if chart not in {"line", "bar", "pie", "area"}:
-            return f"Not added: chart must be line, bar, pie or area (got {chart!r})"
+        if chart not in {"line", "bar", "pie", "area", "radial"}:
+            return f"Not added: chart must be line, bar, pie, area or radial (got {chart!r})"
         if axes not in {"both", "x", "y", "none"}:
             return f"Not added: axes must be both, x, y or none (got {axes!r})"
-        payload = ChartPayload(
-            chart=chart,
-            data=data,
-            x_key=x_key,
-            series=series,
-            title=title,
-            max=max,
-            unit=unit,
-            axes=axes,
-            colors=colors or [],
-        )
+        # A typo in an icon or a colour comes back as the sentence the validator
+        # wrote, rather than as a stack trace on the caller's side.
+        try:
+            payload = ChartPayload(
+                chart=chart,
+                data=data,
+                x_key=x_key,
+                series=series,
+                title=title,
+                icon=icon,
+                max=max,
+                unit=unit,
+                axes=axes,
+                colors=colors or [],
+            )
+        except (TypeError, ValueError) as exc:
+            return f"Not added: {exc}"
         return await add(payload, x, y, w, h, description=description)
 
     @server.tool()
@@ -251,6 +277,7 @@ def register(server: MCPServer) -> None:
     async def add_feed(
         entries: list[dict],
         title: str | None = None,
+        icon: str | None = None,
         empty: str | None = None,
         x: int | None = None,
         y: int | None = None,
@@ -262,7 +289,9 @@ def register(server: MCPServer) -> None:
 
         Each entry is `{"title": ..., "source": ..., "at": ...}`, where `title`
         is the line people read, `source` says where it came from, and `at` is
-        an ISO timestamp. Only `title` is required.
+        an ISO timestamp. Only `title` is required. `icon` is drawn beside the
+        heading and takes the same three forms as everywhere else: a name from
+        the icon set, an absolute path to a picture, or SVG markup.
 
         Use this for something you poll and rewrite whole — a feed is replaced
         on every refresh, not appended to. To announce that one thing finished,
@@ -270,10 +299,11 @@ def register(server: MCPServer) -> None:
         """
         try:
             rows = [FeedEntry(**entry) for entry in entries]
+            payload = FeedPayload(title=title, icon=icon, entries=rows, empty=empty)
         except (TypeError, ValueError) as exc:
             return f"Not added: {exc}"
         return await add(
-            FeedPayload(title=title, entries=rows, empty=empty),
+            payload,
             x,
             y,
             w,

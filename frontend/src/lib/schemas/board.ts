@@ -10,6 +10,13 @@ export type ChartKind = "line" | "bar" | "pie" | "area" | "radial";
 export type ChartAxes = "both" | "x" | "y" | "none";
 export type NotifyLevel = "info" | "success" | "warn" | "error";
 
+/**
+ * An icon is one of three things, told apart by how it starts: a name from the
+ * closed set, an absolute path to a picture on this machine, or SVG markup —
+ * which the backend rebuilt from an allowlist before it was ever stored.
+ */
+export type IconRef = string;
+
 export interface NotePayload {
   kind: "note";
   text: string;
@@ -26,8 +33,7 @@ export interface TextPayload {
 export interface ListEntry {
   title: string;
   body: string | null;
-  /** A name from the icon set, or an absolute path to a local image. */
-  icon: string | null;
+  icon: IconRef | null;
   /** This line's own colours; each beats the widget's `item_color`. */
   title_color: string | null;
   body_color: string | null;
@@ -37,8 +43,8 @@ export interface ListEntry {
 export interface ListPayload {
   kind: "list";
   title: string | null;
-  /** A name from the icon set, or an absolute path, drawn beside the heading. */
-  icon: string | null;
+  /** Drawn beside the heading. */
+  icon: IconRef | null;
   /** A plain line, or one with a body and an icon of its own. Mixing is allowed. */
   items: (string | ListEntry)[];
   empty: string | null;
@@ -78,9 +84,13 @@ export interface ChartPayload {
   data: Record<string, string | number>[];
   x_key: string;
   series: string[];
+  /** A radial draws this in the middle of its ring; every other chart, in its corner. */
   title: string | null;
+  /** Drawn beside a gauge's title. Nothing else draws it yet. */
+  icon: IconRef | null;
   /** A ceiling for the value axis; a radial always has one. */
   max: number | null;
+  /** What the numbers are counted in. Nothing draws it since the gauge stopped. */
   unit: string | null;
   /** Which axes to draw. Ignored by pie and radial, which have none. */
   axes: ChartAxes;
@@ -103,8 +113,8 @@ export interface FeedEntry {
 export interface FeedPayload {
   kind: "feed";
   title: string | null;
-  /** A name from the notification icon set, drawn beside the heading. */
-  icon: string | null;
+  /** Drawn beside the heading. */
+  icon: IconRef | null;
   entries: FeedEntry[];
   empty: string | null;
 }
@@ -119,8 +129,7 @@ export interface Notification {
   id: string;
   title: string;
   body: string | null;
-  /** A name from the icon set, or an absolute path to a local image. */
-  icon: string | null;
+  icon: IconRef | null;
   level: NotifyLevel;
   source: string | null;
   /** Colours for this entry. Null means white, whatever the widget is. */
