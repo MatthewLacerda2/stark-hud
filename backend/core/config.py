@@ -57,8 +57,10 @@ class Settings(BaseSettings):
     # is what a line announced across a room wants. A voice labelled English
     # reads every language the model does, so this one says a Portuguese line
     # too; there is no reason to swap it per language. George
-    # (JBFqnCBsd6RMkjVDRZzb) is the fallback if this one is ever withdrawn.
-    ELEVENLABS_VOICE_ID: str = "onwK4e9ZLuTAKqWW03F9"
+    # (onwK4e9ZLuTAKqWW03F9, Daniel) is the fallback if this one is ever withdrawn.
+    # Chosen by ear over Daniel: a steady broadcaster reads a line correctly,
+    # a storyteller reads it like someone in the room said it.
+    ELEVENLABS_VOICE_ID: str = "JBFqnCBsd6RMkjVDRZzb"
 
     # Flash costs half of `eleven_multilingual_v2` per character and reads the
     # same languages. This account is on the free tier, so "upgrading" this line
