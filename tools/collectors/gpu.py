@@ -43,7 +43,7 @@ except (OSError, subprocess.SubprocessError, IndexError) as exc:
 util, used, total = (float(v) for v in out.split(","))
 
 if mode == "vram":
-    row = {"label": f"{used / 1024:.1f} de {total / 1024:.0f} GB",
+    row = {"label": f"{used / 1024:.1f}/{total / 1024:.0f} GB",
            "pct": round(used / total * 100, 1)}
 else:
     # No reading line: "uso" was a word where a number should be, and the ring

@@ -14,6 +14,6 @@ used_kb = total_kb - fields.get("MemAvailable", fields["MemFree"])
 to_gb = 1024 * 1024
 
 print(json.dumps([{
-    "label": f"{used_kb / to_gb:.1f} de {total_kb / to_gb:.1f} GB",
+    "label": f"{used_kb / to_gb:.1f}/{total_kb / to_gb:.1f} GB",
     "use": round(used_kb / total_kb * 100, 1),
 }]))
