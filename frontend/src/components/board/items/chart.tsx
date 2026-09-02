@@ -90,7 +90,10 @@ const HOLE = "flex size-[50cqmin] flex-col justify-center overflow-hidden";
 function Gauge({ id, payload }: { id: string; payload: ChartPayload }) {
   const row = payload.data[0];
   const ceiling = payload.max ?? 100;
-  const paired = Boolean(payload.icon);
+  // Left alignment exists so an icon and a label read as one unit from the same
+  // edge. On its own, either of them is just a thing in the middle of a ring,
+  // and pushing it left only looks like a mistake.
+  const paired = Boolean(payload.icon && payload.title);
   const reading = String(row[payload.x_key] ?? "");
 
   return (
