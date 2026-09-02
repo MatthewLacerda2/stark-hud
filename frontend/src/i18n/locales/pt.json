@@ -13,14 +13,9 @@
   "media": {
     "missing": "Arquivo perdido",
     "emptyQueue": "Nada na fila",
-    "position": "{{index}} de {{total}}",
-    "state": {
-      "idle": "nada na fila",
-      "playing": "tocando",
-      "paused": "pausado",
-      "ended": "terminou",
-      "failed": "não toca"
-    }
+    "wontPlay": "não toca",
+    "fullscreen": "Tela cheia",
+    "leaveFullscreen": "Sair da tela cheia"
   },
   "chart": {
     "noData": "Sem dados"

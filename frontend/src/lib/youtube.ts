@@ -21,8 +21,8 @@ export interface YouTubePlayer {
   unMute(): void;
   loadVideoById(options: { videoId: string; startSeconds?: number }): void;
   cueVideoById(options: { videoId: string; startSeconds?: number }): void;
+  seekTo(seconds: number, allowSeekAhead: boolean): void;
   getCurrentTime(): number;
-  getVideoData(): { title?: string };
   destroy(): void;
 }
 

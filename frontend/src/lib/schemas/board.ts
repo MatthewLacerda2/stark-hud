@@ -91,6 +91,20 @@ export interface MediaTrack {
   /** An eleven-character YouTube video id, whatever shape of link it arrived as. */
   youtube: string | null;
   title: string | null;
+  /**
+   * Who is playing and what record it came off, read from the file's own tags
+   * on the server. Either may be missing, and a track that has neither says
+   * only its title rather than a row of labels reading "Unknown".
+   */
+  artist: string | null;
+  album: string | null;
+  /**
+   * A short digest of the file this track names, to hang on the end of the URL
+   * that fetches it. A track is addressed by the widget's id and its place in
+   * the queue, so without this a replaced queue is the same URL over different
+   * bytes, and the browser goes on playing what it already had.
+   */
+  stamp: string | null;
   kind: "audio" | "video" | "youtube";
 }
 
@@ -113,6 +127,15 @@ export interface MediaPayload {
   muted: boolean;
   /** Takes the whole board and gives it back; the grid slot is kept either way. */
   maximised: boolean;
+  /** Whether YouTube draws its captions. Off unless somebody asked for them. */
+  captions: boolean;
+  /**
+   * How far into the current track the widget is. Kept here, on the server,
+   * because it has to outlive the page: a reload and a restart both come back
+   * to where a four-hour film was rather than to its beginning.
+   */
+  seconds: number;
+  /** An album's name for a queue whose files carry no tags of their own. */
   title: string | null;
 }
 
