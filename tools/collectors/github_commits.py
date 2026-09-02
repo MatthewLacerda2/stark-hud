@@ -2,30 +2,27 @@
 """Recent commits of yours, as JSON entries for a feed widget.
 
 Goes through `gh`, which is already logged in on this machine, so no token is
-stored here and the organisation authorisation that `gh` was granted once keeps
-working. Standard library plus that one subprocess, like every other collector.
+stored here. Standard library plus that one subprocess, like every other
+collector.
 
-Two things the GitHub API makes awkward, both learned the hard way:
+One thing the GitHub API makes awkward, learned the hard way: a PushEvent no
+longer carries its commits — only the head sha — so the message costs one extra
+call per push.
 
-  * a PushEvent no longer carries its commits — only the head sha — so the
-    message costs one extra call per push;
-  * `/users/{you}/events` shows public repositories only. Private ones show up
-    under `/users/{you}/events/orgs/{org}`, which is why organisations have to
-    be named rather than discovered;
-  * that organisation route is the *organisation\'s* dashboard, not yours — it
-    carries everything in the org you are allowed to see, colleagues included.
-    Every event is checked against `actor.login` for that reason.
+Only your own public activity. Organisation feeds were supported once and were
+taken out: that route is the organisation's dashboard rather than yours, so it
+carried colleagues' work and had to be filtered, and it meant an employer's name
+had to be written down somewhere. A board is not worth that.
 
 Nothing is remembered between runs. It asks for the last N pushes every time
 and prints them all, so there is no cursor to lose and a restart changes
 nothing — the same lesson the panels themselves learned.
 
-    HUD_GITHUB_ORGS=acme,other github_commits.py --limit 10
+    github_commits.py --limit 10
 """
 
 import argparse
 import json
-import os
 import subprocess
 import sys
 
@@ -46,21 +43,19 @@ def gh(path: str) -> object | None:
         return None
 
 
-def pushes(user: str, orgs: list[str], limit: int) -> list[dict]:
+def pushes(user: str, limit: int) -> list[dict]:
     """Every push we can see, newest first, one entry per push."""
-    # The largest page the API allows. The organisation feeds are mostly other
-    # people's work, and asking for less means your own pushes fall off the end
-    # before the filter below ever sees them.
+    # The largest page the API allows, so a busy day does not push your own
+    # older commits off the end of the page before they are read.
     feeds = [f"/users/{user}/events?per_page=100"]
-    feeds += [f"/users/{user}/events/orgs/{org}?per_page=100" for org in orgs]
 
     seen: dict[str, dict] = {}
     for feed in feeds:
         for event in gh(feed) or []:
             if event.get("type") != "PushEvent":
                 continue
-            # The organisation feed is the whole org's activity. Without this,
-            # the board fills up with your colleagues' work.
+            # This feed is meant to be your own events only. Kept as a guard
+            # because it once was not, and the board filled with other people.
             if (event.get("actor") or {}).get("login", "").lower() != user.lower():
                 continue
             head = (event.get("payload") or {}).get("head")
@@ -76,14 +71,6 @@ def pushes(user: str, orgs: list[str], limit: int) -> list[dict]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--user", help="defaults to whoever gh is logged in as")
-    # Which organisations to look in is the user's, not the project's, so the
-    # default comes from the environment. Naming an employer in a file the repo
-    # tracks puts personal data in source control, and this repo is public.
-    parser.add_argument(
-        "--org",
-        action="append",
-        default=[o for o in os.environ.get("HUD_GITHUB_ORGS", "").split(",") if o],
-    )
     parser.add_argument("--limit", type=int, default=10)
     args = parser.parse_args()
 
@@ -96,7 +83,7 @@ def main() -> int:
         return 1
 
     entries = []
-    for push in pushes(user, args.org, args.limit):
+    for push in pushes(user, args.limit):
         commit = gh(f"/repos/{push['repo']}/commits/{push['head']}")
         if not isinstance(commit, dict):
             continue
