@@ -40,6 +40,18 @@ def _describe(payload: MediaPayload) -> str:
     return f"{verb} {track.title!r} ({place})"
 
 
+# What each action reads as once it has happened. Adding "ed" to the verb gave
+# "stoped", "pauseed" and "nexted": English past tense is not a suffix, and this
+# sentence is what the next session reads back.
+DONE = {
+    "play": "playing",
+    "pause": "paused",
+    "stop": "stopped",
+    "next": "skipped to",
+    "back": "went back on",
+}
+
+
 def register(server: MCPServer) -> None:
     """Attach the media tools to the server."""
 
@@ -152,7 +164,7 @@ def register(server: MCPServer) -> None:
             return f"Not done: action must be {named} or {MEDIA_ACTIONS[-1]} (got {action!r})"
         if not item.payload.tracks:
             return f"Nothing to {action}: media widget {item_id} has an empty queue."
-        return await _write(item, media_service.commanded(item.payload, action), action + "ed")
+        return await _write(item, media_service.commanded(item.payload, action), DONE[action])
 
     @server.tool()
     async def set_media_mode(
