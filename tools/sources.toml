@@ -38,7 +38,7 @@ name = "gpu"
 command = "python3 {collectors}/gpu.py util"
 every = 3
 place = { x = 17, y = 0, w = 5, h = 5 }
-panel = { kind = "chart", chart = "radial", x_key = "label", series = ["pct"], max = 100, colors = ["#22c55e99"], icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 11 L13 5.5 L22 9 L11 14.5 Z"/><path d="M11 14.5 L11 16.5 L22 11 L22 9"/><path d="M7.14 9.87 L12.90 12.11"/><path d="M9.12 8.88 L14.88 11.12"/><path d="M11.10 7.89 L16.86 10.13"/></svg>' }
+panel = { kind = "chart", chart = "radial", x_key = "label", series = ["pct"], max = 100, colors = ["#22c55e99"], icon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(-30 12 11)"><path d="M2.5 10.5 L12.5 5.5 L21.5 10 L11.5 15 Z"/><path d="M11.5 15 L11.5 18 L21.5 13 L21.5 10"/><path d="M7.32 9.71 L13.08 12.59"/><path d="M9.32 8.71 L15.08 11.59"/><path d="M11.32 7.71 L17.08 10.59"/></g></svg>' }
 
 [[source]]
 name = "vram"
