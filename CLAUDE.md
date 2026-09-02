@@ -41,6 +41,16 @@ these can be overridden by the user** (see the closing note).
     genuinely untried ground. Research means trying what the literature hasn't
     settled — don't suppress a novel idea just because it's unproven. The line
     is "documented to fail" versus "simply not yet tried."
+- **Looks beat handling.** A widget is what it shows. Chrome that exists only to
+  make a widget easier to grab, label or configure — a title bar, a caption, a
+  queue position, a name in a corner — comes off. A video widget draws video and
+  nothing else; anything else appears on hover, where a pointer exists, and so
+  never appears on the television at all.
+  Dragging is a **second-class citizen** in this project. The user can ask a
+  Claude to move, resize or restyle anything by name, so when handling and the
+  look of the board disagree, the look wins. Do not add an affordance to the
+  screen to make something easier to move.
+
 - **Overriding these rules.** In the end, all rules may be overridden by the
   user — so long as the user says why, and the explanation still holds in the
   current context.

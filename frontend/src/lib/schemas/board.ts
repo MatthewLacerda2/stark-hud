@@ -141,6 +141,8 @@ export interface ChartPayload {
   unit: string | null;
   /** Which axes to draw. Ignored by pie and radial, which have none. */
   axes: ChartAxes;
+  /** A gauge's ring behind the value. Null takes the default. Gauges only. */
+  unfilled: string | null;
   /** One CSS colour per series, cycled. Empty means the default palette. */
   colors: string[];
 }

@@ -166,6 +166,11 @@ class ChartPayload(_Payload):
     # Kept because it is a published field and a caller may still be sending it.
     unit: str | None = None
     axes: ChartAxes = "both"
+    # A gauge's ring behind the value. Left alone it is white kept see-through,
+    # which is what a ring on a dark video wants; it is a field because finding
+    # the right amount of white took more than one try, and a constant costs a
+    # rebuild each time. Ignored by every chart that is not a gauge.
+    unfilled: Colour | None = None
     # One CSS colour per series, cycled if shorter. Any colour the browser
     # understands, so `var(--chart-2)` picks a theme token and anything else is
     # literal. Empty means the default palette.
