@@ -57,11 +57,11 @@ function toConfig(series: string[], colors: string[]): ChartConfig {
   );
 }
 
-// The part of the ring the value has not reached. White at 35%, because this is
-// a television in a dim room: solid white glares, and at full strength the track
-// would compete with the label sitting inside it. Every widget here sits on the
-// same dark video, so there is nothing for this to vary with.
-const UNFILLED = "#ffffff59";
+// The part of the ring the value has not reached: white, kept see-through so the
+// video still moves behind it. Solid white would glare on a television in a dim
+// room and compete with the mark sitting inside the ring. Every widget here sits
+// on the same dark video, so there is nothing for this to vary with.
+const UNFILLED = "#ffffff8c";
 
 // The middle of the ring is a circle, and what goes in it has to fit a square
 // inside that circle — 72% of the shorter side across, so about half of it on a
@@ -142,7 +142,17 @@ function Gauge({ id, payload }: { id: string; payload: ChartPayload }) {
               )}
             >
               {payload.icon ? (
-                <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />
+                <span
+                  className={cn(
+                    "flex shrink-0",
+                    // Beside a label the mark matches it; alone it is measured
+                    // against the ring instead, so it keeps its share of the
+                    // circle at every size the widget is dragged to.
+                    payload.title ? undefined : "text-gauge-mark",
+                  )}
+                >
+                  <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />
+                </span>
               ) : null}
               {payload.title ? (
                 <span className="truncate">{payload.title}</span>
