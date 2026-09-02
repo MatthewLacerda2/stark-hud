@@ -5,3 +5,6 @@ pydantic-settings==2.15.0
 slowapi==0.1.10
 python-dotenv==1.2.3
 mcp==2.1.1
+# Reads the title, artist and album out of a music file. Pure Python, no system
+# libraries behind it, and one dictionary over ID3, Vorbis comments and MP4.
+mutagen==1.48.1

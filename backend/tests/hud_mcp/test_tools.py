@@ -226,7 +226,7 @@ async def test_the_transport_names_the_verbs_it_takes(server: MCPServer, tmp_pat
     await call(server, "add_media", tracks=[_album(tmp_path)])
     item_id = repo.list_items()[0].id
     message = await call(server, "control_media", item_id=item_id, action="rewind")
-    assert "play, pause, stop, next or back" in message
+    assert "play, pause, stop, next, back or seek" in message
 
 
 async def test_looping_and_maximising_are_flags_not_verbs(server: MCPServer, tmp_path) -> None:
@@ -244,8 +244,28 @@ async def test_a_queue_can_be_replaced_whole(server: MCPServer, tmp_path) -> Non
     await call(server, "add_media", tracks=[_album(tmp_path)])
     item_id = repo.list_items()[0].id
     one = f"{tmp_path}/AC DC - Greatest Hell's Hits/CD1/02 - Track 2.mp3"
+    await call(server, "set_media_mode", item_id=item_id, maximised=True)
     assert "1 of 1" in await call(server, "set_media_queue", item_id=item_id, tracks=[one])
-    assert len(repo.get(item_id).payload.tracks) == 1
+    payload = repo.get(item_id).payload
+    assert len(payload.tracks) == 1
+    # A caption belonging to the album that used to be here would be a lie, and
+    # where the old queue had got to is about a file that is no longer in it.
+    assert payload.title is None
+    assert payload.seconds == 0.0
+    # How the widget behaves is not part of the queue, so it stays as it was.
+    assert payload.maximised is True
+
+
+async def test_a_player_can_be_sent_to_the_third_hour_of_a_film(
+    server: MCPServer, tmp_path
+) -> None:
+    """The only way to ask for a place in a track: the TV has nothing to drag."""
+    await call(server, "add_media", tracks=[_album(tmp_path)])
+    item_id = repo.list_items()[0].id
+    said = await call(server, "control_media", item_id=item_id, action="seek", seconds=11160)
+    assert repo.get(item_id).payload.seconds == 11160
+    # Said back in the way a person says it, not as eleven thousand seconds.
+    assert "3:06:00" in said
 
 
 async def test_a_youtube_link_is_queued_by_pasting_it(server: MCPServer, tmp_path) -> None:
