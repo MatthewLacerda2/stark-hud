@@ -9,7 +9,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 from starlette.applications import Starlette
 
 from core.config import get_settings
-from hud_mcp import background, content, layout, lists, notifications
+from hud_mcp import background, content, layout, lists, media, notifications
 
 # Written to be read by a model that has never seen this board. The grid size is
 # interpolated rather than typed out: it has already changed once, and stale
@@ -59,6 +59,12 @@ everything in it. A list somebody is keeping is the exception — add_to_list an
 remove_from_list change one line and leave the rest alone, because a list is
 built up over time and no session knows every line already in it.
 
+The media widget is the one thing on this board that is driven rather than
+written: add_media puts a queue of local audio or video on it and control_media
+is its remote, because the television has nothing to press. It plays the queue
+through on its own, and list_items reports what it says it is actually doing —
+including a file it could not play.
+
 Use notify to say something finished. Notifications are not widgets — they all go
 into one inbox, like a phone's shade, and drop out after 48 hours. Put your
 project name in the source field so a human can tell which Claude is speaking.\
@@ -74,6 +80,7 @@ def build_server() -> MCPServer:
     layout.register(server)
     background.register(server)
     lists.register(server)
+    media.register(server)
     notifications.register(server)
     return server
 
