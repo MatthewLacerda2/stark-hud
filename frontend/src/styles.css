@@ -182,12 +182,27 @@
   --chart-6: oklch(0.7 0.17 25);
 }
 
-/* --- Dark theme token values. --- */
+/* --- Dark theme token values. ---
+
+   The ink is white at 65%, not white.
+
+   This board is drawn over a moving picture, and the look it is after is the
+   one a HUD has in a film: the room is still visible through the readout. That
+   is a property of the board's default colour rather than of any one widget, so
+   it lives here — in every colour the board reaches for when it was not told
+   one — and not as an alpha painted onto each item. A widget given a colour of
+   its own still gets exactly that colour, at whatever opacity it states.
+
+   Two kinds of token stay solid. `--background` and `--card` are what things
+   are made of rather than what is written on them, and a see-through surface is
+   what the per-widget opacity is for. The state colours stay solid because
+   something has gone wrong is the one thing on this board that should not have
+   to compete with a video to be read. */
 .dark {
   --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
+  --foreground: oklch(0.985 0 0 / 65%);
   --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
+  --card-foreground: oklch(0.985 0 0 / 65%);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.922 0 0);
@@ -195,7 +210,7 @@
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
+  --muted-foreground: oklch(0.708 0 0 / 65%);
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
@@ -209,12 +224,13 @@
   --warning-foreground: oklch(0.145 0 0);
   --info: oklch(0.72 0.15 235);
   --info-foreground: oklch(0.145 0 0);
-  --chart-1: oklch(0.72 0.16 235);
-  --chart-2: oklch(0.76 0.15 152);
-  --chart-3: oklch(0.84 0.15 85);
-  --chart-4: oklch(0.74 0.18 350);
-  --chart-5: oklch(0.72 0.16 295);
-  --chart-6: oklch(0.76 0.17 25);
+  /* The marks read through the picture for the same reason the ink does. */
+  --chart-1: oklch(0.72 0.16 235 / 65%);
+  --chart-2: oklch(0.76 0.15 152 / 65%);
+  --chart-3: oklch(0.84 0.15 85 / 65%);
+  --chart-4: oklch(0.74 0.18 350 / 65%);
+  --chart-5: oklch(0.72 0.16 295 / 65%);
+  --chart-6: oklch(0.76 0.17 25 / 65%);
 }
 
 @layer base {
