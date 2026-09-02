@@ -6,10 +6,18 @@ import { boardStatus, showPage } from "@/lib/api/board";
 import { Background } from "@/components/board/background";
 import { BoardGrid } from "@/components/board/board-grid";
 import { PageDots } from "@/components/board/page-dots";
+import { Vhs } from "@/components/board/vhs";
 import { useBoard } from "@/hooks/use-board";
 import { usePageTurn } from "@/hooks/use-page-turn";
 import { useSpeech } from "@/hooks/use-speech";
 import { maximisedIn } from "@/lib/maximised";
+import { tapeFrom, tapeVars } from "@/lib/vhs";
+import { cn } from "@/lib/utils";
+
+// Read once, when the module loads. The board has exactly one route and no way
+// to navigate within it, so the only thing that can change the look is a
+// reload — which is also how someone judging it from a phone will change it.
+const TAPE = tapeFrom(window.location.search);
 
 /**
  * The board. This page is what the TV shows, so it is full-bleed, dark, and has
@@ -51,10 +59,18 @@ function BoardPage() {
   usePageTurn(useCallback((delta: number) => go(page + delta), [go, page]));
 
   return (
-    <main className="relative h-screen w-screen overflow-hidden bg-background">
+    <main
+      className="relative h-screen w-screen overflow-hidden bg-background"
+      style={tapeVars(TAPE)}
+    >
       <Background background={background} covered={covered} />
 
-      <div className="relative size-full">
+      {/* The fringe belongs to the content and the rest belongs over it: a
+          text-shadow is inherited, so it is set here and every widget inside
+          picks it up, while the background video stays outside and unfringed. */}
+      <div
+        className={cn("relative size-full", TAPE.fringe > 0 && "vhs-fringe")}
+      >
         <BoardGrid
           items={shown}
           notifications={notifications}
@@ -77,6 +93,8 @@ function BoardPage() {
           </p>
         ) : null}
       </div>
+
+      <Vhs tape={TAPE} />
     </main>
   );
 }

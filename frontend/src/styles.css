@@ -472,3 +472,157 @@
     opacity: 0.45;
   }
 }
+
+/* --------------------------------------------------------------------------
+   The tape look.
+
+   A readout in a film is never a clean render. There is grain over it, the
+   lines of a tube through it, the corners fall away, and the colour separates a
+   little at the edges of the letters. None of it carries information — it is
+   what makes information look *displayed* rather than pasted on.
+
+   Every part is driven by a `--vhs-*` variable between 0 and 1, set on the
+   board from `lib/vhs.ts`. Each layer multiplies that by its own ceiling, so 1
+   means the most of that part we think is a look rather than damage, and the
+   number in the URL never has to know what "a lot of grain" is in pixels.
+
+   Nothing here samples what is underneath. A CSS or SVG filter over the board
+   would re-run across 1920x1080 of moving video every frame, on a machine
+   already spending a core decoding it; these are flat colours and gradients
+   moved with a transform, which the compositor does for nothing.
+   -------------------------------------------------------------------------- */
+
+/* The lines of the tube. 1.5px of every 4 is about what reads as a scanline on
+   a 1080p panel from a sofa: at 1px it disappears into the pixel grid, and much
+   past 2 it stops being a texture and starts being a blind. */
+@utility vhs-scanlines {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: calc(var(--vhs-scanlines, 0) * 0.45);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 0.55) 0 1.5px,
+    transparent 1.5px 4px
+  );
+}
+
+/* Moving grain: one tile of fractal noise, desaturated, laid over everything
+   and jumped to a new offset several times a second. The element is twice the
+   screen so there is always tile to move into, and it moves by transform so the
+   compositor never has to repaint it. */
+@utility vhs-grain {
+  position: absolute;
+  inset: -50%;
+  z-index: 41;
+  pointer-events: none;
+  opacity: calc(var(--vhs-grain, 0) * 0.16);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23g)'/%3E%3C/svg%3E");
+  /* Overlay rather than a flat wash: grain should lift the lights and sink the
+     darks, which is what makes it read as film rather than as fog. */
+  mix-blend-mode: overlay;
+  animation: vhs-grain 800ms steps(1, end) infinite;
+}
+
+/* Eight offsets, none of them a multiple of another, so the eye never finds the
+   loop. Whole percentages of a 220px tile land off the grid, which is what
+   stops the noise from appearing to slide. */
+@keyframes vhs-grain {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  12.5% {
+    transform: translate3d(-7%, 3%, 0);
+  }
+  25% {
+    transform: translate3d(5%, -9%, 0);
+  }
+  37.5% {
+    transform: translate3d(-11%, -4%, 0);
+  }
+  50% {
+    transform: translate3d(9%, 6%, 0);
+  }
+  62.5% {
+    transform: translate3d(-3%, -12%, 0);
+  }
+  75% {
+    transform: translate3d(12%, 2%, 0);
+  }
+  87.5% {
+    transform: translate3d(-6%, 10%, 0);
+  }
+}
+
+/* The tracking bar. It crosses the picture in about three seconds and then the
+   tape is clean for six, because a band that never stopped would be a thing on
+   the board rather than a fault in it. */
+@utility vhs-sweep {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 22vh;
+  z-index: 42;
+  pointer-events: none;
+  opacity: calc(var(--vhs-sweep, 0) * 0.55);
+  background-image: linear-gradient(
+    to bottom,
+    transparent,
+    rgb(255 255 255 / 0.02) 35%,
+    rgb(255 255 255 / 0.07) 50%,
+    rgb(255 255 255 / 0.02) 65%,
+    transparent
+  );
+  animation: vhs-sweep 9s linear infinite;
+}
+
+@keyframes vhs-sweep {
+  0% {
+    transform: translateY(-100%);
+  }
+  35%,
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+/* The corners falling away. Last of the four, so it darkens the grain and the
+   scanlines too rather than sitting under them. */
+@utility vhs-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 43;
+  pointer-events: none;
+  opacity: calc(var(--vhs-vignette, 0) * 0.75);
+  background-image: radial-gradient(
+    ellipse at center,
+    transparent 42%,
+    rgb(0 0 0 / 0.7) 100%
+  );
+}
+
+/* Colour separating at the edges of the letters.
+   Inherited rather than drawn: a text-shadow set on the board reaches every
+   piece of text in it, and reaches nothing else — the icons are SVG and a
+   video has no letters to fringe. Sized in `em` so it stays proportional as
+   type grows with its widget. */
+@utility vhs-fringe {
+  text-shadow:
+    calc(var(--vhs-fringe, 0) * 0.05em) 0 0
+      rgb(255 40 90 / calc(var(--vhs-fringe, 0) * 0.45)),
+    calc(var(--vhs-fringe, 0) * -0.05em) 0 0
+      rgb(40 225 255 / calc(var(--vhs-fringe, 0) * 0.4));
+}
+
+/* Asked for stillness, the tape stops moving and simply sits there. */
+@media (prefers-reduced-motion: reduce) {
+  .vhs-grain,
+  .vhs-sweep {
+    animation: none;
+  }
+  .vhs-sweep {
+    opacity: 0;
+  }
+}
