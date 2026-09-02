@@ -116,3 +116,39 @@ async def test_the_queue_reaches_the_browser_by_id_and_index(
     assert (await client.get(f"/api/v1/media/{item_id}/track/0")).content == b"id3-and-then-some"
     assert (await client.get(f"/api/v1/media/{item_id}/track/0/art")).content == b"jpeg"
     assert (await client.get(f"/api/v1/media/{item_id}/track/9")).status_code == 404
+
+
+async def test_a_youtube_video_moves_the_queue_on_like_any_other_track(
+    client: AsyncClient,
+) -> None:
+    """The same report, the same rule: where a track came from changes nothing here."""
+    mixed = {
+        "payload": {
+            "kind": "media",
+            "tracks": [
+                {"youtube": "https://www.youtube.com/watch?v=QgH9sr7G13Q"},
+                {"path": "/music/one.mp3"},
+            ],
+        }
+    }
+    created = (await client.post(ITEMS, json=mixed)).json()
+    item_id = created["id"]
+    # Whatever shape the link arrived as, what is stored is the id.
+    assert created["payload"]["tracks"][0]["youtube"] == "QgH9sr7G13Q"
+
+    ended = await _say(client, item_id, state="ended", track=0)
+    assert ended["payload"]["index"] == 1
+    # And there is nothing on this machine to stream for it.
+    assert (await client.get(f"/api/v1/media/{item_id}/track/0")).status_code == 404
+
+
+async def test_a_video_nobody_may_embed_says_so_in_words(client: AsyncClient) -> None:
+    """The failure this whole flow exists for: it plays nowhere but youtube.com."""
+    body = {"payload": {"kind": "media", "tracks": [{"youtube": "QgH9sr7G13Q"}]}}
+    item_id = (await client.post(ITEMS, json=body)).json()["id"]
+    refusal = "the owner does not allow this video to be played outside YouTube"
+
+    item = await _say(client, item_id, state="failed", track=0, error=refusal)
+    assert item["playback"]["error"] == refusal
+    # It stays on the track it could not play, so the reason is still there to read.
+    assert item["payload"]["index"] == 0

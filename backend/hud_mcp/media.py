@@ -4,6 +4,10 @@ Every control lives here rather than on the screen, and that is the point: the
 TV has no keyboard and no mouse, so a button drawn on the board is a button
 nobody can press. A tool call is the only hand this widget has.
 
+A track is a local file or a YouTube video, and these tools do not care which:
+that is the point of it being one widget with two kinds of source rather than
+two widgets that would each need a queue, a transport and a loop flag.
+
 Four tools, not nine. `control_media` carries the five transport verbs in one
 argument because they are mutually exclusive, take nothing but the widget, and
 would otherwise be five entries in the tool list every session has to read —
@@ -75,9 +79,16 @@ def register(server: MCPServer) -> None:
         pass `["/mnt/d_drive/Music/Some Album/CD1"]` and get its tracks in order.
         Spaces and apostrophes need no escaping; nothing here becomes a URL.
 
-        Audio and video are the same widget. Whichever it is, when a track ends
-        the next one starts on its own — that is the whole point of it. `loop`
-        says what happens after the last: start again from the top, or stop.
+        An entry may also be a YouTube video, written any way you have it: a
+        watch URL, a youtu.be link, or the bare eleven-character id. It is one
+        track, played by YouTube's own player, and it may sit in the same queue
+        as local files. Searching YouTube is not this board's job — find the id
+        with yt-dlp and pass it in.
+
+        Local files and YouTube are the same widget. Whichever it is, when a
+        track ends the next one starts on its own — that is the whole point of
+        it. `loop` says what happens after the last: start again from the top,
+        or stop.
 
         Sound is on unless you mute it, unlike add_video. This widget is the one
         that is meant to be heard.
@@ -100,8 +111,8 @@ def register(server: MCPServer) -> None:
     async def set_media_queue(item_id: str, tracks: list[str], start: int = 0) -> str:
         """Replace what a player is holding, and go to `start` in the new queue.
 
-        The same path vocabulary as add_media: files, directories, globs. The old
-        queue is gone — this is not add_to_list, because a queue is something you
+        The same vocabulary as add_media: files, directories, globs, and YouTube
+        links or ids, in any mixture. The old queue is gone — this is not add_to_list, because a queue is something you
         put on rather than something people keep adding to.
 
         Find the id with list_items.

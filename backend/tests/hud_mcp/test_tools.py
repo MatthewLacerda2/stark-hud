@@ -248,6 +248,36 @@ async def test_a_queue_can_be_replaced_whole(server: MCPServer, tmp_path) -> Non
     assert len(repo.get(item_id).payload.tracks) == 1
 
 
+async def test_a_youtube_link_is_queued_by_pasting_it(server: MCPServer, tmp_path) -> None:
+    """One argument, whatever the link looked like, next to files in one queue."""
+    watch = "https://www.youtube.com/watch?v=QgH9sr7G13Q"
+    message = await call(server, "add_media", tracks=[_album(tmp_path), watch])
+    assert "1 of 4" in message
+    tracks = repo.list_items()[0].payload.tracks
+    assert [t.kind for t in tracks] == ["audio", "audio", "audio", "youtube"]
+    assert tracks[-1].youtube == "QgH9sr7G13Q"
+
+
+async def test_a_youtube_link_with_no_video_in_it_is_refused_in_words(
+    server: MCPServer,
+) -> None:
+    """It is plainly a YouTube link, so it is refused as one and not as a filename."""
+    message = await call(server, "add_media", tracks=["https://youtu.be/oops"])
+    assert "Not added" in message
+    assert "YouTube link with no video id in it" in message
+
+
+async def test_a_video_nobody_may_embed_is_read_off_the_same_line(
+    server: MCPServer,
+) -> None:
+    """The reason this matters more here: a refusal is otherwise silence."""
+    await call(server, "add_media", tracks=["QgH9sr7G13Q"])
+    item = repo.list_items()[0]
+    refusal = "the owner does not allow this video to be played outside YouTube"
+    media_service.report(item, PlaybackReport(state="failed", track=0, error=refusal))
+    assert f"[failed 'QgH9sr7G13Q': {refusal}]" in await call(server, "list_items")
+
+
 async def test_what_a_widget_reports_is_on_the_line_a_session_already_reads(
     server: MCPServer, tmp_path
 ) -> None:
