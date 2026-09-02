@@ -25,6 +25,8 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Icon } from "@/components/board/icon";
+import { cn } from "@/lib/utils";
 
 const SLOTS = 5;
 
@@ -55,23 +57,55 @@ function toConfig(series: string[], colors: string[]): ChartConfig {
   );
 }
 
-/** A gauge: one number, drawn as an arc of its ceiling. */
-function Gauge({ payload }: { payload: ChartPayload }) {
+// The part of the ring the value has not reached. White at 35%, because this is
+// a television in a dim room: solid white glares, and at full strength the track
+// would compete with the label sitting inside it. Every widget here sits on the
+// same dark video, so there is nothing for this to vary with.
+const UNFILLED = "#ffffff59";
+
+// The middle of the ring is a circle, and what goes in it has to fit a square
+// inside that circle — 72% of the shorter side across, so about half of it on a
+// side. `cqmin` needs a container sized in both axes, which the widget's own
+// `@container` is not, so the gauge declares one of its own.
+const SIZED = { containerType: "size" } as const;
+const HOLE = "flex size-[50cqmin] flex-col justify-center overflow-hidden";
+
+/**
+ * A gauge: one number, drawn as a ring, with what it is about inside it.
+ *
+ * The ring is a whole circle and always was — the value decides how far round
+ * the bar goes, not how much circle there is, so the track behind it can close
+ * the loop and the reading is a proportion you can see from the sofa.
+ *
+ * The middle says who the gauge is rather than repeating what the ring already
+ * shows: an icon, a short label, and under them whatever the row's `x_key`
+ * spelled out — "3.7 de 15.6 GB", which is the sentence its collector wrote and
+ * not a number we round. Any of the three may be missing; the value never is.
+ *
+ * With an icon the two of them are a pair, aligned from the left so they read as
+ * one thing and a long label runs out to the right instead of shoving the icon
+ * about. With no icon there is nothing to pair with, so the label is centred in
+ * the hole like the number used to be.
+ */
+function Gauge({ id, payload }: { id: string; payload: ChartPayload }) {
   const row = payload.data[0];
   const ceiling = payload.max ?? 100;
-  const value = Number(row[payload.series[0]] ?? 0);
-  const fraction = Math.min(Math.max(value / ceiling, 0), 1);
+  const paired = Boolean(payload.icon);
+  const reading = String(row[payload.x_key] ?? "");
 
   return (
-    <div className="relative size-full">
+    <div className="relative size-full" style={SIZED}>
       <ChartContainer
         config={toConfig(payload.series, payload.colors)}
         className="size-full"
       >
         <RadialBarChart
-          data={[{ ...row, __fill: pick(payload.colors, 0) }]}
+          data={[row]}
+          // The whole circle, with the axis below deciding where the bar stops.
+          // Made the arc's own extent, the track had only the bar's sweep to
+          // paint and the rest of the ring did not exist.
           startAngle={90}
-          endAngle={90 - 360 * fraction}
+          endAngle={-270}
           innerRadius="72%"
           outerRadius="100%"
           // The arc is the whole widget, so it gets the whole widget. Recharts
@@ -89,24 +123,40 @@ function Gauge({ payload }: { payload: ChartPayload }) {
           />
           <RadialBar
             dataKey={payload.series[0]}
-            background
+            background={{ fill: UNFILLED }}
             cornerRadius={999}
             fill={pick(payload.colors, 0)}
           />
         </RadialBarChart>
       </ChartContainer>
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-gauge widget-text">
-          {Math.round(value)}
-          {payload.unit ? (
-            <span className="text-gauge-label text-muted-foreground">
-              {payload.unit}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div className={cn(HOLE, paired ? "items-start" : "items-center")}>
+          {payload.icon || payload.title ? (
+            <span
+              className={cn(
+                "flex w-full min-w-0 items-center gap-[0.3em] text-gauge-label widget-text",
+                paired ? "justify-start" : "justify-center",
+              )}
+            >
+              {payload.icon ? (
+                <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />
+              ) : null}
+              {payload.title ? (
+                <span className="truncate">{payload.title}</span>
+              ) : null}
             </span>
           ) : null}
-        </span>
-        <span className="text-gauge-label text-muted-foreground">
-          {String(row[payload.x_key] ?? "")}
-        </span>
+          {reading ? (
+            <span
+              className={cn(
+                "w-full truncate text-gauge-reading text-muted-foreground",
+                paired ? "text-left" : "text-center",
+              )}
+            >
+              {reading}
+            </span>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -213,24 +263,35 @@ function Body({ payload }: { payload: ChartPayload }) {
  * Recharts animates between datasets on its own, so writing the item again with
  * new numbers transitions rather than snapping.
  */
-export function Chart({ payload }: { payload: ChartPayload }) {
+export function Chart({ id, payload }: { id: string; payload: ChartPayload }) {
   const { t } = useTranslation();
+  // A gauge carries its title in the middle of its ring, so the corner the
+  // header would sit in is free — and a ring given the corner as well is a
+  // bigger ring, which is the whole reason the margins came off it.
+  const gauge = payload.chart === "radial";
   return (
     // Only a colour at an opacity. A border and a blur survive at zero opacity
     // and still draw a rectangle, which defeats the point of turning it down.
-    <Card className="size-full gap-2 border-0 widget-surface py-3 shadow-none widget-text">
-      {payload.title ? (
+    <Card
+      className={cn(
+        "size-full gap-2 border-0 widget-surface shadow-none widget-text",
+        gauge ? "py-0" : "py-3",
+      )}
+    >
+      {payload.title && !gauge ? (
         <CardHeader className="px-4">
           <CardTitle>{payload.title}</CardTitle>
         </CardHeader>
       ) : null}
-      <CardContent className="min-h-0 flex-1 px-3 pb-1">
+      <CardContent
+        className={cn("min-h-0 flex-1", gauge ? "p-0" : "px-3 pb-1")}
+      >
         {payload.data.length === 0 ? (
           <div className="flex size-full items-center justify-center text-muted-foreground">
             {t("chart.noData")}
           </div>
-        ) : payload.chart === "radial" ? (
-          <Gauge payload={payload} />
+        ) : gauge ? (
+          <Gauge id={id} payload={payload} />
         ) : (
           <ChartContainer
             config={toConfig(payload.series, payload.colors)}

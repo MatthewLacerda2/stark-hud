@@ -63,8 +63,9 @@ class ListEntry(BaseModel):
 
     title: str
     body: str | None = None
-    # A name from the icon set, or a path to a picture on this machine. A
-    # picture is served by the id of the widget holding it, never by its path.
+    # A name from the icon set, a path to a picture on this machine, or SVG
+    # markup. A picture is served by the id of the widget holding it, never by
+    # its path; markup is sanitised on the way in and stored sanitised.
     icon: Icon | None = None
     # This line's own colours, one per part. Each beats the widget-wide colour
     # for that part; left out, the part takes whatever the widget gives it, so
@@ -89,8 +90,8 @@ class ListPayload(_Payload):
 
     kind: Literal["list"] = "list"
     title: str | None = None
-    # A name from the icon set, or a path to a picture, drawn beside the
-    # heading. A picture is served by this item's id, never by its path.
+    # A name from the icon set, a path to a picture, or SVG markup, drawn beside
+    # the heading. A picture is served by this item's id, never by its path.
     icon: Icon | None = None
     # A line is a string or a ListEntry, and the two may be mixed. Strings stay
     # because that is what a script prints: the panels on this board are fed by
@@ -129,9 +130,16 @@ class ChartPayload(_Payload):
     The board never fetches or polls: whoever has the numbers sends them.
     Updating a chart means writing the item again with new ``data``.
 
-    A ``radial`` chart is the odd one out: it reads the first row only, draws it
-    as an arc of ``max``, and prints the value in the middle. It is a gauge, not
-    a series.
+    A ``radial`` chart is the odd one out: it reads the first row only and draws
+    it as an arc of a full ring whose ceiling is ``max``. It is a gauge, not a
+    series. The ring carries the proportion, so the middle is an identity —
+    ``icon`` and ``title`` — with ``data[0][x_key]`` under it for when a number
+    is genuinely wanted. Each of the three is drawn only if it is there, and
+    ``title`` is drawn in the middle rather than in the widget's corner.
+
+    ``unit`` does nothing on a radial: there is no longer a bare number for it
+    to sit against, and whatever wrote ``data[0][x_key]`` already spelled the
+    reading out the way it wants it read.
     """
 
     kind: Literal["chart"] = "chart"
@@ -140,10 +148,16 @@ class ChartPayload(_Payload):
     x_key: str
     series: list[str]
     title: str | None = None
+    # Drawn beside the title in the middle of a gauge; nothing else uses it yet.
+    # The same three forms an icon has anywhere else on the board.
+    icon: Icon | None = None
     # A ceiling for the value axis. Left out, the axis fits the data, which is
     # right for a count and wrong for a percentage: 21% would draw nearly full.
     # A radial always has one, defaulting to 100.
     max: float | None = None
+    # What the numbers are counted in. A radial ignores it — see the note above
+    # — and it is the only chart that ever drew it, so nothing draws it today.
+    # Kept because it is a published field and a caller may still be sending it.
     unit: str | None = None
     axes: ChartAxes = "both"
     # One CSS colour per series, cycled if shorter. Any colour the browser
@@ -189,8 +203,8 @@ class FeedPayload(_Payload):
 
     kind: Literal["feed"] = "feed"
     title: str | None = None
-    # A name from the icon set, or a path to a picture, drawn beside the
-    # heading. A picture is served by this item's id, never by its path.
+    # A name from the icon set, a path to a picture, or SVG markup, drawn beside
+    # the heading. A picture is served by this item's id, never by its path.
     icon: Icon | None = None
     entries: list[FeedEntry] = []
     empty: str | None = None

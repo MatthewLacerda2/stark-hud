@@ -18,11 +18,11 @@ beforeAll(() => {
   ).IS_REACT_ACT_ENVIRONMENT = true;
 });
 
-function draw(name: string): HTMLElement {
+function draw(name: string, src?: string): HTMLElement {
   const host = document.createElement("div");
   document.body.append(host);
   act(() => {
-    createRoot(host).render(<Icon name={name} />);
+    createRoot(host).render(<Icon name={name} src={src} />);
   });
   return host;
 }
@@ -39,5 +39,20 @@ describe("the marks we draw ourselves", () => {
     expect(svg?.getAttribute("fill")).toBe("currentColor");
     expect(svg?.getAttribute("viewBox")).toBe("0 0 24 24");
     expect(svg?.querySelector("path")?.getAttribute("d")).toBeTruthy();
+  });
+});
+
+describe("the three forms an icon takes", () => {
+  it("tells them apart by how they start", () => {
+    expect(draw("cpu").querySelector("svg")).not.toBe(null);
+    expect(
+      draw("/home/me/face.png", "/api/v1/media/x/icon").querySelector("img"),
+    ).not.toBe(null);
+    // Markup comes from the backend already rebuilt from an allowlist — this
+    // only has to draw it, and it is drawn inline so `currentColor` works.
+    const markup = draw('<svg viewBox="0 0 24 24"><path d="M4 4h16"/></svg>');
+    expect(markup.querySelector("svg > path")?.getAttribute("d")).toBe(
+      "M4 4h16",
+    );
   });
 });
