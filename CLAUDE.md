@@ -69,7 +69,7 @@ requests are in use.
 
 - Commit freely and in small steps, so any change can be walked back.
 - A commit message says *why*, not just what. `git log` is the record of intent.
-- Small fixes go straight to `main`. Anything worth a second opinion goes on a
+- Small fixes go straight to `master`. Anything worth a second opinion goes on a
   branch and through a PR, because the user reviews the board by looking at it,
   not by reading a diff — see the worktree workflow below.
 

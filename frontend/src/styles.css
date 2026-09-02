@@ -100,6 +100,12 @@
     clamp(0.686rem, 5.143cqmin, 1.714rem) * var(--widget-scale, 1)
   );
   --text-gauge-reading--line-height: 1.35;
+  /* A mark standing alone in the ring is sized as a fraction of the ring,
+     with no clamp and no widget scale. A clamp has a floor, and a widget
+     dragged smaller stops shrinking its icon at that floor — which is how
+     a mark ends up bigger than the circle drawn around it. */
+  --text-gauge-mark: 26cqmin;
+  --text-gauge-mark--line-height: 1;
 
   /* --- Typography tokens: size / line-height / weight. --- */
   --text-display: 4.2rem;
