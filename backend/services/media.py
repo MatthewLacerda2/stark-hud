@@ -78,20 +78,26 @@ def art_path(item: ItemRead, index: int) -> str | None:
     Nothing is embedded or decoded here: this looks for a picture in the same
     directory, which is where every ripper puts one. An album without one falls
     back to a symbol on the widget, which is a better answer than a blank square.
+
+    A folder usually has several — `AlbumArtSmall.jpg` beside `AlbumArt_{…}_Large.jpg`
+    is what Windows Media Player leaves — so the biggest file wins. Sorting by
+    name would have picked the thumbnail, which on a television is a smudge.
     """
     path = track_path(item, index)
     if path is None:
         return None
     try:
-        beside = sorted(p for p in Path(path).parent.iterdir() if p.is_file())
+        beside = [
+            p
+            for p in Path(path).parent.iterdir()
+            if p.is_file() and p.suffix.lower() in _ART_SUFFIXES
+        ]
     except OSError:
         return None
     for name in _ART_NAMES:
-        for candidate in beside:
-            if candidate.suffix.lower() in _ART_SUFFIXES and candidate.stem.lower().startswith(
-                name
-            ):
-                return str(candidate)
+        named = [p for p in beside if p.stem.lower().startswith(name)]
+        if named:
+            return str(max(named, key=lambda p: p.stat().st_size))
     return None
 
 
