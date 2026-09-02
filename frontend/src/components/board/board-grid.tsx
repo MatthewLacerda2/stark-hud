@@ -8,6 +8,7 @@ import type { Item, Notification } from "@/lib/schemas/board";
 import { updateItem } from "@/lib/api/board";
 import { ItemView } from "@/components/board/item-view";
 import { WidgetControls } from "@/components/board/widget-controls";
+import { WidgetWake } from "@/components/board/widget-wake";
 import { useContainerSize } from "@/hooks/use-container-size";
 import { drawn, maximisedIn } from "@/lib/maximised";
 
@@ -65,15 +66,21 @@ function widgetVars(item: Item, alpha: number): React.CSSProperties {
  * While a widget has the whole board the grid keeps every slot and draws almost
  * nothing into them — see `drawn`. The layout is untouched, so giving the room
  * back is one render and the board comes back exactly where it was.
+ *
+ * `wakes` counts how often each widget has been told work is coming. It is not
+ * part of what a widget is, so it rides beside the items rather than on them:
+ * nothing about the board has changed at the point one of these arrives.
  */
 export function BoardGrid({
   items,
   notifications,
+  wakes,
   cols,
   rows,
 }: {
   items: Item[];
   notifications: Notification[];
+  wakes: Record<string, number>;
   cols: number;
   rows: number;
 }) {
@@ -174,7 +181,10 @@ export function BoardGrid({
               onMouseLeave={hideSoon}
             >
               {drawn(item, maximised) ? (
-                <ItemView item={item} notifications={notifications} />
+                <>
+                  <ItemView item={item} notifications={notifications} />
+                  <WidgetWake nonce={wakes[item.id] ?? 0} />
+                </>
               ) : null}
               {hovered === item.id ? (
                 <WidgetControls
@@ -214,6 +224,7 @@ export function BoardGrid({
             item={{ ...maximised, w: cols, h: rows }}
             notifications={notifications}
           />
+          <WidgetWake nonce={wakes[maximised.id] ?? 0} />
         </div>
       ) : null}
     </div>

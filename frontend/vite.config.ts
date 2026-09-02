@@ -35,5 +35,11 @@ export default defineConfig({
     globals: true,
     environment: "jsdom",
     include: ["src/**/*.test.{ts,tsx}", "eslint-rules/**/*.test.ts"],
+    // The chart tests wait out a real second and a half per render, for marks
+    // that animate themselves in. Run eight files at once on eight cores and
+    // that wait is starved past the five-second default, so the suite passed or
+    // failed on how busy the machine was. A gate that answers differently twice
+    // in a row is not a gate.
+    testTimeout: 20_000,
   },
 });

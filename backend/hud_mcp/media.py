@@ -21,7 +21,7 @@ once, which nobody means.
 from mcp.server.mcpserver import MCPServer
 
 from core.hub import hub
-from hud_mcp.common import add
+from hud_mcp.common import add, wake
 from repositories import board as repo
 from schemas.board import ItemRead, ItemUpdate, MediaPayload
 from schemas.media import MEDIA_ACTIONS
@@ -159,6 +159,11 @@ def register(server: MCPServer) -> None:
         item = _media(item_id)
         if item is None:
             return f"No media widget {item_id}. Call list_items to see what is there."
+        # One of the few tools here that really is slow: a directory of tracks is
+        # walked and every file's tags read off disk. It has an item and it knows
+        # it is about to take a while, so it wakes the widget itself rather than
+        # leaving that to whoever called it.
+        await wake(item)
         try:
             queue = media_service.tracks_from(tracks)
         except ValueError as exc:

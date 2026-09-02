@@ -8,6 +8,7 @@ is a model, and "no room, 12 cells free" is something it can act on.
 """
 
 from core.hub import hub
+from repositories import board as repo
 from schemas.board import ItemCreate, ItemRead, Payload
 from services import board as service
 from services.board import SlotTakenError
@@ -35,7 +36,12 @@ def describe(item: ItemRead) -> str:
     things are, so this is the line it already reads — and a note it has to ask
     for separately is a note nobody asks for.
     """
-    line = f"{item.payload.kind} {item.id} at ({item.x},{item.y}) size {item.w}x{item.h}"
+    named = f"{item.payload.kind} {item.id}"
+    # The key is here because wake_item takes one. A panel a collector feeds has
+    # a key and a session has no other way to learn it.
+    if item.key:
+        named = f"{named} keyed {item.key!r}"
+    line = f"{named} at ({item.x},{item.y}) size {item.w}x{item.h}"
     if item.playback is not None:
         line = f"{line} [{_playing(item)}]"
     return f"{line} — {item.description}" if item.description else line
@@ -67,3 +73,25 @@ async def add(
 
     await hub.broadcast("item.created", item.model_dump(mode="json"))
     return f"Added {describe(item)}"
+
+
+def find(target: str) -> ItemRead | None:
+    """The item with this id, or else the panel with this key.
+
+    A caller has one or the other and rarely both: an id comes back from the
+    tool that made the widget, a key is what a repeating writer calls its panel.
+    Ids are tried first because they are unique by construction and keys only by
+    convention.
+    """
+    return repo.get(target) or repo.get_by_key(target)
+
+
+async def wake(item: ItemRead) -> None:
+    """Say that this widget is about to be written to, before writing it.
+
+    Its own event rather than a flag on the write, because the whole value is in
+    arriving earlier than the write does. A widget told it is coming can
+    acknowledge while the answer is still being worked out; one told alongside
+    the answer has nothing left to acknowledge.
+    """
+    await hub.broadcast("item.waking", {"id": item.id})

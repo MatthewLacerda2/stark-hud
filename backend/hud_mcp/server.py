@@ -9,7 +9,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 from starlette.applications import Starlette
 
 from core.config import get_settings
-from hud_mcp import background, content, layout, lists, media, notifications
+from hud_mcp import background, content, layout, lists, media, notifications, wake
 
 # Written to be read by a model that has never seen this board. The grid size is
 # interpolated rather than typed out: it has already changed once, and stale
@@ -65,6 +65,15 @@ is its remote, because the television has nothing to press. It plays the queue
 through on its own, and list_items reports what it says it is actually doing —
 including a file it could not play.
 
+Anything you are about to do that takes more than a moment — reading files,
+searching, running a command, working out an answer — call wake_item on the
+widget it is going to land in *first*, and then go and do it. The widget
+acknowledges on the TV immediately, so the room sees the board take the question
+instead of sitting dead until the answer arrives. Every tool here returns in
+milliseconds, so the only thing anybody ever waits for is you; this is the one
+signal that can go before you know the answer. It settles by itself and it never
+replaces the write that follows.
+
 Use notify to say something finished. Notifications are not widgets — they all go
 into one inbox, like a phone's shade, and drop out after 48 hours. Put your
 project name in the source field so a human can tell which Claude is speaking.\
@@ -82,6 +91,7 @@ def build_server() -> MCPServer:
     lists.register(server)
     media.register(server)
     notifications.register(server)
+    wake.register(server)
     return server
 
 

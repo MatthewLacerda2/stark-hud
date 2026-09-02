@@ -143,6 +143,7 @@ async function grid(): Promise<{
         <BoardGrid
           items={board(maximised)}
           notifications={[]}
+          wakes={{}}
           cols={32}
           rows={18}
         />,
