@@ -50,7 +50,10 @@ export function EntryRow({
           </div>
         ) : null}
         <p
-          className={`font-semibold ${body ? "truncate" : "line-clamp-2"}`}
+          // A step above the body it sits on: a title the same size as its own
+          // description is not a title, and these rows are read at a glance from
+          // across a room.
+          className={`text-node font-semibold ${body ? "truncate" : "line-clamp-2"}`}
           style={titleColor ? { color: titleColor } : undefined}
         >
           {title}
