@@ -100,8 +100,11 @@ instruction wins.
 
 ## The no-drift meta-pattern
 
-One `Makefile` defines every gate; **CI runs those exact targets.** Never add a
-check that only runs in CI, or only locally.
+One `Makefile` defines every gate, and it is the only place a gate lives.
+There is no CI: GitHub Actions was removed because it re-ran, on the user's
+minutes, exactly what `make check` already runs before every merge. So a gate
+that is not in the `Makefile` does not exist, and nothing catches a push that
+skipped it.
 
 ```
 make check      # everything
