@@ -78,16 +78,24 @@ export interface VideoPayload {
   muted: boolean;
 }
 
-/** One entry in a media widget's queue. Served by the widget's id and this
- * track's place in it, so the path never leaves the server. */
+/**
+ * One entry in a media widget's queue: a file on the machine running the board,
+ * or a video on YouTube. Exactly one of the two is set.
+ *
+ * A local track is served by the widget's id and this track's place in the
+ * queue, so the path never leaves the server. A YouTube track is served by
+ * YouTube, so nothing about it is fetched from here at all.
+ */
 export interface MediaTrack {
-  path: string;
+  path: string | null;
+  /** An eleven-character YouTube video id, whatever shape of link it arrived as. */
+  youtube: string | null;
   title: string | null;
-  kind: "audio" | "video";
+  kind: "audio" | "video" | "youtube";
 }
 
 /**
- * A queue of local files that plays itself through.
+ * A queue of files and YouTube videos that plays itself through.
  *
  * The transport is state, not a stream of commands: the server holds what is
  * true and the page renders it, so a reload finds the widget where it left it.
