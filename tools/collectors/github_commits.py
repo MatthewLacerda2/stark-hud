@@ -5,14 +5,18 @@ Goes through `gh`, which is already logged in on this machine, so no token is
 stored here. Standard library plus that one subprocess, like every other
 collector.
 
-One thing the GitHub API makes awkward, learned the hard way: a PushEvent no
-longer carries its commits — only the head sha — so the message costs one extra
-call per push.
+This asks the commit search for `author:you` rather than reading the events
+feed, and the events feed is why. It is documented as best-effort and behaves
+like it: an afternoon of pushes to this repository never appeared in it while
+the commits sat plainly on the default branch, and the board went stale with
+nobody at fault. Search is authoritative, carries the message so there is no
+second call per commit, and orders by committer date.
 
-Only your own public activity. Organisation feeds were supported once and were
-taken out: that route is the organisation's dashboard rather than yours, so it
-carried colleagues' work and had to be filtered, and it meant an employer's name
-had to be written down somewhere. A board is not worth that.
+It also settles a thing that was solved by deletion once. Organisation feeds
+were supported and then taken out, because that route is the organisation's
+dashboard rather than yours and because naming an organisation means writing an
+employer down. Searching by author needs neither: private repositories come
+along because the search sees what the authenticated user sees.
 
 Nothing is remembered between runs. It asks for the last N pushes every time
 and prints them all, so there is no cursor to lose and a restart changes
@@ -43,29 +47,34 @@ def gh(path: str) -> object | None:
         return None
 
 
-def pushes(user: str, limit: int) -> list[dict]:
-    """Every push we can see, newest first, one entry per push."""
-    # The largest page the API allows, so a busy day does not push your own
-    # older commits off the end of the page before they are read.
-    feeds = [f"/users/{user}/events?per_page=100"]
+def commits(user: str, limit: int) -> list[dict]:
+    """Your commits, newest first, whatever repository they landed in."""
+    # Search rather than the events feed, which is documented as best-effort and
+    # behaves like it: a whole afternoon of pushes to this very repository never
+    # appeared in it, while the commits were plainly on the default branch. It
+    # also drops one call per push, because a search result carries the message
+    # and an event carries only the head sha.
+    #
+    # `author` is the account, so nothing here names a repository or an
+    # organisation. Private repositories come along because the search sees what
+    # the authenticated user sees — which is how work commits reach the board
+    # without an employer's name being written down anywhere.
+    query = f"author:{user}"
+    found = gh(f"/search/commits?q={query}&sort=committer-date&order=desc&per_page={limit}")
+    items = found.get("items") if isinstance(found, dict) else None
+    if not items:
+        return []
 
-    seen: dict[str, dict] = {}
-    for feed in feeds:
-        for event in gh(feed) or []:
-            if event.get("type") != "PushEvent":
-                continue
-            # This feed is meant to be your own events only. Kept as a guard
-            # because it once was not, and the board filled with other people.
-            if (event.get("actor") or {}).get("login", "").lower() != user.lower():
-                continue
-            head = (event.get("payload") or {}).get("head")
-            repo = (event.get("repo") or {}).get("name")
-            if not head or not repo or head in seen:
-                continue
-            seen[head] = {"repo": repo, "head": head, "at": event.get("created_at")}
-
-    ordered = sorted(seen.values(), key=lambda e: e["at"] or "", reverse=True)
-    return ordered[:limit]
+    entries = []
+    for item in items:
+        commit = item.get("commit") or {}
+        message = commit.get("message") or ""
+        repo = (item.get("repository") or {}).get("name") or ""
+        at = (commit.get("committer") or {}).get("date")
+        if not message or not repo or not at:
+            continue
+        entries.append({"title": message.split("\n")[0], "source": repo, "at": at})
+    return entries
 
 
 def main() -> int:
@@ -82,17 +91,7 @@ def main() -> int:
         print("no GitHub user: is gh logged in?", file=sys.stderr)
         return 1
 
-    entries = []
-    for push in pushes(user, args.limit):
-        commit = gh(f"/repos/{push['repo']}/commits/{push['head']}")
-        if not isinstance(commit, dict):
-            continue
-        message = (commit.get("commit") or {}).get("message") or ""
-        entries.append({
-            "title": message.split("\n")[0],
-            "source": push["repo"].split("/")[-1],
-            "at": push["at"],
-        })
+    entries = commits(user, args.limit)
 
     if not entries:
         # Better to fail than to print an empty feed: the agent leaves the last
