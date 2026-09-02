@@ -16,6 +16,10 @@ _DEFAULT_SIZES: dict[str, tuple[int, int]] = {
     "box": (10, 6),
     "image": (8, 6),
     "video": (16, 9),
+    # Wide enough for a title beside the art and tall enough to be a player
+    # rather than a thumbnail — comfortably over the four cells below which it
+    # stops drawing one.
+    "media": (10, 6),
     "chart": (10, 7),
     "inbox": (8, 8),
     # Three rows so the date shows by default; squash it to two for time only.

@@ -9,6 +9,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from schemas.colour import Colour
+from schemas.media import MEDIA_ACTIONS, MediaAction, Playback, PlaybackReport
 from schemas.notifications import Notification
 from schemas.payloads import (
     BoxPayload,
@@ -22,6 +23,8 @@ from schemas.payloads import (
     InboxPayload,
     ListEntry,
     ListPayload,
+    MediaPayload,
+    MediaTrack,
     NotePayload,
     Payload,
     TextPayload,
@@ -40,8 +43,14 @@ __all__ = [
     "InboxPayload",
     "ListEntry",
     "ListPayload",
+    "MEDIA_ACTIONS",
+    "MediaAction",
+    "MediaPayload",
+    "MediaTrack",
     "NotePayload",
     "Payload",
+    "Playback",
+    "PlaybackReport",
     "TextPayload",
     "VideoPayload",
 ]
@@ -131,6 +140,13 @@ class ItemRead(BaseModel):
     # widget, this just moves the whole range.
     scale: float | None = None
     payload: Payload
+    # What the browser says this widget is actually doing, for the one widget
+    # that can fail on its own: a media file may be missing, or in a codec the
+    # browser will not take, and without this that would be invisible from
+    # anywhere but the sofa. It lives here beside ``description`` rather than in
+    # the payload for the same reason that does — a payload is rewritten whole
+    # by whoever owns it, and this is not theirs to overwrite.
+    playback: Playback | None = None
     # Which screen this widget is on. Pages exist because the grid never
     # scrolls: a second screenful is the only way to have more than fits, and
     # the board shows exactly one at a time.
