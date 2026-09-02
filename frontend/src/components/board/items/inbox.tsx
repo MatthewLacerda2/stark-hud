@@ -59,7 +59,7 @@ export function Inbox({
         </h3>
       ) : null}
       {notifications.length > 0 ? (
-        <ul className="min-h-0 flex-1 divide-y divide-current/10 overflow-hidden">
+        <ul className="min-h-0 flex-1 overflow-hidden">
           {notifications.map((notification) => (
             <EntryRow
               key={notification.id}

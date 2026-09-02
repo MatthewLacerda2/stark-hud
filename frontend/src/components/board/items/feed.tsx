@@ -29,7 +29,7 @@ export function Feed({ id, payload }: { id: string; payload: FeedPayload }) {
         </h3>
       ) : null}
       {payload.entries.length > 0 ? (
-        <ul className="min-h-0 flex-1 divide-y divide-current/10 overflow-hidden">
+        <ul className="min-h-0 flex-1 overflow-hidden">
           {payload.entries.map((entry, i) => (
             <EntryRow
               key={`${entry.source}-${entry.title}-${i}`}

@@ -76,7 +76,7 @@ export function List({ id, payload }: { id: string; payload: ListPayload }) {
           color={payload.item_color ?? undefined}
         >
           {rich ? (
-            <ul className="divide-y divide-current/10">
+            <ul>
               {payload.items.map((item, i) => {
                 const entry = asEntry(item);
                 return (
