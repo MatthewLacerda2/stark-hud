@@ -164,6 +164,7 @@ def register(server: MCPServer) -> None:
         title: str | None = None,
         max: float | None = None,
         unit: str | None = None,
+        axes: str = "both",
         colors: list[str] | None = None,
         x: int | None = None,
         y: int | None = None,
@@ -176,12 +177,18 @@ def register(server: MCPServer) -> None:
         pie or area. `x_key` names the field on the x axis and `series` names the
         fields to plot. To update a chart, remove it and add it again.
 
+        `axes` says which axes a line, bar or area chart draws: both (the
+        default), x, y or none. Leave it out unless the numbers read on their
+        own without a scale — a pie has no axes and ignores it.
+
         `colors` is one CSS colour per series. An eight-digit hex carries alpha —
         `#33ccffaa` — which leaves the video behind the board showing through the
         marks.
         """
         if chart not in {"line", "bar", "pie", "area"}:
             return f"Not added: chart must be line, bar, pie or area (got {chart!r})"
+        if axes not in {"both", "x", "y", "none"}:
+            return f"Not added: axes must be both, x, y or none (got {axes!r})"
         payload = ChartPayload(
             chart=chart,
             data=data,
@@ -190,6 +197,7 @@ def register(server: MCPServer) -> None:
             title=title,
             max=max,
             unit=unit,
+            axes=axes,
             colors=colors or [],
         )
         return await add(payload, x, y, w, h)

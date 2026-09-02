@@ -13,6 +13,8 @@ from schemas.colour import Colour
 from schemas.notifications import ICONS, Notification
 
 ChartKind = Literal["line", "bar", "pie", "area", "radial"]
+# Which axes a cartesian chart draws. A pie and a radial have neither, and ignore it.
+ChartAxes = Literal["both", "x", "y", "none"]
 
 
 def check_icon(value: str | None) -> str | None:
@@ -146,6 +148,7 @@ class ChartPayload(_Payload):
     # A radial always has one, defaulting to 100.
     max: float | None = None
     unit: str | None = None
+    axes: ChartAxes = "both"
     # One CSS colour per series, cycled if shorter. Any colour the browser
     # understands, so `var(--chart-2)` picks a theme token and anything else is
     # literal. Empty means the default palette.

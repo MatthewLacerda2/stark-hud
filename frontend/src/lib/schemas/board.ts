@@ -6,6 +6,8 @@
  */
 
 export type ChartKind = "line" | "bar" | "pie" | "area" | "radial";
+/** Which axes a cartesian chart draws. A pie and a radial have neither. */
+export type ChartAxes = "both" | "x" | "y" | "none";
 export type NotifyLevel = "info" | "success" | "warn" | "error";
 
 export interface NotePayload {
@@ -70,6 +72,8 @@ export interface ChartPayload {
   /** A ceiling for the value axis; a radial always has one. */
   max: number | null;
   unit: string | null;
+  /** Which axes to draw. Ignored by pie and radial, which have none. */
+  axes: ChartAxes;
   /** One CSS colour per series, cycled. Empty means the default palette. */
   colors: string[];
 }

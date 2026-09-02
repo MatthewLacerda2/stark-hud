@@ -74,6 +74,12 @@ function Gauge({ payload }: { payload: ChartPayload }) {
           endAngle={90 - 360 * fraction}
           innerRadius="72%"
           outerRadius="100%"
+          // The arc is the whole widget, so it gets the whole widget. Recharts
+          // otherwise keeps five pixels of margin all round and shaves a tenth
+          // off the ring for the gap between bars, which is a gap between one
+          // bar and itself. Both come back as radius.
+          margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+          barCategoryGap={0}
         >
           <PolarAngleAxis
             type="number"
@@ -107,7 +113,7 @@ function Gauge({ payload }: { payload: ChartPayload }) {
 }
 
 function Body({ payload }: { payload: ChartPayload }) {
-  const { data, x_key: xKey, series, colors } = payload;
+  const { data, x_key: xKey, series, colors, axes } = payload;
   // Hoisted so TypeScript can narrow it; a property access stays nullable.
   const ceiling = payload.max;
 
@@ -140,12 +146,22 @@ function Body({ payload }: { payload: ChartPayload }) {
       {/* No grid behind the marks. This chart sits over a video on a TV, and
           rules drawn across it read as part of the picture, not as a scale.
           The axis labels carry the reading on their own. */}
-      <XAxis dataKey={xKey} tickLine={false} axisLine={false} tickMargin={8} />
+      {/* An axis the caller turned off is hidden rather than left out: it still
+          decides the scale — the order of the categories, the `max` ceiling —
+          and recharts gives the space it would have taken back to the marks. */}
+      <XAxis
+        dataKey={xKey}
+        tickLine={false}
+        axisLine={false}
+        tickMargin={8}
+        hide={axes === "y" || axes === "none"}
+      />
       <YAxis
         tickLine={false}
         axisLine={false}
         width={40}
         domain={ceiling == null ? undefined : [0, ceiling]}
+        hide={axes === "x" || axes === "none"}
       />
       <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
       {series.length > 1 ? (
