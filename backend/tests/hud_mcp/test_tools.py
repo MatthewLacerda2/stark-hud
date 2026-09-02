@@ -112,3 +112,18 @@ async def test_removing_names_the_lines_it_could_not_find(server: MCPServer) -> 
     assert "'bread'" in await call(server, "remove_from_list", item_id=item_id, title="brood")
     assert "0 left" in await call(server, "remove_from_list", item_id=item_id, title=" BREAD ")
     assert repo.get(item_id).payload.items == []
+
+
+async def test_a_chart_draws_both_axes_unless_told_otherwise(server: MCPServer) -> None:
+    """Axes are opt-out, so a caller who says nothing gets the chart they had before."""
+    await call(server, "add_chart", chart="bar", data=[{"d": 1}], x_key="d", series=["d"])
+    assert repo.list_items()[0].payload.axes == "both"
+
+
+async def test_a_chart_names_the_axes_it_will_accept(server: MCPServer) -> None:
+    """A wrong value comes back as a sentence, the way every other enum does."""
+    message = await call(
+        server, "add_chart", chart="bar", data=[], x_key="d", series=["d"], axes="off"
+    )
+    assert "both, x, y or none" in message
+    assert repo.list_items() == []

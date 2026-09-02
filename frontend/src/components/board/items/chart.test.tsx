@@ -1,10 +1,11 @@
 /**
- * A colour with alpha in it has to reach the marks, not just the payload.
+ * What a chart actually drew, read back off the SVG.
  *
- * The colours a caller sends go into shadcn's chart container, which writes them
- * into a stylesheet, and the marks then name a CSS variable rather than a colour.
- * That is several places for an eight-digit hex to be re-parsed and quietly lose
- * its alpha, so this renders real charts and reads what actually came out.
+ * A payload passes through shadcn's chart container and recharts before it is
+ * anything anyone can look at: colours become CSS variables somewhere in the
+ * middle, and an axis decides how much of the widget the marks get. Both are
+ * several steps from what the caller asked for, so this renders real charts and
+ * reads what came out rather than asserting on the props on the way in.
  */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -82,8 +83,35 @@ const BARS: ChartPayload = {
   title: null,
   max: null,
   unit: null,
+  axes: "both",
   colors: [TRANSLUCENT],
 };
+
+const GAUGE: ChartPayload = {
+  ...BARS,
+  chart: "radial",
+  data: [{ day: "GPU", hits: 42 }],
+  max: 100,
+  unit: "%",
+};
+
+/** The widest arc a path draws: for a ring, the radius of its outer edge. */
+function outerRadius(path: Element | null): number {
+  const arcs = [...(path?.getAttribute("d") ?? "").matchAll(/A([\d.]+),/g)];
+  return Math.max(...arcs.map((arc) => Number(arc[1])));
+}
+
+/** How far in from the left edge the marks start. */
+function firstBarX(host: HTMLElement): number {
+  return Number(host.querySelector(".recharts-rectangle")?.getAttribute("x"));
+}
+
+/** How tall the first bar came out, in pixels of the plot it sits in. */
+function firstBarHeight(host: HTMLElement): number {
+  return Number(
+    host.querySelector(".recharts-rectangle")?.getAttribute("height"),
+  );
+}
 
 describe("a chart colour that carries alpha", () => {
   it("reaches a bar, through the variable it is painted with", async () => {
@@ -136,5 +164,45 @@ describe("a chart colour that carries alpha", () => {
     expect(host.querySelector(".recharts-cartesian-axis-tick-value")).not.toBe(
       null,
     );
+  });
+});
+
+describe("an axis the caller left out", () => {
+  it("is gone, while the one they kept is not", async () => {
+    const host = await render({ ...BARS, axes: "y" });
+
+    expect(host.querySelector(".recharts-xAxis")).toBe(null);
+    expect(host.querySelector(".recharts-yAxis")).not.toBe(null);
+  });
+
+  it("gives the room it was taking to the marks", async () => {
+    const host = await render({ ...BARS, axes: "none" });
+
+    expect(host.querySelector(".recharts-cartesian-axis")).toBe(null);
+    expect(host.querySelector(".recharts-rectangle")).not.toBe(null);
+    // The room the labels were taking is the point of leaving them out.
+    expect(firstBarX(host)).toBeLessThan(firstBarX(await render(BARS)));
+  });
+
+  it("still decides the scale it is no longer drawing", async () => {
+    // A ceiling is set on the y axis, so an axis that is merely hidden has to
+    // stay: dropped, a bar of 7 would fill the plot whatever `max` said.
+    const capped = await render({ ...BARS, axes: "none", max: 20 });
+    const fitted = await render({ ...BARS, axes: "none" });
+
+    expect(firstBarHeight(capped)).toBeLessThan(firstBarHeight(fitted));
+  });
+});
+
+describe("a gauge", () => {
+  it("draws its ring out to the edge of the space it was given", async () => {
+    const host = await render(GAUGE);
+
+    // Within a pixel of half the shorter side: the ring touches two edges of
+    // the widget, rather than sitting inside a margin and a bar gap.
+    const track = host.querySelector(".recharts-radial-bar-background-sector");
+    expect(outerRadius(track)).toBeGreaterThan(SIZE.height / 2 - 1);
+    // Filling the widget must not come at the cost of the reading in the hole.
+    expect(host.textContent).toContain("42");
   });
 });
