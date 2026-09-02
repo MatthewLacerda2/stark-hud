@@ -65,7 +65,10 @@ def vendor(monkeypatch, tmp_path):
 async def test_a_line_is_bought_in_the_voice_and_model_that_were_settled_on(vendor) -> None:
     """Not a literal buried in a call: the voice and the price are configuration."""
     spoken = await speech.say("Build's green.")
-    assert vendor.calls[0]["voice_id"] == "onwK4e9ZLuTAKqWW03F9"
+    # George, chosen by ear. A literal rather than the setting: this test
+    # exists to make changing the voice a deliberate act, and one that
+    # reads the setting back would agree with any value at all.
+    assert vendor.calls[0]["voice_id"] == "JBFqnCBsd6RMkjVDRZzb"
     assert vendor.calls[0]["model_id"] == "eleven_flash_v2_5"
     assert vendor.calls[0]["text"] == "Build's green."
     assert spoken.text == "Build's green."
