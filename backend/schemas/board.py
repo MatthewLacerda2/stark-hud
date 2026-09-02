@@ -7,30 +7,15 @@ validated as a note and the frontend can switch on one field.
 from datetime import datetime
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field
 
 from schemas.colour import Colour
-from schemas.notifications import ICONS, Notification
+from schemas.icon import Icon
+from schemas.notifications import Notification
 
 ChartKind = Literal["line", "bar", "pie", "area", "radial"]
 # Which axes a cartesian chart draws. A pie and a radial have neither, and ignore it.
 ChartAxes = Literal["both", "x", "y", "none"]
-
-
-def check_icon(value: str | None) -> str | None:
-    """Refuse an icon that is neither a name from the set nor a path to a picture.
-
-    The same vocabulary a notification's icon has: a widget may point at a file
-    on this machine instead of picking a glyph. Refused rather than quietly
-    dropped, so a typo is visible to whoever wrote it. Whether the file is still
-    there is a separate question, answered when the picture is asked for.
-    """
-    if value is not None and value not in ICONS and not value.startswith("/"):
-        raise ValueError(
-            f"{value!r} is not an icon: pass one of {', '.join(sorted(ICONS))}, "
-            "or an absolute path to an image file"
-        )
-    return value
 
 
 class _Payload(BaseModel):
@@ -79,12 +64,13 @@ class ListEntry(BaseModel):
     body: str | None = None
     # A name from the icon set, or a path to a picture on this machine. A
     # picture is served by the id of the widget holding it, never by its path.
-    icon: str | None = None
-
-    @field_validator("icon")
-    @classmethod
-    def _known_icon(cls, value: str | None) -> str | None:
-        return check_icon(value)
+    icon: Icon | None = None
+    # This line's own colours, one per part. Each beats the widget-wide colour
+    # for that part; left out, the part takes whatever the widget gives it, so
+    # an entry that does not care still says nothing.
+    title_color: Colour | None = None
+    body_color: Colour | None = None
+    icon_color: Colour | None = None
 
 
 class ListPayload(_Payload):
@@ -93,18 +79,28 @@ class ListPayload(_Payload):
     Its own kind rather than a note with newlines in it: a title and its entries
     are different weights and sizes, and joining them into one string throws
     that away.
+
+    Every part can be coloured, and the rule is one sentence: an entry's own
+    colour wins, then the widget-wide one — ``title_color`` for the heading and
+    the icon beside it, ``item_color`` for anything inside an entry — and then
+    the widget's own colour, which is what a list that names none of them gets.
     """
 
     kind: Literal["list"] = "list"
     title: str | None = None
+    # A name from the icon set, or a path to a picture, drawn beside the
+    # heading. A picture is served by this item's id, never by its path.
+    icon: Icon | None = None
     # A line is a string or a ListEntry, and the two may be mixed. Strings stay
     # because that is what a script prints: the panels on this board are fed by
     # `tools/agent.py`, and making them build objects would buy nothing.
     items: list[str | ListEntry] = []
     empty: str | None = None
-    # A heading and its entries may be coloured apart. Either left out falls
-    # back to the widget's own colour, so a plain list still needs no colours.
+    # The widget-wide colours: the heading, the icon beside it, and every entry
+    # that named no colour of its own. Any of them left out falls back to the
+    # widget's own colour, so a plain list still needs no colours at all.
     title_color: Colour | None = None
+    icon_color: Colour | None = None
     item_color: Colour | None = None
 
 
@@ -194,14 +190,9 @@ class FeedPayload(_Payload):
     title: str | None = None
     # A name from the icon set, or a path to a picture, drawn beside the
     # heading. A picture is served by this item's id, never by its path.
-    icon: str | None = None
+    icon: Icon | None = None
     entries: list[FeedEntry] = []
     empty: str | None = None
-
-    @field_validator("icon")
-    @classmethod
-    def _known_icon(cls, value: str | None) -> str | None:
-        return check_icon(value)
 
 
 class ClockPayload(_Payload):

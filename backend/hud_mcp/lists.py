@@ -39,6 +39,9 @@ def register(server: MCPServer) -> None:
         title: str,
         body: str | None = None,
         icon: str | None = None,
+        title_color: str | None = None,
+        body_color: str | None = None,
+        icon_color: str | None = None,
     ) -> str:
         """Add one entry to the end of a list already on the board.
 
@@ -53,15 +56,27 @@ def register(server: MCPServer) -> None:
         machine. A title on its own is stored as a plain line, so a list of
         plain lines stays one.
 
+        The three colours paint this line's own title, body and icon. Each beats
+        the widget's `item_color`; leave them out and the line takes whatever
+        colour the list is, which is what most lines want.
+
         Find the id with list_items.
         """
         item = _list(item_id)
         if item is None:
             return f"No list {item_id}. Call list_items to see what is there."
         entry: str | ListEntry = title
-        if body is not None or icon is not None:
+        extras = (body, icon, title_color, body_color, icon_color)
+        if any(extra is not None for extra in extras):
             try:
-                entry = ListEntry(title=title, body=body, icon=icon)
+                entry = ListEntry(
+                    title=title,
+                    body=body,
+                    icon=icon,
+                    title_color=title_color,
+                    body_color=body_color,
+                    icon_color=icon_color,
+                )
             except ValueError as exc:
                 return f"Not added: {exc}"
         entries = [*item.payload.items, entry]

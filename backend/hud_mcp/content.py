@@ -64,8 +64,10 @@ def register(server: MCPServer) -> None:
     async def add_list(
         items: list[str | dict],
         title: str | None = None,
+        icon: str | None = None,
         empty: str | None = None,
         title_color: str | None = None,
+        icon_color: str | None = None,
         item_color: str | None = None,
         x: int | None = None,
         y: int | None = None,
@@ -76,29 +78,37 @@ def register(server: MCPServer) -> None:
 
         Use this rather than a note full of newlines: the title and the entries
         are drawn at different sizes and weights, which a single string cannot
-        express. `empty` is what to show when the list has nothing in it.
+        express. `empty` is what to show when the list has nothing in it, and
+        `icon` is drawn beside the heading — a name from the notification icon
+        set, or an absolute path to a picture on this machine.
 
         An entry is a plain line of text, or `{"title": ..., "body": ...,
         "icon": ...}` when one line is not enough: `body` is a second, fainter
-        line under the title, and `icon` is a name from the notification icon
-        set or an absolute path to a picture on this machine. A list of plain
-        strings reads as running text; one rich entry turns them all into rows,
-        so pick one shape and stay in it.
+        line under the title, and `icon` is the same vocabulary as the widget's.
+        A list of plain strings reads as running text; one rich entry turns them
+        all into rows, so pick one shape and stay in it.
 
-        The heading and the entries can be coloured apart; left alone they both
-        take the widget's colour, which is usually what you want.
+        Every part can be given a colour, and an entry may carry
+        `title_color`, `body_color` and `icon_color` of its own. The rule is one
+        sentence: an entry's own colour wins, then the widget-wide one
+        (`title_color` for the heading and the icon beside it, `item_color` for
+        anything inside an entry), then the widget's colour — which is what a
+        list that names none of them gets, and usually what you want.
         """
+        # A typo in an icon or a colour comes back as the sentence the validator
+        # wrote, the same whether it was on the widget or on one of its entries.
         try:
-            entries = [e if isinstance(e, str) else ListEntry(**e) for e in items]
+            payload = ListPayload(
+                title=title,
+                icon=icon,
+                items=[e if isinstance(e, str) else ListEntry(**e) for e in items],
+                empty=empty,
+                title_color=title_color,
+                icon_color=icon_color,
+                item_color=item_color,
+            )
         except (TypeError, ValueError) as exc:
             return f"Not added: {exc}"
-        payload = ListPayload(
-            title=title,
-            items=entries,
-            empty=empty,
-            title_color=title_color,
-            item_color=item_color,
-        )
         return await add(payload, x, y, w, h)
 
     @server.tool()

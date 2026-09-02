@@ -28,16 +28,26 @@ export interface ListEntry {
   body: string | null;
   /** A name from the icon set, or an absolute path to a local image. */
   icon: string | null;
+  /** This line's own colours; each beats the widget's `item_color`. */
+  title_color: string | null;
+  body_color: string | null;
+  icon_color: string | null;
 }
 
 export interface ListPayload {
   kind: "list";
   title: string | null;
+  /** A name from the icon set, or an absolute path, drawn beside the heading. */
+  icon: string | null;
   /** A plain line, or one with a body and an icon of its own. Mixing is allowed. */
   items: (string | ListEntry)[];
   empty: string | null;
-  /** Heading and entries can be coloured apart; null takes the widget's colour. */
+  /**
+   * The widget-wide colours: the heading, the icon beside it, and every entry
+   * that named none of its own. Null takes the widget's colour.
+   */
   title_color: string | null;
+  icon_color: string | null;
   item_color: string | null;
 }
 
