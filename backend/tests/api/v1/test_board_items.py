@@ -64,3 +64,22 @@ async def test_a_list_entry_icon_must_be_a_name_or_a_path(client: AsyncClient) -
     """A typo would draw nothing and explain nothing, so it is refused here."""
     body = {"payload": {"kind": "list", "items": [{"title": "x", "icon": "rockit"}]}}
     assert (await client.post(ITEMS, json=body)).status_code == 422
+
+
+async def test_a_description_survives_a_round_trip(client: AsyncClient) -> None:
+    """A note written at creation is read back, changed, and taken off again."""
+    body = {**NOTE, "description": "the standup board; clear it every Monday"}
+    item = (await client.post(ITEMS, json=body)).json()
+    assert item["description"] == "the standup board; clear it every Monday"
+
+    listed = (await client.get(ITEMS)).json()[0]
+    assert listed["description"] == item["description"]
+
+    url = f"{ITEMS}/{item['id']}"
+    changed = (await client.patch(url, json={"description": "now waiting on the API key"})).json()
+    assert changed["description"] == "now waiting on the API key"
+
+    # Everything else on an update treats null as untouched, so an empty string
+    # is the only way back to no note at all.
+    assert (await client.patch(url, json={"x": 4})).json()["description"] == changed["description"]
+    assert (await client.patch(url, json={"description": ""})).json()["description"] is None

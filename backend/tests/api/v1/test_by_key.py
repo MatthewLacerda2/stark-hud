@@ -60,3 +60,20 @@ async def test_position_is_ignored_after_the_first_write(client: AsyncClient) ->
 
     again = (await client.put(KEY, json=placed)).json()
     assert (again["x"], again["y"]) == (20, 10)
+
+
+async def test_a_panel_keeps_its_description_through_a_refresh(client: AsyncClient) -> None:
+    """The failure this design exists to prevent.
+
+    A panel's payload is rewritten whole every few seconds. A note kept inside
+    the payload would be gone on the next pass, so it lives on the item.
+    """
+    first = (await client.put(KEY, json={**chart(10), "description": "cpu, from the agent"})).json()
+
+    await client.put(KEY, json=chart(20))
+    await client.put(KEY, json=chart(30))
+    refreshed = (await client.put(KEY, json=chart(40))).json()
+
+    assert refreshed["id"] == first["id"]
+    assert refreshed["payload"]["data"][0]["use"] == 40
+    assert refreshed["description"] == "cpu, from the agent"

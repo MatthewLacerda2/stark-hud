@@ -239,6 +239,7 @@ class ItemCreate(BaseModel):
 
     payload: Payload
     key: str | None = None
+    description: str | None = None
     page: int | None = Field(default=None, ge=0)
     opacity: float | None = Field(default=None, ge=0, le=1)
     color: Colour | None = None
@@ -256,6 +257,11 @@ class ItemUpdate(BaseModel):
 
     payload: Payload | None = None
     key: str | None = None
+    # ``None`` leaves the note alone like every other field here, so an empty
+    # string is how it is cleared. Without that there would be no way back from
+    # a wrong note, and adding a second "unset" sentinel for one field would
+    # cost more than the rule does.
+    description: str | None = None
     page: int | None = Field(default=None, ge=0)
     opacity: float | None = Field(default=None, ge=0, le=1)
     color: Colour | None = None
@@ -277,6 +283,12 @@ class ItemRead(BaseModel):
     # remembering an id, which is what lets a refresher survive losing its state
     # or being replaced by another process entirely.
     key: str | None = None
+    # A note for whoever drives the board next, never drawn on the TV. It says
+    # what a widget is for, what it is waiting on, what its number means — the
+    # things a later session cannot recover by looking. It lives here beside
+    # ``x`` and ``y`` rather than inside the payload because a panel's payload is
+    # rewritten whole every few seconds, which would erase it on the next pass.
+    description: str | None = None
     # The three things a widget can be told about itself. None means the default
     # for its kind: a chart is barely there, prose needs something behind it.
     opacity: float | None = None

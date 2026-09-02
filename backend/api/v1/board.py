@@ -97,6 +97,10 @@ async def upsert_by_key(key: str, payload: ItemCreate) -> ItemRead:
     Position is honoured on the first write and ignored afterwards. A refresher
     sends the same body every time, and if that moved the widget, dragging one
     would be undone by the next update seconds later.
+
+    Only the payload is rewritten, so the item's own fields — its description
+    among them — outlive every refresh. That is the whole reason a note about a
+    panel is kept on the item and not inside what the panel is showing.
     """
     existing = repo.get_by_key(key)
     if existing is None:

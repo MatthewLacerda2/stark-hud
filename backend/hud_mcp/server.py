@@ -34,6 +34,12 @@ that fits. A refusal comes back as a sentence saying what is free, not an error.
 Someone may drag and resize widgets with a mouse, so do not assume an item is
 still where you put it. Call list_items instead of remembering.
 
+Every widget can carry a description: a note that is never drawn on the TV and
+only sessions read. Put in it what a later session could not work out by looking
+— what a panel is for, what it is waiting on, what its number means. Pass it to
+any add_ tool, change or clear it with set_description, and read it back on the
+line list_items gives you.
+
 Widgets are dark by convention: this is a TV in a dim room and a pale one glares.
 On charts, pass `max` whenever the numbers have a ceiling — without it the axis
 fits the data and 21% draws as nearly full.

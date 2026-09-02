@@ -10,6 +10,8 @@ import type {
 
 export interface ItemCreate {
   payload: Payload;
+  /** A note only sessions read; never drawn. See `Item.description`. */
+  description?: string;
   page?: number;
   opacity?: number;
   color?: string;
