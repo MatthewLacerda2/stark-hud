@@ -292,6 +292,11 @@ export function Media({
 
   const kept = POSITIONS.get(id);
   const small = cols < PLAYER_CELLS || rows < PLAYER_CELLS;
+  // Whether this is the copy with the whole screen. The grid never draws a
+  // maximised widget in its own slot — the layer over the board draws it
+  // instead — so the flag on the payload is also the answer to "am I the
+  // television". Nothing else has to be passed down to know it.
+  const whole = payload.maximised;
   const watching = track !== null && track.kind !== "audio" && !small;
   // Who is playing and what record this is, in the one line under the art. The
   // album falls back to the name the queue was given, so a folder of untagged
@@ -313,7 +318,12 @@ export function Media({
   return (
     <div
       ref={frame}
-      className="group relative size-full overflow-hidden rounded-xl widget-surface"
+      className={cn(
+        "group relative size-full overflow-hidden widget-surface",
+        // A rounded corner tells one widget apart from the next. With the whole
+        // screen there is no next, and the radius is a bite out of the film.
+        !whole && "rounded-xl",
+      )}
     >
       <video
         ref={element}
