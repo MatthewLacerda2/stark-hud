@@ -49,6 +49,17 @@ async def test_what_the_browser_says_lands_on_the_item(client: AsyncClient) -> N
     assert listed["playback"]["state"] == "playing"
 
 
+async def test_where_it_got_to_outlives_the_page_that_was_playing_it(client: AsyncClient) -> None:
+    """A tick every few seconds, kept on the payload, is what survives a restart."""
+    item_id = await _player(client)
+    item = await _say(client, item_id, state="playing", track=0, seconds=11160)
+    assert item["payload"]["seconds"] == 11160
+    # Read back the way a page that has just loaded reads it, which is the whole
+    # reason it is on the payload and not on the report beside it.
+    listed = (await client.get(ITEMS)).json()[0]
+    assert listed["payload"]["seconds"] == 11160
+
+
 async def test_a_failure_says_why_instead_of_looking_like_silence(client: AsyncClient) -> None:
     """A codec the browser will not take is the case this whole flow exists for."""
     item_id = await _player(client)

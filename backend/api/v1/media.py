@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
 
 from repositories import board as repo
+from schemas.media import media_type
 from services import board as service
 from services import media as media_service
 
@@ -20,11 +21,19 @@ _MEDIA_KINDS = {"image", "video"}
 
 
 def _stream(path: str) -> FileResponse:
-    """Send a file back, 404ing with its path when it is no longer there."""
+    """Send a file back, named properly, 404ing when it is no longer there.
+
+    Named by this board's own table rather than by ``mimetypes``, which reads
+    whatever ``/etc/mime.types`` the machine happens to have and on this one has
+    never heard of Matroska. Left to guess, it sends a 7 GB `.mkv` as a stream of
+    anonymous bytes and leaves the browser to sniff what it is — which Chromium
+    does, right up until the day it does not. A picture has no entry in that
+    table and is still guessed, which for `.jpg` nothing gets wrong.
+    """
     target = Path(path)
     if not target.is_file():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"File is gone: {target}")
-    return FileResponse(target)
+    return FileResponse(target, media_type=media_type(path))
 
 
 @router.get("/background")
@@ -64,6 +73,11 @@ async def get_track(item_id: str, index: int) -> FileResponse:
     same reason a picture is addressed by an item id: the path stays on the
     server. It is also what makes an album with an apostrophe and spaces in its
     directory name work without a thought — none of it is ever a URL.
+
+    The page hangs the track's stamp on the end as a query, which nothing here
+    reads and everything here depends on: without it, replacing a queue leaves
+    index 0 behind the very same URL, and the browser goes on playing the file it
+    already had — with the old file's duration, which is how it is noticed.
     """
     item = repo.get(item_id)
     path = media_service.track_path(item, index) if item else None

@@ -7,6 +7,7 @@ and it belongs in one place, where a tool call and a finished track both reach
 it and where a test can read it without a browser.
 """
 
+import hashlib
 from pathlib import Path
 
 from repositories import board as repo
@@ -20,6 +21,7 @@ from schemas.media import (
     kind_of,
     youtube_id,
 )
+from services import tags as tag_reader
 
 # A picture beside the tracks, in the order we would rather have it. Windows
 # Media Player and most rippers leave `AlbumArt_*.jpg`; everything else tends to
@@ -47,6 +49,46 @@ def _expand(source: str) -> list[str]:
     return sorted(str(p) for p in found if p.is_file() and kind_of(str(p)) is not None)
 
 
+def _stamp(path: str) -> str:
+    """A short digest of which file this is, to go in the URL that fetches it.
+
+    The path, plus the file's size and time when there is a file to ask. The
+    first makes a replaced queue a set of new URLs; the other two make a
+    re-encoded file a new URL as well. A file that is not there yet is stamped by
+    name alone and gets the rest next time a queue is built from it.
+    """
+    marks = [path]
+    try:
+        found = Path(path).stat()
+    except OSError:
+        pass
+    else:
+        marks += [str(found.st_size), str(int(found.st_mtime))]
+    return hashlib.blake2s("\0".join(marks).encode(), digest_size=6).hexdigest()
+
+
+def _local(path: str) -> MediaTrack:
+    """One file as a queue entry, named by what the file says about itself.
+
+    The tags are read here, as the queue is built, rather than when a track
+    comes round to being played. The queue is built once by a tool call and then
+    played by however many browsers are looking at the board, so reading it once
+    on the machine that has the files is both the fewest reads and the only
+    place the reading can happen at all — a browser is handed the widget's id
+    and a place in the queue, never a path.
+
+    An untagged file falls through to what it already had: the filename.
+    """
+    found = tag_reader.read(path)
+    return MediaTrack(
+        path=path,
+        title=found.title,
+        artist=found.artist,
+        album=found.album,
+        stamp=_stamp(path),
+    )
+
+
 def tracks_from(sources: list[str]) -> list[MediaTrack]:
     """Build a queue from paths, directories, globs and YouTube links, in order.
 
@@ -65,7 +107,7 @@ def tracks_from(sources: list[str]) -> list[MediaTrack]:
         if video is not None:
             queue.append(MediaTrack(youtube=video))
             continue
-        queue.extend(MediaTrack(path=path) for path in _expand(source))
+        queue.extend(_local(path) for path in _expand(source))
     return queue
 
 
@@ -129,27 +171,36 @@ def stepped(payload: MediaPayload, delta: int) -> MediaPayload:
     first track is not asking to stop — so it wraps when looping and stays put
     when it does not.
     """
+    # Every one of these lands on a different track, so every one of them starts
+    # it at the beginning: where the widget had got to was about the track it is
+    # leaving.
     if not payload.tracks:
-        return payload.model_copy(update={"index": 0, "playing": False})
+        return payload.model_copy(update={"index": 0, "playing": False, "seconds": 0.0})
     last = len(payload.tracks) - 1
     nxt = payload.index + delta
     if 0 <= nxt <= last:
-        return payload.model_copy(update={"index": nxt})
+        return payload.model_copy(update={"index": nxt, "seconds": 0.0})
     if nxt < 0:
-        return payload.model_copy(update={"index": last if payload.loop else 0})
+        return payload.model_copy(update={"index": last if payload.loop else 0, "seconds": 0.0})
     if payload.loop:
-        return payload.model_copy(update={"index": 0})
-    return payload.model_copy(update={"index": 0, "playing": False})
+        return payload.model_copy(update={"index": 0, "seconds": 0.0})
+    return payload.model_copy(update={"index": 0, "playing": False, "seconds": 0.0})
 
 
-def commanded(payload: MediaPayload, action: MediaAction) -> MediaPayload:
-    """Apply one transport verb. Anything unknown is the caller's to check."""
+def commanded(payload: MediaPayload, action: MediaAction, seconds: float = 0.0) -> MediaPayload:
+    """Apply one transport verb. Anything unknown is the caller's to check.
+
+    ``seconds`` is read by ``seek`` and ignored by the rest, which is what makes
+    these one verb list rather than a transport tool and a seeking tool.
+    """
     if action == "play":
         return payload.model_copy(update={"playing": True})
     if action == "pause":
         return payload.model_copy(update={"playing": False})
+    if action == "seek":
+        return payload.model_copy(update={"seconds": max(seconds, 0.0)})
     if action == "stop":
-        return payload.model_copy(update={"index": 0, "playing": False})
+        return payload.model_copy(update={"index": 0, "playing": False, "seconds": 0.0})
     return stepped(payload, 1 if action == "next" else -1)
 
 
@@ -180,6 +231,14 @@ def report(item: ItemRead, incoming: PlaybackReport) -> ItemRead:
             error=incoming.error,
         )
     }
+    # Where it has got to, and what to do about a track that has finished. Both
+    # are only ever true of the track the widget is actually on: a report from
+    # one it has already left would otherwise rewind the new one, or skip it.
+    moved = payload
+    if incoming.seconds is not None and track == payload.index:
+        moved = moved.model_copy(update={"seconds": incoming.seconds})
     if incoming.state == "ended" and track == payload.index:
-        updates["payload"] = stepped(payload, 1)
+        moved = stepped(moved, 1)
+    if moved is not payload:
+        updates["payload"] = moved
     return repo.replace(item.model_copy(update=updates))

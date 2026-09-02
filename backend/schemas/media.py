@@ -21,11 +21,38 @@ from urllib.parse import parse_qs, urlparse
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-# What the browser will actually play. Anything else is refused when the queue is
-# built, because a queue that silently drops a file leaves the caller believing
-# it queued nineteen tracks when it queued eighteen.
-AUDIO_SUFFIXES = frozenset({".mp3", ".flac", ".m4a", ".aac", ".ogg", ".oga", ".opus", ".wav"})
-VIDEO_SUFFIXES = frozenset({".mp4", ".m4v", ".webm", ".mkv", ".mov", ".ogv"})
+# What the browser will actually play, and what to call each of them on the way
+# out. Anything not named here is refused when the queue is built, because a
+# queue that silently drops a file leaves the caller believing it queued nineteen
+# tracks when it queued eighteen.
+#
+# One table rather than a list of suffixes and a separate list of types: a file
+# this board claims to play is a file it can name, and Python's own `mimetypes`
+# does not know half of these — it reads `/etc/mime.types`, which on one machine
+# has Matroska in it and on the next does not. Getting that wrong sends `.mkv`
+# as a stream of bytes and leaves the browser to guess, which it does, until one
+# day it does not.
+AUDIO_TYPES = {
+    ".mp3": "audio/mpeg",
+    ".flac": "audio/flac",
+    ".m4a": "audio/mp4",
+    ".aac": "audio/aac",
+    ".ogg": "audio/ogg",
+    ".oga": "audio/ogg",
+    ".opus": "audio/opus",
+    ".wav": "audio/wav",
+}
+VIDEO_TYPES = {
+    ".mp4": "video/mp4",
+    ".m4v": "video/mp4",
+    ".webm": "video/webm",
+    ".mkv": "video/x-matroska",
+    ".mov": "video/quicktime",
+    ".ogv": "video/ogg",
+}
+MEDIA_TYPES = {**AUDIO_TYPES, **VIDEO_TYPES}
+AUDIO_SUFFIXES = frozenset(AUDIO_TYPES)
+VIDEO_SUFFIXES = frozenset(VIDEO_TYPES)
 
 # Audio and video are what a local file turns out to be; ``youtube`` is the
 # third because where a track comes from decides how it is played, and this is
@@ -49,11 +76,18 @@ _VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{11}$")
 # person to read it would have to work out.
 PlaybackState = Literal["idle", "playing", "paused", "ended", "failed"]
 
-# What a session can ask the widget to do. Five verbs, each taking nothing but
-# the widget itself — which is why they are one tool with an action rather than
-# five tools that would each be a whole entry in every session's tool list.
-MediaAction = Literal["play", "pause", "stop", "next", "back"]
+# What a session can ask the widget to do. Five of the six take nothing but the
+# widget itself — which is why they are one tool with an action rather than six
+# tools that would each be a whole entry in every session's tool list. ``seek``
+# is the one that needs a number, and it is here rather than in a tool of its own
+# because it is the same sentence as the rest: put this widget there.
+MediaAction = Literal["play", "pause", "stop", "next", "back", "seek"]
 MEDIA_ACTIONS: tuple[MediaAction, ...] = get_args(MediaAction)
+
+
+def media_type(path: str) -> str | None:
+    """What to call this file on the wire, or ``None`` for anything else to guess."""
+    return MEDIA_TYPES.get(Path(path).suffix.lower())
 
 
 def kind_of(path: str) -> TrackKind | None:
@@ -104,7 +138,8 @@ class MediaTrack(BaseModel):
     ``kind`` and ``title`` are filled in from whichever was given when nobody
     says otherwise, so a caller that has nineteen filenames and no metadata still
     gets a queue that reads properly on the TV. Both can be overridden: a
-    filename is a guess at a title, not the title.
+    filename is a guess at a title, not the title, and ``services.tags`` has the
+    real one whenever the file was tagged.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -114,6 +149,19 @@ class MediaTrack(BaseModel):
     # the id, so what is stored is the one thing every caller agrees on.
     youtube: str | None = None
     title: str | None = None
+    # Who is playing, and what record it came off. Read from the file's own tags
+    # when the queue is built, because the browser cannot see the disk. Either
+    # may be missing — a file with no tags says only its filename, which is
+    # better than a row of labels reading "Unknown".
+    artist: str | None = None
+    album: str | None = None
+    # A short digest of the file this track names, taken when the queue was
+    # built. It exists to be put in the URL the browser fetches: a track is
+    # addressed by the widget's id and a place in the queue, so replacing the
+    # queue leaves index 0 pointing at a different file behind an identical URL,
+    # and the browser happily plays the one it already has. It is a hash and not
+    # the path, because a path still never appears in a URL.
+    stamp: str | None = None
     kind: TrackKind | None = None
 
     @model_validator(mode="after")
@@ -180,8 +228,20 @@ class MediaPayload(BaseModel):
     # Take the whole board and give it back. It is here rather than in a size
     # because the widget keeps its slot on the grid and returns to it.
     maximised: bool = False
-    # Drawn above the queue when there is room — an album's name, usually, which
-    # no filename carries.
+    # How far into the current track the widget is. In the payload, and not in
+    # the playback report, because the report is what one browser last managed to
+    # say and this has to outlive the browser: a page that reloads, or a server
+    # that restarts, comes back to a four-hour film where it left it rather than
+    # at the beginning. It is also how a session says where to start, which is
+    # the only way to ask for the third hour of something.
+    seconds: float = Field(default=0.0, ge=0)
+    # Whether YouTube should draw its captions. Off unless somebody asks: a band
+    # of subtitles across a music video is not what the widget is for, and on a
+    # television nobody can reach in and switch them off again.
+    captions: bool = False
+    # An album's name for a queue whose files carry no tags. Drawn under the art
+    # only when the track itself has no album to give, so the widget still says
+    # what record this is without repeating what the tags already said.
     title: str | None = None
 
     @model_validator(mode="after")
@@ -214,6 +274,10 @@ class PlaybackReport(BaseModel):
     # Why it failed, in the browser's words. Usually a missing file or a codec
     # nothing on this machine can decode.
     error: str | None = None
+    # How far in it has got. Sent every few seconds while something is playing,
+    # never every frame, and kept on the payload rather than with the rest of
+    # this — see ``MediaPayload.seconds`` for why it has to outlive the browser.
+    seconds: float | None = Field(default=None, ge=0)
 
 
 class Playback(BaseModel):
