@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Film, Music } from "lucide-react";
 import type { MediaPayload, Playback } from "@/lib/schemas/board";
 import { reportPlayback } from "@/lib/api/board";
+import { YouTubeTrack } from "@/components/board/items/youtube";
 import { cn } from "@/lib/utils";
 
 /**
@@ -36,7 +37,12 @@ function whyItFailed(media: HTMLVideoElement): string {
   return reasons[(media.error?.code ?? 0) - 1] ?? "unknown";
 }
 
-/** The album art beside a track, falling back to a symbol for what it is. */
+/**
+ * The picture beside a track, falling back to a symbol for what it is.
+ *
+ * For a file that is whatever the ripper left in the folder; for a YouTube video
+ * it is YouTube's own thumbnail, which is the one picture a video id always has.
+ */
 function Artwork({ src, video }: { src: string; video: boolean }) {
   const [failed, setFailed] = useState(false);
   // Named anything but `Symbol`: shadowing the global one breaks React itself.
@@ -55,14 +61,21 @@ function Artwork({ src, video }: { src: string; video: boolean }) {
 }
 
 /**
- * A queue of local audio or video that plays itself through.
+ * A queue of audio, video and YouTube that plays itself through.
  *
- * One widget for both because everything a queue needs — an order, a place in
- * it, a transport, a loop — is the same either way; the only difference is
- * whether there is anything to look at while it plays. So there is one media
- * element, a `<video>`, whichever kind the track is: it never changes type, so
- * a queue can hold both and moving between them does not tear the player down.
- * An audio track simply gives it nothing to show, and the art takes the space.
+ * One widget for all of them because everything a queue needs — an order, a
+ * place in it, a transport, a loop — is the same whatever a track turns out to
+ * be; the only differences are whether there is anything to look at while it
+ * plays and who does the playing. So there is one media element, a `<video>`,
+ * for every local track whichever kind it is: it never changes type, so a queue
+ * can hold both and moving between them does not tear the player down. An audio
+ * track simply gives it nothing to show, and the art takes the space.
+ *
+ * A YouTube video cannot go in that element — there is no URL for it, and no
+ * API key here to ask for one — so it is played beside it by YouTube's own
+ * player, which is mounted only while the widget is on such a track. That is the
+ * whole of the difference: the transport, the report and the queue are shared,
+ * and a queue may mix the two freely.
  *
  * Nothing here is clickable. Every control is a tool call, because the
  * television has no keyboard and no mouse and a button drawn on this board is a
@@ -97,6 +110,15 @@ export function Media({
 
   const track = payload.tracks[payload.index] ?? null;
   const index = payload.index;
+  // The video id when the widget is on a YouTube track, and nothing when it is
+  // not — which is also how the rest of this file asks which kind it is on.
+  const video = track?.kind === "youtube" ? track.youtube : null;
+  const onYouTube = video !== null;
+  // What YouTube called the video. Carried with its place in the queue so it
+  // cannot be shown against the track after it.
+  const [named, setNamed] = useState<{ index: number; title: string } | null>(
+    null,
+  );
 
   const say = useCallback(
     (state: Playback["state"], error?: string) => {
@@ -106,17 +128,31 @@ export function Media({
     [id, index],
   );
 
+  // What this element says only speaks for the widget while the widget is on a
+  // local track. On a YouTube one it is being emptied and stopped, and the
+  // events that come out of that are about the file it has just left.
+  const fromFile = (state: Playback["state"], error?: string) => {
+    if (!onYouTube) say(state, error);
+  };
+
   // Play or pause to match what the board says. The track's path is a dependency
   // as well as the flag: a new source arrives paused and has to be started.
   useEffect(() => {
     const media = element.current;
-    if (!media || !track) return;
+    if (!media) return;
+    // A YouTube track leaves this element with no source — and stopped, because
+    // taking the source away does not stop what is already decoding, and an
+    // album playing on underneath a video is the worst of both.
+    if (!track || onYouTube) {
+      if (!media.paused) media.pause();
+      return;
+    }
     // Asked each time the board changes, so both sides check first: calling play
     // on something already playing is noise, and pause on something paused is a
     // spurious event travelling back to the server.
     if (payload.playing && media.paused) void media.play().catch(() => {});
     if (!payload.playing && !media.paused) media.pause();
-  }, [payload.playing, index, track]);
+  }, [payload.playing, index, track, onYouTube]);
 
   // Pick up where this widget was before it was moved between layers.
   useEffect(() => {
@@ -134,20 +170,26 @@ export function Media({
     void reportPlayback(id, { state: "idle" }).catch(() => {});
   }, [track, id]);
 
+  const kept = POSITIONS.get(id);
   const small = cols < PLAYER_CELLS || rows < PLAYER_CELLS;
-  const watching = track?.kind === "video" && !small;
+  const watching = track !== null && track.kind !== "audio" && !small;
+  const title = named?.index === index ? named.title : (track?.title ?? null);
 
   return (
     <div className="relative size-full overflow-hidden rounded-xl widget-surface">
       <video
         ref={element}
-        src={track ? `/api/v1/media/${id}/track/${index}` : undefined}
+        src={
+          track && !onYouTube ? `/api/v1/media/${id}/track/${index}` : undefined
+        }
         muted={payload.muted}
         playsInline
-        onPlay={() => say("playing")}
-        onPause={() => say("paused")}
-        onEnded={() => say("ended")}
-        onError={(event) => say("failed", whyItFailed(event.currentTarget))}
+        onPlay={() => fromFile("playing")}
+        onPause={() => fromFile("paused")}
+        onEnded={() => fromFile("ended")}
+        onError={(event) =>
+          fromFile("failed", whyItFailed(event.currentTarget))
+        }
         onTimeUpdate={(event) =>
           POSITIONS.set(id, {
             index,
@@ -158,9 +200,29 @@ export function Media({
           "absolute inset-0",
           // Hidden rather than absent when there is nothing to watch: this is
           // the thing that is playing, and taking it out would stop the music.
-          watching ? "size-full object-contain" : "size-px opacity-0",
+          watching && !onYouTube
+            ? "size-full object-contain"
+            : "size-px opacity-0",
         )}
       />
+
+      {video ? (
+        <YouTubeTrack
+          video={video}
+          playing={payload.playing}
+          muted={payload.muted}
+          startSeconds={kept?.index === index ? kept.seconds : 0}
+          say={say}
+          keep={(seconds) => POSITIONS.set(id, { index, seconds })}
+          name={(found) => setNamed({ index, title: found })}
+          className={cn(
+            "absolute inset-0",
+            // Hidden rather than absent when the widget is too small to watch:
+            // making something small is not asking it to go quiet.
+            watching ? "size-full" : "size-px opacity-0",
+          )}
+        />
+      ) : null}
 
       {watching ? null : (
         <div className="absolute inset-0 flex items-center justify-center p-3">
@@ -169,8 +231,12 @@ export function Media({
               // Keyed on the track so a queue of one album with one missing
               // picture does not lose the picture for every track after it.
               key={index}
-              src={`/api/v1/media/${id}/track/${index}/art`}
-              video={track.kind === "video"}
+              src={
+                track.youtube
+                  ? `https://i.ytimg.com/vi/${track.youtube}/hqdefault.jpg`
+                  : `/api/v1/media/${id}/track/${index}/art`
+              }
+              video={track.kind !== "audio"}
             />
           ) : (
             <Music className="size-1/2 opacity-40 widget-text" />
@@ -186,7 +252,7 @@ export function Media({
             </span>
           ) : null}
           <span className="truncate text-node font-semibold">
-            {track?.title ?? t("media.emptyQueue")}
+            {title ?? t("media.emptyQueue")}
           </span>
           <span className="truncate text-node-sm opacity-70">
             {track
