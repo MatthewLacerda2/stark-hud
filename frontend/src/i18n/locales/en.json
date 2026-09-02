@@ -13,14 +13,9 @@
   "media": {
     "missing": "File not found",
     "emptyQueue": "Nothing queued",
-    "position": "{{index}} of {{total}}",
-    "state": {
-      "idle": "nothing queued",
-      "playing": "playing",
-      "paused": "paused",
-      "ended": "ended",
-      "failed": "will not play"
-    }
+    "wontPlay": "will not play",
+    "fullscreen": "Fullscreen",
+    "leaveFullscreen": "Leave fullscreen"
   },
   "chart": {
     "noData": "No data"

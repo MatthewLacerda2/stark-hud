@@ -14,6 +14,8 @@ export interface PlaybackReport {
   state: Playback["state"];
   track?: number;
   error?: string;
+  /** How far into the track it has got. Sent every few seconds, never per frame. */
+  seconds?: number;
 }
 
 export interface ItemCreate {
