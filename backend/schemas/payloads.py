@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from schemas.colour import Colour
 from schemas.icon import Icon
+from schemas.media import MediaPayload, MediaTrack
 
 ChartKind = Literal["line", "bar", "pie", "area", "radial"]
 
@@ -115,7 +116,12 @@ class ImagePayload(_Payload):
 
 
 class VideoPayload(_Payload):
-    """A video read from a local path and served back by this API."""
+    """A video read from a local path and served back by this API.
+
+    One file, played once, with no idea what comes after it. A queue of them —
+    audio as well as video, driven from a session rather than from the screen —
+    is the ``media`` widget in ``schemas.media`` instead.
+    """
 
     kind: Literal["video"] = "video"
     path: str
@@ -227,9 +233,33 @@ Payload = Annotated[
     | BoxPayload
     | ImagePayload
     | VideoPayload
+    | MediaPayload
     | ChartPayload
     | InboxPayload
     | ClockPayload
     | FeedPayload,
     Field(discriminator="kind"),
+]
+
+# The media widget lives in its own module — it is a queue, a transport and a
+# report, not one more block of fields — and is named here because this is where
+# every layer already looks for a payload.
+__all__ = [
+    "BoxPayload",
+    "ChartAxes",
+    "ChartKind",
+    "ChartPayload",
+    "ClockPayload",
+    "FeedEntry",
+    "FeedPayload",
+    "ImagePayload",
+    "InboxPayload",
+    "ListEntry",
+    "ListPayload",
+    "MediaPayload",
+    "MediaTrack",
+    "NotePayload",
+    "Payload",
+    "TextPayload",
+    "VideoPayload",
 ]

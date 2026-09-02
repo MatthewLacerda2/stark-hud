@@ -12,6 +12,7 @@ from fastapi.responses import FileResponse
 
 from repositories import board as repo
 from services import board as service
+from services import media as media_service
 
 router = APIRouter(prefix="/media", tags=["media"])
 
@@ -51,6 +52,38 @@ def _icon(item_id: str, index: int | None) -> FileResponse:
     if path is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="No icon image for that id"
+        )
+    return _stream(path)
+
+
+@router.get("/{item_id}/track/{index}")
+async def get_track(item_id: str, index: int) -> FileResponse:
+    """Stream one track of a media widget's queue.
+
+    Addressed by the widget's id and the track's place in the queue, for the
+    same reason a picture is addressed by an item id: the path stays on the
+    server. It is also what makes an album with an apostrophe and spaces in its
+    directory name work without a thought — none of it is ever a URL.
+    """
+    item = repo.get(item_id)
+    path = media_service.track_path(item, index) if item else None
+    if path is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No such track")
+    return _stream(path)
+
+
+@router.get("/{item_id}/track/{index}/art")
+async def get_track_art(item_id: str, index: int) -> FileResponse:
+    """Stream the album art beside a track, when the folder has one.
+
+    A 404 here is ordinary, not an error: plenty of albums have no picture in
+    the folder, and the widget draws a symbol instead.
+    """
+    item = repo.get(item_id)
+    path = media_service.art_path(item, index) if item else None
+    if path is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="No art beside that track"
         )
     return _stream(path)
 
