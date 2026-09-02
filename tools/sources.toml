@@ -48,19 +48,6 @@ panel = { kind = "chart", chart = "radial", title = "VRAM", x_key = "label", ser
 # One reading each time; `history` turns it into four minutes of line.
 # 90 °C is the ceiling we chose to draw against, not a hardware limit.
 [[source]]
-name = "temps"
-command = "python3 {collectors}/temps.py"
-every = 5
-history = 48
-place = { x = 12, y = 5, w = 11, h = 4 }
-# No axes: at a glance from the sofa the shape is the whole message, and the
-# labels were the part that made this widget hard to read.
-panel = { kind = "chart", chart = "line", title = "Temperatura", x_key = "t", series = [
-  "cpu",
-  "gpu",
-], max = 90, axes = "none" }
-
-[[source]]
 name = "tmux"
 command = "python3 {collectors}/tmux_sessions.py"
 every = 20
