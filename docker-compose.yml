@@ -30,9 +30,18 @@ services:
       # git ignores and a human fills in: this repository is public, and a key
       # in it would be a key on the internet. Empty is a working board that
       # simply cannot speak and says so when something asks it to.
+      # Only what is named in this block reaches the container: the `.env` is
+      # read by compose for interpolation, not handed to the backend. So to tune
+      # the voice — its speed, its stability, any other ELEVENLABS_ setting —
+      # add the variable here. Setting it in `.env` alone changes nothing.
       ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
       # Spoken lines land beside the board file, in the one volume the backend
-      # can write to. Only the newest few are kept.
+      # can write to. Absolute on purpose, and for the same reason STATE_FILE is
+      # below it: the default is a path relative to the backend's working
+      # directory, which in here is /app, so leaving this alone would write every
+      # MP3 into the container's own filesystem — outside the volume, gone on the
+      # next `up --build`, and a 404 for every URL the browser was already
+      # handed. Only the newest few are kept.
       SPEECH_DIR: /data/speech
       # The board itself, kept across restarts. Plain JSON under a name of our
       # own, so it can be backed up, edited or swapped for another board.
