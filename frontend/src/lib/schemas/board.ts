@@ -155,6 +155,7 @@ export interface Item {
   description: string | null;
   /** How solid this widget's background is, 0 to 1. Null means its kind's default. */
   opacity: number | null;
+  background: string | null;
   /** The widget's background colour. Null means its kind's default. */
   color: string | null;
   /** Multiplies the text sizes inside the widget. Null means 1. */

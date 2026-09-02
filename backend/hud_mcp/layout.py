@@ -61,6 +61,7 @@ def register(server: MCPServer) -> None:
         item_id: str,
         opacity: float | None = None,
         color: str | None = None,
+        background: str | None = None,
         scale: float | None = None,
     ) -> str:
         """Change how a widget looks. Everything is optional; only what you pass moves.
@@ -70,9 +71,14 @@ def register(server: MCPServer) -> None:
         are mostly their own marks, prose needs something behind it.
 
         `color` is any CSS colour for the widget's **text**, `var(--chart-2)`
-        included. A widget's background is its kind's, at whatever `opacity` says.
+        included.
         An eight-digit hex carries alpha — `#ffffff80` — so the text itself can be
         made to read through rather than over the video the board sits on.
+
+        `background` is what the widget is made of, shown at `opacity`. Left
+        alone every widget uses the same card colour, which is what makes a
+        board look like one board — so set this only when a widget is meant to
+        stand apart from the rest.
 
         `scale` multiplies the text inside, 0.25 to 4. Type already grows with
         the widget; this moves the whole range.
@@ -81,9 +87,9 @@ def register(server: MCPServer) -> None:
             return f"Not set: opacity must be between 0 and 1 (got {opacity})"
         if scale is not None and not 0.25 <= scale <= 4:
             return f"Not set: scale must be between 0.25 and 4 (got {scale})"
-        if opacity is None and color is None and scale is None:
-            return "Nothing to set: pass at least one of opacity, color or scale"
-        update = ItemUpdate(opacity=opacity, color=color, scale=scale)
+        if opacity is None and color is None and background is None and scale is None:
+            return "Nothing to set: pass at least one of opacity, color, background or scale"
+        update = ItemUpdate(opacity=opacity, color=color, background=background, scale=scale)
         return await _patch(item_id, update, "restyled")
 
     @server.tool()
