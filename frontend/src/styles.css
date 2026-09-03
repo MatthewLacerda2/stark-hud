@@ -393,26 +393,44 @@
 }
 
 @utility widget-surface {
-  /* An inset shadow rather than a border, because a border occupies layout: a
-     transparent one on every widget that never asked for a line would still
-     shift what is inside it by two pixels. This draws on top of the background
-     instead, follows the same rounded corner, and costs nothing when the colour
-     is transparent.
-
-     Two pixels. One disappears from a sofa, and three reads as a frame around
-     the widget rather than an edge to it. Not tunable: a board where every
-     widget has its own line weight is a board that stopped looking like one
-     board, and the colour is already enough to say which widget is special.
-
-     Deliberately outside the `color-mix` below: this line does not fade with
-     the background it surrounds, which is the whole reason to want one. */
-  box-shadow: inset 0 0 0 2px var(--widget-border, transparent);
   background-color: color-mix(
     in oklab,
     var(--widget-colour, var(--color-card))
       calc(var(--widget-alpha, 0.65) * 100%),
     transparent
   );
+}
+
+/* The line around a widget, when one was asked for.
+
+   Its own utility and not part of `widget-surface` above, which is not
+   fussiness: adding a second declaration there changed where Tailwind sorted
+   the whole utility, `bg-card` started winning the cascade, and every
+   transparent widget on the board went solid. One utility, one property.
+
+   An outline rather than a border, because a border occupies layout — a
+   transparent one on every widget that never asked for a line would still shift
+   what is inside it by two pixels. Pulled inward by its own width so it sits
+   where a border would, and outlines follow the corner radius, so it rounds
+   with whatever it is drawn on.
+
+   Not a `box-shadow` either, which was the first attempt: the chart card ships
+   a shadow and cancels it with `shadow-none`, so an edge drawn as a shadow
+   would be fighting that for the same property on the one widget most likely to
+   want an edge. `outline` is a property nothing else here sets, so there is
+   nothing to lose a cascade against.
+
+   Two pixels. One disappears from a sofa and three reads as a frame around the
+   widget rather than an edge to it. Not tunable: a board where every widget has
+   its own line weight has stopped looking like one board, and the colour
+   already says which widget is meant to stand apart.
+
+   It does not fade with `--widget-alpha`, deliberately. The case this exists
+   for is the widget turned right down, and an edge that disappeared along with
+   the panel would leave exactly the problem it was added to solve. */
+@utility widget-edge {
+  outline: 2px solid var(--widget-border, transparent);
+  outline-offset: -2px;
 }
 
 /* --------------------------------------------------------------------------

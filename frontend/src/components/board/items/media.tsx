@@ -329,7 +329,7 @@ export function Media({
     <div
       ref={frame}
       className={cn(
-        "group relative size-full overflow-hidden widget-surface",
+        "group relative size-full overflow-hidden widget-surface widget-edge",
         // A rounded corner tells one widget apart from the next. With the whole
         // screen there is no next, and the radius is a bite out of the film.
         !whole && "rounded-xl",

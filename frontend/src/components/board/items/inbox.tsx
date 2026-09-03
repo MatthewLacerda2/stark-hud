@@ -52,7 +52,7 @@ export function Inbox({
   useClock();
 
   return (
-    <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl widget-surface p-5 widget-text">
+    <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl widget-surface widget-edge p-5 widget-text">
       {payload.title ? (
         <h3 className="shrink-0 text-node font-semibold tracking-tight">
           {payload.title}

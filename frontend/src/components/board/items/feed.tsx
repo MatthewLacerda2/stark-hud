@@ -21,7 +21,7 @@ export function Feed({ id, payload }: { id: string; payload: FeedPayload }) {
   const empty = payload.empty ?? t("board.emptyList");
 
   return (
-    <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl widget-surface p-5 widget-text">
+    <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl widget-surface widget-edge p-5 widget-text">
       {payload.title ? (
         <h3 className="flex shrink-0 items-center gap-2 text-node font-semibold tracking-tight">
           <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />

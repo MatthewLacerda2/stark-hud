@@ -31,7 +31,7 @@ export function Clock({ rows }: { rows: number }) {
   ).slice(-2)}`;
 
   return (
-    <div className="flex size-full flex-col items-center justify-center gap-1 rounded-xl widget-surface p-4 font-rounded widget-text">
+    <div className="flex size-full flex-col items-center justify-center gap-1 rounded-xl widget-surface widget-edge p-4 font-rounded widget-text">
       <span className="text-node-xl font-bold tabular-nums tracking-tight">
         {time}
       </span>

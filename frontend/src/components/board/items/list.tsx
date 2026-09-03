@@ -46,7 +46,7 @@ export function List({ id, payload }: { id: string; payload: ListPayload }) {
   const rich = payload.items.some((item) => typeof item !== "string");
 
   return (
-    <div className="flex size-full flex-col gap-2 rounded-xl widget-surface p-5 widget-text">
+    <div className="flex size-full flex-col gap-2 rounded-xl widget-surface widget-edge p-5 widget-text">
       {payload.title || payload.icon ? (
         <h3
           className={cn(

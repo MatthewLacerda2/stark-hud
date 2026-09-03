@@ -315,7 +315,7 @@ export function Chart({ id, payload }: { id: string; payload: ChartPayload }) {
     // and still draw a rectangle, which defeats the point of turning it down.
     <Card
       className={cn(
-        "size-full gap-2 border-0 widget-surface shadow-none widget-text",
+        "size-full gap-2 border-0 widget-surface widget-edge shadow-none widget-text",
         gauge ? "py-0" : "py-3",
       )}
     >
