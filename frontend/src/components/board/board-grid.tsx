@@ -20,15 +20,10 @@ const PADDING = 8;
 // vanishing on the way.
 const CONTROLS_LINGER_MS = 3000;
 
-/* A widget is a pane of glass held up in front of the room.
-
-   It started invisible, on the reasoning that most widgets read better straight
-   on top of the video — and they do, but a board of floating text is a board
-   with nothing on it. A pane at a third puts an edge around every widget and
-   still shows the room moving behind it, which is the thing this board has been
-   chasing since the ink went translucent. The slider still moves any one widget
-   off this, in either direction. */
-const DEFAULT_ALPHA = 0.35;
+/* A widget's background starts invisible, whatever its kind. The board sits on
+   a video and most widgets read better straight on top of it; the ones that
+   need a panel get one from the opacity slider, one widget at a time. */
+const DEFAULT_ALPHA = 0;
 
 /** The widget's background: what its kind implies. `item.color` is for its text. */
 function colourOf(item: Item): string | undefined {
