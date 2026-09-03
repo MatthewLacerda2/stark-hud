@@ -19,6 +19,7 @@ from schemas.payloads import (
     ClockPayload,
     FeedEntry,
     FeedPayload,
+    GroupPayload,
     ImagePayload,
     InboxPayload,
     ListEntry,
@@ -39,6 +40,7 @@ __all__ = [
     "ClockPayload",
     "FeedEntry",
     "FeedPayload",
+    "GroupPayload",
     "ImagePayload",
     "InboxPayload",
     "ListEntry",
@@ -81,14 +83,12 @@ class ItemCreate(BaseModel):
     """Payload to add an item.
 
     Omit ``x``/``y`` to let the auto-placer choose a free slot. ``w``/``h``
-    default to a size that suits the kind. Omit ``page`` and it lands on the one
-    being shown, which is the only page anybody can see.
+    default to a size that suits the kind.
     """
 
     payload: Payload
     key: str | None = None
     description: str | None = None
-    page: int | None = Field(default=None, ge=0)
     opacity: float | None = Field(default=None, ge=0, le=1)
     color: Colour | None = None
     background: Colour | None = None
@@ -112,7 +112,6 @@ class ItemUpdate(BaseModel):
     # a wrong note, and adding a second "unset" sentinel for one field would
     # cost more than the rule does.
     description: str | None = None
-    page: int | None = Field(default=None, ge=0)
     opacity: float | None = Field(default=None, ge=0, le=1)
     color: Colour | None = None
     background: Colour | None = None
@@ -168,14 +167,14 @@ class ItemRead(BaseModel):
     # the payload for the same reason that does — a payload is rewritten whole
     # by whoever owns it, and this is not theirs to overwrite.
     playback: Playback | None = None
-    # Which screen this widget is on. Pages exist because the grid never
-    # scrolls: a second screenful is the only way to have more than fits, and
-    # the board shows exactly one at a time.
-    page: int = 0
     x: float
     y: float
     w: float
     h: float
+    # The group this widget belongs to, if any. A widget in a group is on the
+    # board while the group is open and off it while the group is closed, which
+    # is the whole of what folding does. Never another group: nesting stops at
+    # one level.
     parent_id: str | None
     pinned: bool
     created_at: datetime
@@ -200,9 +199,6 @@ class BoardSnapshot(BaseModel):
     items: list[ItemRead]
     background: Background | None
     notifications: list[Notification]
-    # The page being shown. One number for every client, so turning the page on
-    # a laptop turns it on the TV, which has nothing to turn it with.
-    page: int = 0
 
 
 class BoardStatus(BaseModel):
@@ -210,11 +206,10 @@ class BoardStatus(BaseModel):
 
     cols: int
     rows: int
-    # Occupancy is per page: each page is its own grid of the same size.
-    page: int
-    pages: int
     cells_total: float
     cells_used: float
     cells_free: float
+    # How many widgets are taking up room, which is not how many exist: a widget
+    # inside a folded group is on the board's books and not on its surface.
     item_count: int
     largest_free_rect: Placement | None

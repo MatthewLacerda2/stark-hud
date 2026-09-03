@@ -8,7 +8,15 @@ from pathlib import Path
 from core.config import get_settings
 from repositories import board as repo
 from schemas.board import Background, BoardStatus, ItemCreate, ItemRead, ItemUpdate, Placement
-from services.placement import cells, default_size, find_slot, is_free, largest_free_rect, size
+from services import groups
+from services.placement import (
+    cells,
+    default_size,
+    find_slot,
+    is_free,
+    largest_free_rect,
+    size,
+)
 
 
 class SlotTakenError(Exception):
@@ -67,31 +75,29 @@ def _grid() -> tuple[int, int]:
     return settings.GRID_COLS, settings.GRID_ROWS
 
 
-def page_of(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> int:
-    """Which page an item belongs on: what was asked, what it had, or what shows."""
-    if data.page is not None:
-        return data.page
-    return current.page if current else repo.get_page()
-
-
-def _resolve(data: ItemCreate | ItemUpdate, current: ItemRead | None, page: int) -> Placement:
+def _resolve(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> Placement:
     """Work out where an item goes, honouring explicit coordinates when given.
 
-    Only widgets on the same page are in the way. Each page is its own grid of
-    the same size, so the same slot is free on one and taken on another.
+    Only what is on the board is in the way, which is not everything that
+    exists: an open group takes up no room and neither does anything folded
+    inside a closed one. A widget that takes up no room has its coordinates
+    recorded rather than checked — see ``groups.weightless``.
     """
     cols, rows = _grid()
-    items = [i for i in repo.list_items() if i.page == page]
+    everything = repo.list_items()
     dw, dh = default_size(data.payload) if data.payload else (3.0, 2.0)
 
-    base_w = current.w if current else dw
-    base_h = current.h if current else dh
-    w = data.w if data.w is not None else base_w
-    h = data.h if data.h is not None else base_h
-
+    w = data.w if data.w is not None else (current.w if current else dw)
+    h = data.h if data.h is not None else (current.h if current else dh)
     x = data.x if data.x is not None else (current.x if current else None)
     y = data.y if data.y is not None else (current.y if current else None)
 
+    payload = data.payload or (current.payload if current else None)
+    parent_id = data.parent_id or (current.parent_id if current else None)
+    if payload is not None and groups.weightless(payload, parent_id, everything):
+        return Placement(x=x or 0.0, y=y or 0.0, w=w, h=h)
+
+    items = groups.on_board(everything)
     if x is None or y is None:
         return find_slot(items, w, h, cols, rows)
 
@@ -115,8 +121,7 @@ def _described(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> str |
 
 def create(data: ItemCreate) -> ItemRead:
     """Add an item, auto-placing it when coordinates are omitted."""
-    page = page_of(data, None)
-    place = _resolve(data, None, page)
+    place = _resolve(data, None)
     return repo.add(
         data.payload,
         place.x,
@@ -126,7 +131,6 @@ def create(data: ItemCreate) -> ItemRead:
         data.parent_id,
         data.pinned,
         data.key,
-        page,
         # These were accepted by the schema and then dropped here, so a widget
         # created with a colour came out with none until something updated it.
         opacity=data.opacity,
@@ -140,13 +144,11 @@ def create(data: ItemCreate) -> ItemRead:
 
 def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
     """Apply a partial update, revalidating placement when geometry changes."""
-    page = page_of(data, item)
-    place = _resolve(data, item, page)
+    place = _resolve(data, item)
     return repo.replace(
         item.model_copy(
             update={
                 "payload": data.payload if data.payload is not None else item.payload,
-                "page": page,
                 "x": place.x,
                 "y": place.y,
                 "w": place.w,
@@ -165,36 +167,26 @@ def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
     )
 
 
-def page_count() -> int:
-    """How many pages exist: as many as the furthest one with anything on it."""
-    return max((i.page for i in repo.list_items()), default=0) + 1
+def remove(item: ItemRead) -> None:
+    """Delete a widget. A group gives its widgets back to the board first."""
+    if groups.is_group(item):
+        groups.disband(item)
+        return
+    repo.remove(item.id)
 
 
 def status() -> BoardStatus:
-    """Report occupancy of the page being shown, so a caller can look first."""
+    """Report what the board is carrying, so a caller can look before it leaps."""
     cols, rows = _grid()
-    page = repo.get_page()
-    items = [i for i in repo.list_items() if i.page == page]
+    items = groups.on_board(repo.list_items())
     used = sum(i.w * i.h for i in items)
     total = cols * rows
     return BoardStatus(
         cols=cols,
         rows=rows,
-        page=page,
-        pages=page_count(),
         cells_total=total,
         cells_used=used,
         cells_free=total - used,
         item_count=len(items),
         largest_free_rect=largest_free_rect(items, cols, rows),
     )
-
-
-def turn_to(page: int) -> int:
-    """Show a page, and never one past the last that has anything on it.
-
-    Nothing stopped a swipe from walking off the end, and a board with one page
-    happily reported page 7: the TV then showed an empty grid that nobody in the
-    room could turn back.
-    """
-    return repo.set_page(max(0, min(page, page_count() - 1)))

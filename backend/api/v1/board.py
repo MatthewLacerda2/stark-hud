@@ -1,7 +1,6 @@
 """Board endpoints. Every mutation is broadcast to connected clients."""
 
 from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel, Field
 
 from core.hub import hub
 from repositories import board as repo
@@ -35,33 +34,8 @@ async def list_items() -> list[ItemRead]:
 
 @router.get("/status", response_model=BoardStatus)
 async def board_status() -> BoardStatus:
-    """Return grid occupancy and the largest free rectangle."""
+    """Return what the board is carrying and the largest free rectangle."""
     return service.status()
-
-
-class PageChange(BaseModel):
-    """Which page to show."""
-
-    page: int = Field(ge=0)
-
-
-@router.get("/page", response_model=PageChange)
-async def get_page() -> PageChange:
-    """Return the page every client is showing."""
-    return PageChange(page=repo.get_page())
-
-
-@router.put("/page", response_model=PageChange)
-async def set_page(payload: PageChange) -> PageChange:
-    """Turn the page for every client at once.
-
-    There is one page for the whole board rather than one per browser: the TV
-    has nothing to turn its own page with, so turning it on a laptop is the
-    only way it ever turns.
-    """
-    page = service.turn_to(payload.page)
-    await hub.broadcast("board.page", {"page": page})
-    return PageChange(page=page)
 
 
 @router.get("/background", response_model=Background | None)
@@ -72,7 +46,7 @@ async def get_background() -> Background | None:
 
 @router.put("/background", response_model=Background)
 async def set_background(payload: Background) -> Background:
-    """Set the looping video behind the grid. Always silent."""
+    """Set the looping video behind the board. Always silent."""
     background = service.set_background(payload)
     await hub.broadcast("background.changed", payload.model_dump(mode="json"))
     assert background is not None
@@ -156,9 +130,8 @@ async def report_playback(item_id: str, payload: PlaybackReport) -> ItemRead:
 
 @router.delete("/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_item(item_id: str) -> None:
-    """Delete an item. Children of a removed box are orphaned, not deleted."""
-    _get_or_404(item_id)
-    repo.remove(item_id)
+    """Delete an item. A group's widgets are put back on the board, never deleted."""
+    service.remove(_get_or_404(item_id))
     await hub.broadcast("item.removed", {"id": item_id})
 
 

@@ -12,6 +12,7 @@ from core.config import get_settings
 from hud_mcp import (
     background,
     content,
+    groups,
     layout,
     lists,
     media,
@@ -64,9 +65,12 @@ Anywhere a colour is taken, an eight-digit hex carries its own alpha — `#33ccf
 The board is kept on disk and comes back after a restart, widgets and
 notifications alike, so what you leave there is what a human finds later.
 
-It holds more than one screenful as pages, and shows exactly one. New widgets
-land on the page being shown; show_page turns it, for everyone at once. Only do
-that when asked — the TV cannot turn it back.
+It holds more than one screenful as groups. A group is a widget that holds
+widgets: group_items makes one and nothing moves, fold_group closes it and its
+widgets come off the board, replaced by one small widget showing the icons of
+what is inside. That is how the board carries the weather and the work at the
+same time and shows one of them. Unfolding puts everything back where it was,
+and is refused if something has taken the room in the meantime.
 
 Widgets are written whole: to change a chart or a feed, write it again with
 everything in it. A list somebody is keeping is the exception — add_to_list and
@@ -107,6 +111,7 @@ def build_server() -> MCPServer:
     server = MCPServer(name="stark-hud", instructions=instructions)
     content.register(server)
     layout.register(server)
+    groups.register(server)
     background.register(server)
     lists.register(server)
     media.register(server)

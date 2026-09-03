@@ -1,16 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { useCallback } from "react";
-import { boardStatus, showPage } from "@/lib/api/board";
+import { boardStatus } from "@/lib/api/board";
 import { Background } from "@/components/board/background";
 import { BoardGrid } from "@/components/board/board-grid";
-import { PageDots } from "@/components/board/page-dots";
 import { VhsFilter } from "@/components/board/vhs-filter";
 import { BloomFilter } from "@/components/board/bloom-filter";
 import { useBoard } from "@/hooks/use-board";
-import { usePageTurn } from "@/hooks/use-page-turn";
 import { useSpeech } from "@/hooks/use-speech";
+import { onBoard } from "@/lib/groups";
 import { maximisedIn } from "@/lib/maximised";
 import { tapeFrom, tapeVars } from "@/lib/vhs";
 import { bloomFrom } from "@/lib/bloom";
@@ -30,7 +28,7 @@ const BLOOM = bloomFrom(window.location.search);
  */
 function BoardPage() {
   const { t } = useTranslation();
-  const { items, background, notifications, page, wakes, spoken, connected } =
+  const { items, background, notifications, wakes, spoken, connected } =
     useBoard();
   // The board's voice. Nothing is drawn for it: the browser is the only part of
   // this board with a speaker, so saying a line is something the page does
@@ -44,24 +42,12 @@ function BoardPage() {
   const cols = status.data?.cols ?? 12;
   const rows = status.data?.rows ?? 8;
 
-  // Only the pages that have something on them. An extra empty one used to be
-  // offered here, the way a phone grows a screen when you drag past the last —
-  // but a phone shows you the widget you are dragging, and this board showed a
-  // dot that led to an empty grid on a TV nobody can swipe back.
-  const pages = items.reduce((most, i) => Math.max(most, i.page), 0) + 1;
-  const shown = items.filter((i) => i.page === page);
+  // What is actually on the board. A widget inside a folded group is not, and
+  // neither is an open group, which is a bracket rather than a pane.
+  const shown = onBoard(items);
   // The background is behind everything, so a widget given the whole board hides
   // it completely — and a hidden video is still a video the machine decodes.
-  // Asked of the shown page only: a maximised widget on a page nobody is looking
-  // at is not drawn, and covers nothing.
   const covered = maximisedIn(shown) !== undefined;
-
-  const go = useCallback((to: number) => {
-    // Fire and forget: the socket delivers the new page to every client,
-    // including this one, so nothing here has to guess it worked.
-    void showPage(Math.max(0, to)).catch(() => {});
-  }, []);
-  usePageTurn(useCallback((delta: number) => go(page + delta), [go, page]));
 
   return (
     <main
@@ -80,6 +66,7 @@ function BoardPage() {
       >
         <BoardGrid
           items={shown}
+          everything={items}
           notifications={notifications}
           wakes={wakes}
           tape={TAPE}
@@ -87,8 +74,6 @@ function BoardPage() {
           cols={cols}
           rows={rows}
         />
-
-        <PageDots page={page} pages={pages} onPick={go} />
 
         {shown.length === 0 && connected ? (
           <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-h1 text-muted-foreground">

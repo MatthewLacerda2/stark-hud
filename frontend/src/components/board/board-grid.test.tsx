@@ -71,7 +71,6 @@ function item(id: string, payload: Payload, x: number): Item {
     scale: null,
     payload,
     playback: null,
-    page: 0,
     x,
     y: 0,
     w: 6,
@@ -145,6 +144,7 @@ async function grid(): Promise<{
       root.render(
         <BoardGrid
           items={board(maximised)}
+          everything={board(maximised)}
           notifications={[]}
           wakes={{}}
           tape={NO_TAPE}

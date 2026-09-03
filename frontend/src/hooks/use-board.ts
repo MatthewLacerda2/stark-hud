@@ -29,7 +29,6 @@ interface BoardState {
   items: Item[];
   background: Background | null;
   notifications: Notification[];
-  page: number;
   /**
    * Which widgets have been told work is coming, counted rather than flagged:
    * a widget woken again while it is already awake gets a new number, which is
@@ -55,7 +54,6 @@ const EMPTY: BoardState = {
   items: [],
   background: null,
   notifications: [],
-  page: 0,
   wakes: {},
   spoken: [],
 };
@@ -78,7 +76,6 @@ export function reduceBoard(
         items: message.data.items,
         background: message.data.background,
         notifications: message.data.notifications,
-        page: message.data.page,
         wakes: {},
         // A reconnect does not replay what was said while the page was away: a
         // television reading out the afternoon's announcements because someone
@@ -93,8 +90,11 @@ export function reduceBoard(
     case "board.cleared":
       // The background is not an item; clearing the board leaves it alone.
       return { ...state, items: [], wakes: {} };
-    case "board.page":
-      return { ...state, page: message.data.page };
+    case "board.arranged":
+      // One event for a change that moved several widgets. Sent whole rather
+      // than as a burst of updates so that folding a group is one render on the
+      // television, instead of a fold crawling across it a widget at a time.
+      return { ...state, items: message.data.items };
     case "background.changed":
       return { ...state, background: message.data };
     case "item.created":

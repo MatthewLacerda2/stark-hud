@@ -12,7 +12,7 @@ import type { Item, ItemKind, Payload } from "@/lib/schemas/board";
 import { drawn, maximisedIn } from "@/lib/maximised";
 
 /** Enough of an item for these two questions; the rest is placement. */
-function item(id: string, payload: Payload, page = 0): Item {
+function item(id: string, payload: Payload): Item {
   return {
     id,
     key: null,
@@ -24,7 +24,6 @@ function item(id: string, payload: Payload, page = 0): Item {
     scale: null,
     payload,
     playback: null,
-    page,
     x: 0,
     y: 0,
     w: 4,

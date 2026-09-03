@@ -57,6 +57,7 @@ export interface ListPayload {
   item_color: string | null;
 }
 
+/** A frame drawn on the board. Decoration; holding widgets is a group's job. */
 export interface BoxPayload {
   kind: "box";
   label: string | null;
@@ -214,6 +215,21 @@ export interface ClockPayload {
   kind: "clock";
 }
 
+/**
+ * A widget that holds widgets. Membership is `parent_id` on the widgets.
+ *
+ * Open, it draws nothing and takes up nothing: its widgets are on the board
+ * where they always were. Closed, they come off the board and it draws in their
+ * place — the icons of what is inside, stacked like sleeves on a shelf, three
+ * visible and a fourth behind them, blurred. It looks the same holding five or
+ * twenty, because what it says is what kind of things are in here and that there
+ * are several.
+ */
+export interface GroupPayload {
+  kind: "group";
+  open: boolean;
+}
+
 /** One notification. They live in an inbox, not on the grid. */
 export interface Notification {
   id: string;
@@ -239,7 +255,8 @@ export type Payload =
   | ChartPayload
   | InboxPayload
   | ClockPayload
-  | FeedPayload;
+  | FeedPayload
+  | GroupPayload;
 
 export type ItemKind = Payload["kind"];
 
@@ -274,12 +291,11 @@ export interface Item {
    * payload so that rewriting the widget does not erase it.
    */
   playback: Playback | null;
-  /** Which screen this widget is on. The board shows exactly one at a time. */
-  page: number;
   x: number;
   y: number;
   w: number;
   h: number;
+  /** The group this widget is in, if any. Never another group: one level only. */
   parent_id: string | null;
   pinned: boolean;
   created_at: string;
@@ -292,7 +308,7 @@ export interface Placement {
   h: number;
 }
 
-/** A looping, always-silent video behind the grid. */
+/** A looping, always-silent video behind the board. */
 export interface Background {
   path: string;
   blur: boolean;
@@ -302,16 +318,11 @@ export interface BoardSnapshot {
   items: Item[];
   background: Background | null;
   notifications: Notification[];
-  /** The page being shown, the same for every client. */
-  page: number;
 }
 
 export interface BoardStatus {
   cols: number;
   rows: number;
-  /** Occupancy is per page; these describe the one being shown. */
-  page: number;
-  pages: number;
   cells_total: number;
   cells_used: number;
   cells_free: number;
@@ -337,7 +348,9 @@ export type BoardEvent =
   | { event: "board.snapshot"; data: BoardSnapshot }
   | { event: "background.changed"; data: Background | null }
   | { event: "board.cleared"; data: { removed: number } }
-  | { event: "board.page"; data: { page: number } }
+  /* A rearrangement: several widgets changed at once and the board is sent
+     whole, so folding a group is one render rather than a widget at a time. */
+  | { event: "board.arranged"; data: { items: Item[] } }
   | { event: "item.created"; data: Item }
   | { event: "item.updated"; data: Item }
   /* Work is coming for this widget; nothing about it has changed yet. Sent by

@@ -13,6 +13,7 @@ board, and every question below is answered by walking that short list.
 """
 
 from collections.abc import Iterator
+from itertools import combinations
 
 from schemas.board import MIN_SIZE, ItemRead, Payload, Placement
 
@@ -36,6 +37,10 @@ _DEFAULT_SIZES: dict[str, tuple[float, float]] = {
     # Tall like the inbox: a feed nobody scrolls is only as useful as the number
     # of lines it can show at once.
     "feed": (9, 10),
+    # A folded group is a shelf of three icons and a blurred fourth. It says
+    # what kind of things are inside and that there are several, which is all it
+    # ever says — so it is the same small size holding five or twenty.
+    "group": (4, 3),
 }
 
 # Two edges that ought to meet arrive as sums of decimals, and 0.1 + 0.2 is not
@@ -163,3 +168,25 @@ def largest_free_rect(items: list[ItemRead], cols: int, rows: int) -> Placement 
                 if w >= MIN_SIZE and (best is None or w * h > best.w * best.h):
                     best = Placement(x=x, y=top, w=w, h=h)
     return best
+
+
+def overlapping(items: list[ItemRead]) -> tuple[ItemRead, ItemRead] | None:
+    """The first two widgets in an arrangement that cannot both be where they say.
+
+    Asked of a whole arrangement rather than of one placement, because some
+    changes are only legal as a set: folding a group takes several widgets off
+    the board and puts one in their place, and no step of that on its own is a
+    legal board. What has to be true is the arrangement it produces.
+    """
+    for a, b in combinations(items, 2):
+        if _spans_meet(a.x, a.w, b.x, b.w) and _spans_meet(a.y, a.h, b.y, b.h):
+            return a, b
+    return None
+
+
+def outside(items: list[ItemRead], cols: int, rows: int) -> ItemRead | None:
+    """The first widget in an arrangement that hangs off the board."""
+    return next(
+        (i for i in items if i.x + i.w > cols + _EPS or i.y + i.h > rows + _EPS),
+        None,
+    )

@@ -11,6 +11,7 @@ from core.hub import hub
 from repositories import board as repo
 from schemas.board import ItemCreate, ItemRead, Payload
 from services import board as service
+from services import groups
 from services.board import SlotTakenError
 from services.placement import BoardFullError, cells, size
 
@@ -42,9 +43,28 @@ def describe(item: ItemRead) -> str:
     if item.key:
         named = f"{named} keyed {item.key!r}"
     line = f"{named} at ({cells(item.x)},{cells(item.y)}) size {size(item.w, item.h)}"
+    line = f"{line}{_grouping(item)}"
     if item.playback is not None:
         line = f"{line} [{_playing(item)}]"
     return f"{line} — {item.description}" if item.description else line
+
+
+def _grouping(item: ItemRead) -> str:
+    """Whether this widget holds others, or is held — and so whether it is drawn.
+
+    A folded widget is not on the board and a session looking at this line has
+    no other way to know that: it would otherwise read as a widget that is there
+    and simply cannot be seen.
+    """
+    if item.payload.kind == "group":
+        held = len(groups.members(item))
+        return f" — a {'group' if item.payload.open else 'folded group'} of {held} widgets"
+    if item.parent_id is None:
+        return ""
+    parent = repo.get(item.parent_id)
+    if parent is not None and parent.payload.kind == "group" and not parent.payload.open:
+        return f" [folded away inside {item.parent_id}]"
+    return f" [in group {item.parent_id}]"
 
 
 async def add(

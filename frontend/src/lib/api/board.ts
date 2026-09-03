@@ -22,7 +22,6 @@ export interface ItemCreate {
   payload: Payload;
   /** A note only sessions read; never drawn. See `Item.description`. */
   description?: string;
-  page?: number;
   opacity?: number;
   background?: string;
   color?: string;
@@ -43,14 +42,6 @@ export function listItems(): Promise<Item[]> {
 
 export function boardStatus(): Promise<BoardStatus> {
   return request<BoardStatus>("/board/status");
-}
-
-/** Turn the board to a page, for every client at once. */
-export function showPage(page: number): Promise<{ page: number }> {
-  return request<{ page: number }>("/board/page", {
-    method: "PUT",
-    body: { page },
-  });
 }
 
 export function createItem(body: ItemCreate): Promise<Item> {

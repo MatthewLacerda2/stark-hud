@@ -10,10 +10,13 @@ call instead.
 
 ## What it does
 
-- **Renders a fixed grid**, 32×18 cells, that never scrolls. What does not fit
-  becomes another page, and one page shows at a time.
+- **Renders a fixed board**, a 32×18 space that never scrolls. Widgets sit
+  where they are put, at fractional coordinates, and never overlap.
+- **Folds widgets into groups.** A group is a widget that holds widgets: closed,
+  they come off the board and it draws in their place. That is how one board
+  carries more than one subject.
 - **Keeps itself on disk.** A `.hud` file, written atomically. Pull the plug and
-  the board comes back — widgets, notifications, current page and all.
+  the board comes back — widgets, notifications, folded groups and all.
 - **Pushes every change to every viewer** over a WebSocket. The television and a
   laptop see the same board at the same moment.
 - **Takes an inbox of notifications** from any source, kept 48 hours, shown like
@@ -50,7 +53,7 @@ Every widget carries its own colour, text scale, background and opacity, plus a
                     ┌──────── stark-hud, one process ────────┐
                     │                                        │
    HTTP  /api  ─────┤  api/       handlers, one per route    │
-   WS    /ws   ─────┤  services/  placement, pages, rules    │
+   WS    /ws   ─────┤  services/  placement, groups, rules   │
    MCP   /mcp  ─────┤  repositories/  the board, and store.py│
                     │  schemas/   payloads, colour, icon, svg│
                     │                                        │

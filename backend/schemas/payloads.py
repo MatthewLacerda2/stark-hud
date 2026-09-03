@@ -43,7 +43,12 @@ class TextPayload(_Payload):
 
 
 class BoxPayload(_Payload):
-    """A container. Other items may name it as their ``parent_id``."""
+    """A frame drawn on the board. Decoration, not a container.
+
+    Holding widgets is a group's job — see ``GroupPayload`` — and ``parent_id``
+    means membership of one. A box is a line around a region of the board and
+    nothing more.
+    """
 
     kind: Literal["box"] = "box"
     label: str | None = None
@@ -247,6 +252,33 @@ class FeedPayload(_Payload):
     empty: str | None = None
 
 
+class GroupPayload(_Payload):
+    """A widget that holds widgets.
+
+    Membership is ``parent_id`` on the widgets themselves, so a group is an edge
+    rather than a place: nothing moves into it and nothing is laid out inside it.
+
+    It has two states, and they trade room with each other. **Open**, the group
+    occupies nothing and its widgets sit on the board exactly where they always
+    did. **Closed**, the widgets come off the board and the group takes their
+    place, drawn as the icons of what is inside stacked like sleeves on a shelf
+    — three visible and a fourth behind them, blurred, whether it holds five or
+    twenty. What that says is what kind of things are in here and that there are
+    several, which is all anybody across a room can use.
+
+    A closed group is a fold. A group is also what a page was trying to be, and
+    the reason pages are gone: a page was an integer with no name and no way to
+    be empty, and this is a widget you can point at.
+
+    Nesting stops here: a group holds widgets, never other groups. Not because a
+    tree is hard to build but because a tree is hard to hold in your head, and no
+    board we want needs the second level.
+    """
+
+    kind: Literal["group"] = "group"
+    open: bool = True
+
+
 class ClockPayload(_Payload):
     """The time now, with the date under it when the widget is tall enough.
 
@@ -268,7 +300,8 @@ Payload = Annotated[
     | ChartPayload
     | InboxPayload
     | ClockPayload
-    | FeedPayload,
+    | FeedPayload
+    | GroupPayload,
     Field(discriminator="kind"),
 ]
 
@@ -284,6 +317,7 @@ __all__ = [
     "ClockPayload",
     "FeedEntry",
     "FeedPayload",
+    "GroupPayload",
     "ImagePayload",
     "InboxPayload",
     "ListEntry",

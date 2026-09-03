@@ -8,6 +8,7 @@ import { Vhs } from "@/components/board/vhs";
 import { useContainerSize } from "@/hooks/use-container-size";
 import { useWidgetDrag } from "@/hooks/use-widget-drag";
 import { EDGES, type Rect } from "@/lib/drag";
+import { held } from "@/lib/groups";
 import { drawn, maximisedIn } from "@/lib/maximised";
 import { cn } from "@/lib/utils";
 import { holographic, type Tape } from "@/lib/vhs";
@@ -104,6 +105,7 @@ function widgetVars(item: Item, alpha: number): React.CSSProperties {
  */
 export function BoardGrid({
   items,
+  everything,
   notifications,
   wakes,
   tape,
@@ -111,7 +113,10 @@ export function BoardGrid({
   cols,
   rows,
 }: {
+  /** The widgets on the board: what `onBoard` left after the folded ones. */
   items: Item[];
+  /** Everything that exists, folded widgets included — what a group draws from. */
+  everything: Item[];
   notifications: Notification[];
   wakes: Record<string, number>;
   tape: Tape;
@@ -187,7 +192,11 @@ export function BoardGrid({
                 {drawn(item, maximised) ? (
                   <>
                     <div className={cn("size-full", looked(item, tape, bloom))}>
-                      <ItemView item={item} notifications={notifications} />
+                      <ItemView
+                        item={item}
+                        notifications={notifications}
+                        holds={held(item, everything)}
+                      />
                     </div>
                     <Vhs tape={tape} />
                     <WidgetWake nonce={wakes[item.id] ?? 0} />

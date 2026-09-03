@@ -63,15 +63,19 @@ Nada fora dessa camada deve tocar o estado.
 
 ## Modelo do grid
 
-- **32 colunas x 18 linhas**, fixo, **sem scroll vertical**.
+- **32 colunas x 18 linhas**, fixo, **sem scroll vertical**. Nao e uma grade de
+  576 casas: e um espaco 32x18 com coordenadas fracionarias, e o widget fica
+  exatamente onde foi posto.
   Motivo: a TV nao rola. Board que passa da tela fica com metade invisivel
   pra sempre. Em 1080p isso da celulas de ~52x52px — quadradas, o que faz
   proporcao em celulas virar proporcao na tela.
   Comecou em 12x8 e cresceu: celula grande demais obriga a arredondar tudo
   pra cima, e widget pequeno nao cabia sem ficar gordo.
-- O que nao cabe em uma tela vira **pagina**. O board mostra uma por vez e
-  `show_page` vira, para todos os clientes ao mesmo tempo.
-- Cada item tem `x`, `y`, `w`, `h` em **celulas**, nunca em pixels.
+- O que nao cabe em uma tela vira **grupo**. Grupo e um widget que guarda
+  widgets: fechado, eles saem do board e ele desenha no lugar deles. Paginas
+  existiram antes e foram removidas — um inteiro sem nome, que ninguem usou.
+- Cada item tem `x`, `y`, `w`, `h` em **colunas e linhas**, nunca em pixels,
+  e aceitam decimais.
 - Fonte e espacamento calibrados para leitura a distancia de sofa, nao para
   densidade de dashboard de escritorio.
 

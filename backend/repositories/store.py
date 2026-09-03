@@ -29,7 +29,14 @@ logger = logging.getLogger(__name__)
 
 # Bumped when the shape changes in a way an older file cannot satisfy. A file
 # from the future is refused rather than half-read.
-FORMAT = 1
+#
+# 2 took pages out. A format-1 board loads: `page` is an extra key on an item
+# and ignored, so every widget lands on the one board there is now. That can
+# leave two of them overlapping, which nothing on the board would otherwise
+# allow — so it is said out loud in the log rather than left to be noticed from
+# the sofa. Groups replaced pages and are ordinary widgets, so they need nothing
+# here.
+FORMAT = 2
 
 _dirty = False
 
@@ -44,7 +51,6 @@ class HudFile(BaseModel):
 
     hud: int = FORMAT
     saved_at: datetime | None = None
-    page: int = 0
     items: list[ItemRead] = []
     background: Background | None = None
     notifications: list[Notification] = []
@@ -104,6 +110,14 @@ def _salvage(document: dict) -> HudFile:
     document takes the background, the clock and every notification with it —
     which is exactly what happened the first time a field was removed.
     """
+    turned = sum(1 for entry in document.get("items") or [] if (entry or {}).get("page"))
+    if turned:
+        logger.warning(
+            "%s widgets were on a page other than the first; pages are gone and they are "
+            "all on the one board now, possibly overlapping",
+            turned,
+        )
+
     kept: list[ItemRead] = []
     for entry in document.get("items") or []:
         try:
@@ -128,7 +142,6 @@ def _salvage(document: dict) -> HudFile:
 
     return HudFile(
         hud=document.get("hud", FORMAT),
-        page=document.get("page") or 0,
         items=kept,
         notifications=notes,
         background=background,

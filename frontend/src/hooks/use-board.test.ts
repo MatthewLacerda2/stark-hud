@@ -18,7 +18,6 @@ const EMPTY = {
   items: [] as Item[],
   background: null,
   notifications: [],
-  page: 0,
   wakes: {} as Record<string, number>,
   spoken: [] as Spoken[],
 };
@@ -35,7 +34,6 @@ function note(id: string, text: string): Item {
     scale: null,
     payload: { kind: "note", text, color: null },
     playback: null,
-    page: 0,
     x: 0,
     y: 0,
     w: 6,
@@ -117,7 +115,6 @@ describe("a widget told work is coming", () => {
           items: [note("a", "hello")],
           background: null,
           notifications: [],
-          page: 0,
         },
       },
     );
