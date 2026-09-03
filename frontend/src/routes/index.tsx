@@ -7,17 +7,22 @@ import { Background } from "@/components/board/background";
 import { BoardGrid } from "@/components/board/board-grid";
 import { PageDots } from "@/components/board/page-dots";
 import { VhsFilter } from "@/components/board/vhs-filter";
+import { BloomFilter } from "@/components/board/bloom-filter";
 import { useBoard } from "@/hooks/use-board";
 import { usePageTurn } from "@/hooks/use-page-turn";
 import { useSpeech } from "@/hooks/use-speech";
 import { maximisedIn } from "@/lib/maximised";
 import { tapeFrom, tapeVars } from "@/lib/vhs";
+import { bloomFrom } from "@/lib/bloom";
 import { cn } from "@/lib/utils";
 
 // Read once, when the module loads. The board has exactly one route and no way
 // to navigate within it, so the only thing that can change the look is a
 // reload — which is also how someone judging it from a phone will change it.
 const TAPE = tapeFrom(window.location.search);
+// Read the same way and for the same reason: a television across the room, and a
+// number somebody can type instead of a rebuild for every guess.
+const BLOOM = bloomFrom(window.location.search);
 
 /**
  * The board. This page is what the TV shows, so it is full-bleed, dark, and has
@@ -65,6 +70,7 @@ function BoardPage() {
     >
       <Background background={background} covered={covered} />
       <VhsFilter tape={TAPE} />
+      <BloomFilter bloom={BLOOM} />
 
       {/* The fringe belongs to the content and the rest belongs over it: a
           text-shadow is inherited, so it is set here and every widget inside
@@ -77,6 +83,7 @@ function BoardPage() {
           notifications={notifications}
           wakes={wakes}
           tape={TAPE}
+          bloom={BLOOM}
           cols={cols}
           rows={rows}
         />

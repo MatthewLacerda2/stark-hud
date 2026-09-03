@@ -517,6 +517,21 @@
   filter: url(#vhs-tape);
 }
 
+/* Light leaving a widget, and the same widget with the tube over the top of it.
+
+   Two filters and not one: bloom is a property of light and the tape is a fault
+   in a recording, so they are asked for separately and either can be off. The
+   order is the order it happens in the room — the widget glows, and then the
+   tube shows you the glow. `filter` takes one value, which is why the pair has
+   a utility of its own rather than two classes landing on one element. */
+@utility bloom-lit {
+  filter: url(#bloom);
+}
+
+@utility bloom-holo {
+  filter: url(#bloom) url(#vhs-tape);
+}
+
 /* The tracking bar. It crosses the picture in about three seconds and then the
    tape is clean for six, because a band that never stopped would be a thing on
    the board rather than a fault in it. */

@@ -14,6 +14,7 @@ import { useContainerSize } from "@/hooks/use-container-size";
 import { drawn, maximisedIn } from "@/lib/maximised";
 import { cn } from "@/lib/utils";
 import { holographic, type Tape } from "@/lib/vhs";
+import { lit, type Bloom } from "@/lib/bloom";
 
 const MARGIN = 8;
 const PADDING = 8;
@@ -45,10 +46,20 @@ const HANDLES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
 // does with an overlapping placement, so the two now agree.
 const NO_SHOVING = { ...noCompactor, preventCollision: true };
 
-/** The class that puts the tape on what this widget draws, if it should have it. */
-function taped(item: Item, tape: Tape): string | undefined {
-  const asked = tape.grain > 0 || tape.scanlines > 0;
-  return asked && holographic(item.payload.kind) ? "vhs-holo" : undefined;
+/**
+ * The class that puts the look on what this widget draws, if it should have it.
+ *
+ * Pictures get neither, for the reason they never got the tape: a film is
+ * somebody else's picture, and a filter over moving video re-runs every frame.
+ */
+function looked(item: Item, tape: Tape, bloom: Bloom): string | undefined {
+  if (!holographic(item.payload.kind)) return undefined;
+  const taped = tape.grain > 0 || tape.scanlines > 0;
+  const glowing = lit(bloom);
+  if (taped && glowing) return "bloom-holo";
+  if (glowing) return "bloom-lit";
+  if (taped) return "vhs-holo";
+  return undefined;
 }
 
 /** The CSS variables that say what one widget is made of. */
@@ -88,6 +99,7 @@ export function BoardGrid({
   notifications,
   wakes,
   tape,
+  bloom,
   cols,
   rows,
 }: {
@@ -95,6 +107,8 @@ export function BoardGrid({
   notifications: Notification[];
   wakes: Record<string, number>;
   tape: Tape;
+  /** How much light the widgets spill. One setting for the whole board. */
+  bloom: Bloom;
   cols: number;
   rows: number;
 }) {
@@ -196,7 +210,7 @@ export function BoardGrid({
             >
               {drawn(item, maximised) ? (
                 <>
-                  <div className={cn("size-full", taped(item, tape))}>
+                  <div className={cn("size-full", looked(item, tape, bloom))}>
                     <ItemView item={item} notifications={notifications} />
                   </div>
                   <Vhs tape={tape} />
@@ -235,7 +249,7 @@ export function BoardGrid({
           className="@container absolute inset-0 z-30 bg-background"
           style={widgetVars(maximised, alphaOf(maximised))}
         >
-          <div className={cn("size-full", taped(maximised, tape))}>
+          <div className={cn("size-full", looked(maximised, tape, bloom))}>
             <ItemView
               // It is the whole board now, so that is the size it is told it
               // has: what a widget draws depends on how many cells it was given.
