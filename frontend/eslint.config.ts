@@ -6,13 +6,15 @@ import local from "./eslint-rules/index";
 
 // Classes that are legitimately not Tailwind utilities (e.g. structural hooks),
 // so the color allowlist rule must not flag them as unregistered.
-// `no-drag` is one: react-grid-layout looks for it to know a pointer here is
-// not the start of a drag. It carries no styles.
+// `no-drag` is one: a pointer landing inside it is not the start of a drag. It
+// carries no styles. `widget-grip` is the other: the hit areas a widget is
+// resized by, styled in `styles.css` because nothing about them is a utility.
 const NON_TAILWIND_CLASSES = [
   "^dark$",
   "^group($|/)",
   "^peer($|/)",
   "^no-drag$",
+  "^widget-grip",
 ];
 
 // The two long-standing hooks rules, which we grade explicitly below. Every

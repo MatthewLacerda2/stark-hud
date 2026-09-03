@@ -5,8 +5,8 @@ import { Slider } from "@/components/ui/slider";
 /**
  * The per-widget controls that appear while the pointer is on a widget.
  *
- * Marked `no-drag` so the grid ignores pointers here — otherwise reaching for
- * the slider would pick the widget up instead.
+ * Marked `no-drag` so a pointer landing here does not start a drag — otherwise
+ * reaching for the slider would pick the widget up instead.
  */
 export function WidgetControls({
   alpha,

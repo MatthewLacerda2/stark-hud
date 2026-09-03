@@ -252,91 +252,84 @@
    Invisible until the pointer is over a widget: this screen is a TV first, and a
    permanent scattering of handles would be visual noise nobody on the sofa can
    use anyway. Sides resize one axis, corners resize both.
+
+   The hit areas sit half outside the widget, which is why they are placed
+   against the padding box the gutter provides rather than the drawn surface.
    -------------------------------------------------------------------------- */
 
-.react-grid-item {
-  cursor: grab;
-}
-.react-grid-item.react-draggable-dragging {
-  cursor: grabbing;
-}
-
-.react-resizable-handle {
+.widget-grip {
   position: absolute;
   z-index: 4;
   opacity: 0;
-  background: none;
   transition: opacity 120ms ease;
+  touch-action: none;
 }
-.react-grid-item:hover > .react-resizable-handle {
+.widget-grip:hover,
+*:hover > .widget-grip {
   opacity: 1;
-}
-/* The library ships a corner glyph; ours are plain hit areas. */
-.react-resizable-handle::after {
-  content: none;
 }
 
 /* Sides: a full-length grab strip, one axis. */
-.react-resizable-handle-n,
-.react-resizable-handle-s {
+.widget-grip-n,
+.widget-grip-s {
   left: 12px;
   right: 12px;
   height: 10px;
   cursor: ns-resize;
 }
-.react-resizable-handle-n {
+.widget-grip-n {
   top: -5px;
 }
-.react-resizable-handle-s {
+.widget-grip-s {
   bottom: -5px;
 }
 
-.react-resizable-handle-e,
-.react-resizable-handle-w {
+.widget-grip-e,
+.widget-grip-w {
   top: 12px;
   bottom: 12px;
   width: 10px;
   cursor: ew-resize;
 }
-.react-resizable-handle-e {
+.widget-grip-e {
   right: -5px;
 }
-.react-resizable-handle-w {
+.widget-grip-w {
   left: -5px;
 }
 
 /* Corners: both axes, drawn as a small bracket so they can be found. */
-.react-resizable-handle-ne,
-.react-resizable-handle-nw,
-.react-resizable-handle-se,
-.react-resizable-handle-sw {
+.widget-grip-ne,
+.widget-grip-nw,
+.widget-grip-se,
+.widget-grip-sw {
   width: 18px;
   height: 18px;
   border: 2px solid var(--color-ring);
   border-radius: 3px;
 }
-.react-resizable-handle-nw {
+.widget-grip-nw {
   top: -2px;
   left: -2px;
   border-right: none;
   border-bottom: none;
   cursor: nwse-resize;
 }
-.react-resizable-handle-ne {
+.widget-grip-ne {
   top: -2px;
   right: -2px;
   border-left: none;
   border-bottom: none;
   cursor: nesw-resize;
 }
-.react-resizable-handle-sw {
+.widget-grip-sw {
   bottom: -2px;
   left: -2px;
   border-right: none;
   border-top: none;
   cursor: nesw-resize;
 }
-.react-resizable-handle-se {
+.widget-grip-se {
   bottom: -2px;
   right: -2px;
   border-left: none;

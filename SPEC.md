@@ -27,7 +27,7 @@ Base: template **GoldStandard**, com o Postgres e o login removidos.
 | ------------ | -------------------------------------------------------- |
 | Front        | React 19 + Vite + Tailwind v4 + shadcn/radix + bun        |
 | Roteamento   | TanStack Router (ja no template)                          |
-| Grid         | `react-grid-layout` — spans, colisao, compactacao, drag   |
+| Posicao      | livre, em colunas/linhas fracionarias; drag proprio        |
 | Charts       | Recharts (padrao do shadcn, ja estilizado)                |
 | Back         | FastAPI + Pydantic, 4 camadas do template                 |
 | Tempo real   | WebSocket, broadcast do board pra todos os clientes       |

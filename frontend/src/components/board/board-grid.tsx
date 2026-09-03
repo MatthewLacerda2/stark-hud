@@ -1,9 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
-import GridLayout, {
-  noCompactor,
-  type Layout,
-  type LayoutItem,
-} from "react-grid-layout";
+import { useCallback, useRef, useState } from "react";
 import type { Item, Notification } from "@/lib/schemas/board";
 import { updateItem } from "@/lib/api/board";
 import { ItemView } from "@/components/board/item-view";
@@ -11,13 +6,13 @@ import { WidgetControls } from "@/components/board/widget-controls";
 import { WidgetWake } from "@/components/board/widget-wake";
 import { Vhs } from "@/components/board/vhs";
 import { useContainerSize } from "@/hooks/use-container-size";
+import { useWidgetDrag } from "@/hooks/use-widget-drag";
+import { EDGES, type Rect } from "@/lib/drag";
 import { drawn, maximisedIn } from "@/lib/maximised";
 import { cn } from "@/lib/utils";
 import { holographic, type Tape } from "@/lib/vhs";
 import { lit, type Bloom } from "@/lib/bloom";
 
-const MARGIN = 8;
-const PADDING = 8;
 // Long enough to move the pointer from the widget to the controls without them
 // vanishing on the way.
 const CONTROLS_LINGER_MS = 3000;
@@ -36,15 +31,22 @@ function colourOf(item: Item): string | undefined {
     return item.payload.color;
   return undefined;
 }
-// Sides resize one axis, corners resize both.
-const HANDLES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
-
-// No compaction, and no shoving either. `noCompactor` alone still displaces
-// whatever a drag lands on, and with a fixed number of rows the displaced
-// widget is pushed off the bottom of a board that cannot scroll — gone until
-// someone reloads the page. Refusing the move instead is also what the server
-// does with an overlapping placement, so the two now agree.
-const NO_SHOVING = { ...noCompactor, preventCollision: true };
+/** Where a widget sits on the board, as a share of it.
+ *
+ * Percentages rather than pixels because that is what the coordinates already
+ * are: a fraction of a board 32 columns wide. Nothing has to be measured for a
+ * widget to be drawn in the right place, so the board is correct on its first
+ * paint rather than after a ResizeObserver has reported. The gutter between
+ * widgets is padding inside each one, which keeps this arithmetic exact.
+ */
+function frame(rect: Rect, cols: number, rows: number): React.CSSProperties {
+  return {
+    left: `${(rect.x / cols) * 100}%`,
+    top: `${(rect.y / rows) * 100}%`,
+    width: `${(rect.w / cols) * 100}%`,
+    height: `${(rect.h / rows) * 100}%`,
+  };
+}
 
 /**
  * The class that puts the look on what this widget draws, if it should have it.
@@ -76,19 +78,22 @@ function widgetVars(item: Item, alpha: number): React.CSSProperties {
 }
 
 /**
- * The board, as a fixed grid that can be rearranged with a mouse.
+ * The board: widgets placed where they were put, and rearrangeable with a mouse.
+ *
+ * There is no grid library here and no grid. A widget is absolutely positioned
+ * as a share of the board, which is what its coordinates already were, and a
+ * pointer handler moves and resizes it — see `lib/drag.ts` for the arithmetic
+ * and `use-widget-drag.ts` for the gesture.
  *
  * The server still owns placement: a drag or resize is a request, sent as a
  * PATCH, and the authoritative position comes back over the socket like any
- * other change. If the server refuses — the slot is taken, or it would fall off
- * the grid — nothing arrives, `items` never changes, and the widget snaps back.
+ * other change. If the server refuses — something is already there, or it would
+ * fall off the board — nothing arrives, `items` never changes, and the widget
+ * snaps back to where it was.
  *
- * Compaction is off. The server places things deliberately, and a grid that
- * pulls everything upwards would fight it.
- *
- * While a widget has the whole board the grid keeps every slot and draws almost
- * nothing into them — see `drawn`. The layout is untouched, so giving the room
- * back is one render and the board comes back exactly where it was.
+ * While a widget has the whole board the others stay exactly where they are and
+ * draw almost nothing — see `drawn`. Nothing about the layout changes, so giving
+ * the room back is one render and the board comes back as it was.
  *
  * `wakes` counts how often each widget has been told work is coming. It is not
  * part of what a widget is, so it rides beside the items rather than on them:
@@ -140,99 +145,80 @@ export function BoardGrid({
     void updateItem(id, { opacity: value }).catch(() => {});
   }, []);
 
-  const rowHeight = useMemo(() => {
-    const usable = height - PADDING * 2 - MARGIN * (rows - 1);
-    return Math.max(1, usable / rows);
-  }, [height, rows]);
-
-  const layout: Layout = useMemo(
-    () =>
-      items.map((item) => ({
-        i: item.id,
-        x: item.x,
-        y: item.y,
-        w: item.w,
-        h: item.h,
-        maxW: cols,
-        maxH: rows,
-      })),
-    [items, cols, rows],
-  );
-
+  // The socket delivers the result, so nothing here waits on the response for
+  // anything but knowing when to stop holding the widget under the pointer.
   const persist = useCallback(
-    (_layout: Layout, _old: LayoutItem | null, next: LayoutItem | null) => {
-      if (!next) return;
-      const before = items.find((i) => i.id === next.i);
-      if (!before) return;
-      if (
-        before.x === next.x &&
-        before.y === next.y &&
-        before.w === next.w &&
-        before.h === next.h
-      ) {
-        return;
-      }
-      // Fire and forget: the socket delivers the result, and a rejection simply
-      // leaves `items` as it was, which snaps the widget home.
-      void updateItem(next.i, {
-        x: next.x,
-        y: next.y,
-        w: next.w,
-        h: next.h,
-      }).catch(() => {});
-    },
-    [items],
+    (id: string, rect: Rect) => updateItem(id, rect).catch(() => {}),
+    [],
+  );
+  const { grab, placed, holding } = useWidgetDrag(
+    { cols, rows, width, height },
+    persist,
   );
 
   return (
-    <div ref={ref} className="relative size-full">
-      {width > 0 && height > 0 ? (
-        <GridLayout
-          width={width}
-          layout={layout}
-          compactor={NO_SHOVING}
-          gridConfig={{
-            cols,
-            maxRows: rows,
-            rowHeight,
-            margin: [MARGIN, MARGIN],
-            containerPadding: [PADDING, PADDING],
-          }}
-          dragConfig={{ enabled: true, bounded: true, cancel: ".no-drag" }}
-          resizeConfig={{ enabled: true, handles: HANDLES }}
-          onDragStop={persist}
-          onResizeStop={persist}
-        >
-          {items.map((item) => (
+    <div className="relative size-full">
+      {/* The coordinate space, inset by half a gutter so a widget against the
+          wall sits as far from it as two widgets sit from each other. Percentages
+          are measured against this box, and it is this box that is measured, so
+          a pointer travelling one cell moves a widget exactly one cell. */}
+      <div ref={ref} className="absolute inset-1">
+        {items.map((item) => {
+          const rect = placed(item.id, item);
+          return (
             <div
               key={item.id}
-              className="@container relative min-h-0 min-w-0"
-              style={widgetVars(item, alphaOf(item))}
-              onMouseEnter={() => show(item.id)}
-              onMouseLeave={hideSoon}
+              // Half the gutter on every side. Doing it here rather than in the
+              // arithmetic above is what lets a widget's position be a plain
+              // fraction of the board with nothing subtracted from it.
+              className={cn(
+                "absolute p-1",
+                holding === item.id ? "cursor-grabbing" : "cursor-grab",
+              )}
+              style={frame(rect, cols, rows)}
+              onPointerDown={(event) => grab(event, item.id, item, "move")}
             >
-              {drawn(item, maximised) ? (
-                <>
-                  <div className={cn("size-full", looked(item, tape, bloom))}>
-                    <ItemView item={item} notifications={notifications} />
-                  </div>
-                  <Vhs tape={tape} />
-                  <WidgetWake nonce={wakes[item.id] ?? 0} />
-                </>
-              ) : null}
-              {hovered === item.id ? (
-                <WidgetControls
-                  alpha={alphaOf(item)}
-                  onPreview={(value) =>
-                    setPreview((current) => ({ ...current, [item.id]: value }))
-                  }
-                  onCommit={(value) => commitAlpha(item.id, value)}
-                />
-              ) : null}
+              <div
+                className="@container relative size-full min-h-0 min-w-0"
+                style={widgetVars(item, alphaOf(item))}
+                onMouseEnter={() => show(item.id)}
+                onMouseLeave={hideSoon}
+              >
+                {drawn(item, maximised) ? (
+                  <>
+                    <div className={cn("size-full", looked(item, tape, bloom))}>
+                      <ItemView item={item} notifications={notifications} />
+                    </div>
+                    <Vhs tape={tape} />
+                    <WidgetWake nonce={wakes[item.id] ?? 0} />
+                  </>
+                ) : null}
+                {hovered === item.id ? (
+                  <WidgetControls
+                    alpha={alphaOf(item)}
+                    onPreview={(value) =>
+                      setPreview((current) => ({
+                        ...current,
+                        [item.id]: value,
+                      }))
+                    }
+                    onCommit={(value) => commitAlpha(item.id, value)}
+                  />
+                ) : null}
+                {/* Invisible until the pointer is over the widget, and never on
+                    the television, which has no pointer at all. */}
+                {EDGES.map((edge) => (
+                  <div
+                    key={edge}
+                    className={`widget-grip widget-grip-${edge}`}
+                    onPointerDown={(event) => grab(event, item.id, item, edge)}
+                  />
+                ))}
+              </div>
             </div>
-          ))}
-        </GridLayout>
-      ) : null}
+          );
+        })}
+      </div>
 
       {/* No padding, and a ground of its own.
 

@@ -3,9 +3,9 @@ import { useEffect, useRef, useState } from "react";
 /**
  * Measure an element's box.
  *
- * The grid needs both axes: columns come from the width, and the row height is
- * derived from the height so 18 rows fill the screen exactly and the board
- * never scrolls.
+ * The board draws itself in percentages and needs no measurement to be correct.
+ * This is for the one thing that does: turning a pointer's travel in pixels into
+ * columns and rows, which is how far a drag has actually moved a widget.
  */
 export function useContainerSize(): {
   ref: React.RefObject<HTMLDivElement | null>;
