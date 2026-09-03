@@ -194,6 +194,37 @@ function Gauge({ id, payload }: { id: string; payload: ChartPayload }) {
   );
 }
 
+/**
+ * What the chart is, drawn at the origin.
+ *
+ * A cartesian chart has an x axis along the bottom and a y axis up the left, and
+ * the corner where they meet — left of the first bar, below the baseline — is
+ * space the plot already reserves and nothing occupies. That position is the
+ * point rather than a detail: a mark sitting where the plot starts reads as a
+ * label for the whole plot, and it costs no height, which a header band does.
+ *
+ * A pie has no axes and so no origin, but it does have that corner: a circle
+ * never fills the bottom-left of the rectangle it is drawn in. So it gets the
+ * mark too, in the same place, for the same reason.
+ *
+ * A gauge does not, and never did want one. It draws its own in the middle of
+ * its ring — see `Gauge` — which is where its corner went.
+ *
+ * Anchored rather than laid out: it is positioned against the bottom-left
+ * corner and sits outside the vertical flow entirely, so nothing it holds can
+ * push the plot down.
+ */
+function Corner({ id, payload }: { id: string; payload: ChartPayload }) {
+  if (!payload.icon) return null;
+  return (
+    <div className="pointer-events-none absolute bottom-0 left-0 flex flex-col items-start text-chart-mark widget-text">
+      <span className="flex">
+        <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />
+      </span>
+    </div>
+  );
+}
+
 function Body({ payload }: { payload: ChartPayload }) {
   const { data, x_key: xKey, series, colors, axes, thresholds } = payload;
   // Hoisted so TypeScript can narrow it; a property access stays nullable.
@@ -325,7 +356,7 @@ export function Chart({ id, payload }: { id: string; payload: ChartPayload }) {
         </CardHeader>
       ) : null}
       <CardContent
-        className={cn("min-h-0 flex-1", gauge ? "p-0" : "px-3 pb-1")}
+        className={cn("relative min-h-0 flex-1", gauge ? "p-0" : "px-3 pb-1")}
       >
         {payload.data.length === 0 ? (
           <div className="flex size-full items-center justify-center text-muted-foreground">
@@ -334,12 +365,15 @@ export function Chart({ id, payload }: { id: string; payload: ChartPayload }) {
         ) : gauge ? (
           <Gauge id={id} payload={payload} />
         ) : (
-          <ChartContainer
-            config={toConfig(payload.series, payload.colors)}
-            className={`size-full ${AXIS_INK}`}
-          >
-            <Body payload={payload} />
-          </ChartContainer>
+          <>
+            <ChartContainer
+              config={toConfig(payload.series, payload.colors)}
+              className={`size-full ${AXIS_INK}`}
+            >
+              <Body payload={payload} />
+            </ChartContainer>
+            <Corner id={id} payload={payload} />
+          </>
         )}
       </CardContent>
     </Card>

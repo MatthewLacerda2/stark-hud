@@ -286,6 +286,41 @@ describe("a gauge", () => {
   });
 });
 
+describe("a chart's icon", () => {
+  const MARK = '<svg viewBox="0 0 24 24"><path d="M4 4h16"/></svg>';
+
+  it("is drawn by a bar chart, which used to throw it away", async () => {
+    const host = await render({ ...BARS, icon: MARK });
+
+    expect(host.querySelector('svg > path[d="M4 4h16"]')).not.toBe(null);
+  });
+
+  it("costs the plot no height, which is the whole point of the corner", async () => {
+    // The corner is space the axes already frame. A mark that pushed the plot
+    // down would be a header band with an icon in it, which is what this is not.
+    const plain = await render(BARS);
+    const marked = await render({ ...BARS, icon: MARK });
+
+    expect(firstBarHeight(marked)).toBe(firstBarHeight(plain));
+  });
+
+  it("goes in a line, an area and a pie too, and leaves the gauge alone", async () => {
+    for (const chart of ["line", "area", "pie"] as const) {
+      const host = await render({ ...BARS, chart, icon: MARK });
+      expect(host.querySelector('svg > path[d="M4 4h16"]')).not.toBe(null);
+    }
+    // A gauge draws its own in the middle of its ring, and only one of them.
+    const gauge = await render({ ...GAUGE, icon: MARK });
+    expect(gauge.querySelectorAll('svg > path[d="M4 4h16"]')).toHaveLength(1);
+  });
+
+  it("draws nothing at all when none was given", async () => {
+    const host = await render(BARS);
+
+    expect(host.querySelector('[class*="text-chart-mark"]')).toBe(null);
+  });
+});
+
 describe("a threshold", () => {
   it("turns the bar that passed it and leaves its neighbour alone", async () => {
     // Monday is 3 and Tuesday is 7. Only Tuesday has anything to say.

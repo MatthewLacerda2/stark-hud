@@ -107,6 +107,15 @@
   --text-gauge-mark: 26cqmin;
   --text-gauge-mark--line-height: 1;
 
+  /* A mark in a cartesian chart's corner, at the origin. Node-relative like the
+     text beside it rather than sized off a ring the way the gauge's is, and
+     clamped at the bottom so a chart squashed into a slim strip of bars keeps a
+     mark somebody can still recognise from a sofa. */
+  --text-chart-mark: calc(
+    clamp(0.9rem, 5.5cqi, 2.1rem) * var(--widget-scale, 1)
+  );
+  --text-chart-mark--line-height: 1;
+
   /* --- Typography tokens: size / line-height / weight. --- */
   --text-display: 4.2rem;
   --text-display--line-height: 1.05;

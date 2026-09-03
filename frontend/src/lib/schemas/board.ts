@@ -168,7 +168,7 @@ export interface ChartPayload {
   series: string[];
   /** A radial draws this in the middle of its ring; every other chart, in its corner. */
   title: string | null;
-  /** Drawn beside a gauge's title. Nothing else draws it yet. */
+  /** A gauge draws this beside its title; every other chart, at its origin. */
   icon: IconRef | null;
   /** A ceiling for the value axis; a radial always has one. */
   max: number | null;

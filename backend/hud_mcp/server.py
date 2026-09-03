@@ -11,6 +11,7 @@ from starlette.applications import Starlette
 from core.config import get_settings
 from hud_mcp import (
     background,
+    charts,
     content,
     groups,
     layout,
@@ -110,6 +111,7 @@ def build_server() -> MCPServer:
     instructions = _INSTRUCTIONS.format(cols=settings.GRID_COLS, rows=settings.GRID_ROWS)
     server = MCPServer(name="stark-hud", instructions=instructions)
     content.register(server)
+    charts.register(server)
     layout.register(server)
     groups.register(server)
     background.register(server)

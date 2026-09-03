@@ -177,8 +177,10 @@ class ChartPayload(_Payload):
     x_key: str
     series: list[str]
     title: str | None = None
-    # Drawn beside the title in the middle of a gauge; nothing else uses it yet.
-    # The same three forms an icon has anywhere else on the board.
+    # Where a chart says what it is. A gauge draws it beside its title in the
+    # middle of its ring; every other chart draws it at the origin, in the
+    # corner the axes already frame, where it costs no height. The same three
+    # forms an icon has anywhere else on the board.
     icon: Icon | None = None
     # A ceiling for the value axis. Left out, the axis fits the data, which is
     # right for a count and wrong for a percentage: 21% would draw nearly full.
