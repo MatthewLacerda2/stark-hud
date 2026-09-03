@@ -32,20 +32,38 @@ export type Travel = { x: number; y: number };
 /** Sides resize one axis, corners resize both. */
 export const EDGES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
 
+/**
+ * How near a whole cell an edge has to come before it is pulled onto it.
+ *
+ * A quarter of a cell, about fifteen pixels on the television. Inside that the
+ * edge lands on the whole number; outside it, the widget is exactly where the
+ * pointer left it, to the decimal.
+ *
+ * This is what "soft" means. Rounding every position to the nearest cell is not
+ * soft snapping, it is the grid the board just spent two issues getting rid of:
+ * it makes the fractional coordinates unreachable by hand, which is what they
+ * were for. A magnet leaves most of the travel free and still lands a widget
+ * flush when somebody meant it to be flush.
+ */
+export const PULL = 0.25;
+
 function clamp(value: number, low: number, high: number): number {
   return Math.min(high, Math.max(low, value));
 }
 
 /**
- * Pull an edge onto the old cell size.
+ * Pull an edge onto the old cell size, if it came close enough to one.
  *
  * Purely an affordance of the hand: nothing is rounded on the way to the server,
  * so what a widget shows is where it is. It exists because a board arranged by
  * hand looks accidentally crooked from across a room, and whole numbers are what
- * the grid used to give for free.
+ * the grid used to give for free — but it has to leave the rest of the board
+ * reachable, or the coordinates may as well still be integers.
  */
 function pulled(value: number, snap: boolean): number {
-  return snap ? Math.round(value) : value;
+  if (!snap) return value;
+  const whole = Math.round(value);
+  return Math.abs(value - whole) <= PULL ? whole : value;
 }
 
 /** The widget moved bodily, kept inside the board. */
