@@ -28,9 +28,10 @@ from repositories import board as repo
 from repositories import notifications as notifications_repo
 from schemas.board import BoardSnapshot
 from services import persistence
+from services.arrange import RepeatedTargetError, UnknownTargetError
 from services.board import KeyTakenError, MissingFileError, SlotTakenError
 from services.notifications import BadIconError
-from services.placement import BoardFullError
+from services.placement import BoardFullError, NoRoomError
 
 APP_NAME = "stark-hud"
 
@@ -83,6 +84,16 @@ def _key_taken_handler(_request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(status_code=409, content={"detail": str(exc), "holder": exc.holder.id})
 
 
+def _no_room_handler(_request: Request, exc: Exception) -> JSONResponse:
+    """Return 409 naming what two widgets an arrangement would have stacked."""
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+
+def _unknown_target_handler(_request: Request, exc: Exception) -> JSONResponse:
+    """Return 404 when a batch names a widget that is not there."""
+    return JSONResponse(status_code=404, content={"detail": str(exc)})
+
+
 def _missing_file_handler(_request: Request, exc: Exception) -> JSONResponse:
     """Return 404 when a background points at a path that is not there."""
     assert isinstance(exc, MissingFileError)
@@ -114,6 +125,9 @@ def create_app() -> FastAPI:
     app.add_exception_handler(BoardFullError, _board_full_handler)
     app.add_exception_handler(SlotTakenError, _slot_taken_handler)
     app.add_exception_handler(KeyTakenError, _key_taken_handler)
+    app.add_exception_handler(NoRoomError, _no_room_handler)
+    app.add_exception_handler(RepeatedTargetError, _no_room_handler)
+    app.add_exception_handler(UnknownTargetError, _unknown_target_handler)
     app.add_exception_handler(MissingFileError, _missing_file_handler)
     app.add_exception_handler(BadIconError, _bad_icon_handler)
 

@@ -170,23 +170,50 @@ def largest_free_rect(items: list[ItemRead], cols: int, rows: int) -> Placement 
     return best
 
 
-def overlapping(items: list[ItemRead]) -> tuple[ItemRead, ItemRead] | None:
-    """The first two widgets in an arrangement that cannot both be where they say.
+class NoRoomError(Exception):
+    """Raised when an arrangement is not a board that could be drawn.
 
-    Asked of a whole arrangement rather than of one placement, because some
-    changes are only legal as a set: folding a group takes several widgets off
-    the board and puts one in their place, and no step of that on its own is a
-    legal board. What has to be true is the arrangement it produces.
+    It names the widgets and where, because whoever asked for this cannot see
+    the board: "no" on its own is nothing a blind caller can act on.
     """
+
+
+def _overlapping(items: list[ItemRead]) -> tuple[ItemRead, ItemRead] | None:
+    """The first two widgets that cannot both be where they say they are."""
     for a, b in combinations(items, 2):
         if _spans_meet(a.x, a.w, b.x, b.w) and _spans_meet(a.y, a.h, b.y, b.h):
             return a, b
     return None
 
 
-def outside(items: list[ItemRead], cols: int, rows: int) -> ItemRead | None:
-    """The first widget in an arrangement that hangs off the board."""
+def _outside(items: list[ItemRead], cols: int, rows: int) -> ItemRead | None:
+    """The first widget that hangs off the board."""
     return next(
         (i for i in items if i.x + i.w > cols + _EPS or i.y + i.h > rows + _EPS),
         None,
     )
+
+
+def illegal(items: list[ItemRead], cols: int, rows: int) -> str | None:
+    """Why this arrangement could not be drawn, or ``None`` when it could.
+
+    Asked of a whole arrangement rather than of one placement, because some
+    changes are only legal as a set. Folding a group takes several widgets off
+    the board and puts one in their place; swapping two widgets puts each where
+    the other still is. No step of either is a legal board on its own, and what
+    has to be true is the arrangement it produces.
+    """
+    off = _outside(items, cols, rows)
+    if off is not None:
+        return (
+            f"{off.payload.kind} {off.id} would sit at ({cells(off.x)},{cells(off.y)}) "
+            f"and hang off a {size(cols, rows)} board"
+        )
+    clash = _overlapping(items)
+    if clash is not None:
+        a, b = clash
+        return (
+            f"{a.payload.kind} {a.id} at ({cells(a.x)},{cells(a.y)}) and "
+            f"{b.payload.kind} {b.id} at ({cells(b.x)},{cells(b.y)}) would be in the same place"
+        )
+    return None

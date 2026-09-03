@@ -86,6 +86,20 @@ def replace(item: ItemRead) -> ItemRead:
     return item
 
 
+def swap(items: list[ItemRead]) -> list[ItemRead]:
+    """Replace every item with this arrangement, in one step.
+
+    A rearrangement is only legal as a set — a swap of two widgets is an
+    overlap at every moment in between — so it is written whole rather than one
+    item at a time. Nothing can catch it half-applied: this does not await, and
+    the event loop is single-threaded.
+    """
+    _items.clear()
+    _items.update({item.id: item for item in items})
+    store.touch()
+    return list_items()
+
+
 def remove(item_id: str) -> bool:
     """Delete an item. Returns whether it existed.
 

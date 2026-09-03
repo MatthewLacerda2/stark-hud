@@ -31,5 +31,6 @@ def test_instructions_cover_what_a_session_cannot_guess() -> None:
         "before you know the answer",  # and that it goes first, which is the only thing that matters
         "free tier",  # what saying something out loud costs, and who pays
         "decimals",  # that the board is a space, not a set of slots
+        "arrange",  # that several widgets move as one, or a swap looks impossible
     ):
         assert fact in instructions, f"instructions no longer mention {fact!r}"

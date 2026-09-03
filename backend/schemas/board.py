@@ -125,6 +125,50 @@ class ItemUpdate(BaseModel):
     pinned: bool | None = None
 
 
+class Change(BaseModel):
+    """One widget's place in the arrangement a batch is asking for.
+
+    Written as an end state rather than a verb, because that is what somebody
+    asking for a rearrangement is describing: this widget ends up here, that
+    size, that colour. Everything is optional and anything left out is left
+    alone, so an entry says only what changes — and a move and a resize in one
+    entry are one thought rather than two operations that have to be ordered.
+
+    ``remove`` is the one verb, because taking a widget off the board is not a
+    place it ends up in.
+
+    There is no ``add``. A new widget has no id to be named by yet, and adding
+    never had the problem a batch exists to solve.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    # An id, or the key a panel is known by. A key names one widget, so either
+    # is unambiguous — which is what makes naming a widget by name safe here.
+    target: str
+    remove: bool = False
+    x: float | None = Field(default=None, ge=0)
+    y: float | None = Field(default=None, ge=0)
+    w: float | None = Field(default=None, ge=MIN_SIZE)
+    h: float | None = Field(default=None, ge=MIN_SIZE)
+    opacity: float | None = Field(default=None, ge=0, le=1)
+    color: Colour | None = None
+    background: Colour | None = None
+    border: Colour | None = None
+    scale: float | None = Field(default=None, ge=0.25, le=4)
+    # Which group this widget joins. ``None`` leaves it where it is, like every
+    # other field here; ``remove_from_group`` is how one leaves a group.
+    parent_id: str | None = None
+
+
+class Arrangement(BaseModel):
+    """A batch of changes, applied together or not at all."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    changes: list[Change] = Field(min_length=1)
+
+
 class ItemRead(BaseModel):
     """An item as broadcast to every client."""
 

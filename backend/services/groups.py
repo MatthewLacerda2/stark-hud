@@ -21,7 +21,25 @@ which is the answer the board gives everywhere else.
 from core.config import get_settings
 from repositories import board as repo
 from schemas.board import ItemRead, Payload, Placement
-from services.placement import cells, outside, overlapping, size
+from services.placement import NoRoomError, illegal
+
+__all__ = [
+    "NestedGroupError",
+    # Raised from here as often as from anywhere, and imported from here by
+    # everything that folds: it lives in ``placement`` because it is about
+    # rectangles, and is named here because this is where callers meet it.
+    "NoRoomError",
+    "NotAGroupError",
+    "disband",
+    "fold",
+    "gather",
+    "is_group",
+    "members",
+    "on_board",
+    "scatter",
+    "unfold",
+    "weightless",
+]
 
 
 class NotAGroupError(Exception):
@@ -42,14 +60,6 @@ class NestedGroupError(Exception):
     def __init__(self, item: ItemRead) -> None:
         self.item = item
         super().__init__(f"{item.id} is itself a group, and a group holds widgets, not groups")
-
-
-class NoRoomError(Exception):
-    """Raised when an arrangement would put two widgets in the same place.
-
-    It names both of them and where, because whoever asked for this cannot see
-    the board: "no" on its own is nothing a blind caller can act on.
-    """
 
 
 def _grid() -> tuple[int, int]:
@@ -101,20 +111,9 @@ def members(group: ItemRead, items: list[ItemRead] | None = None) -> list[ItemRe
 
 def _refuse(arrangement: list[ItemRead], doing: str) -> None:
     """Raise unless this arrangement is a board that could actually be drawn."""
-    cols, rows = _grid()
-    off = outside(arrangement, cols, rows)
-    if off is not None:
-        raise NoRoomError(
-            f"Not {doing}: {off.payload.kind} {off.id} would sit at "
-            f"({cells(off.x)},{cells(off.y)}) and hang off a {size(cols, rows)} board"
-        )
-    clash = overlapping(arrangement)
-    if clash is not None:
-        a, b = clash
-        raise NoRoomError(
-            f"Not {doing}: {a.payload.kind} {a.id} at ({cells(a.x)},{cells(a.y)}) and "
-            f"{b.payload.kind} {b.id} at ({cells(b.x)},{cells(b.y)}) would be in the same place"
-        )
+    why = illegal(arrangement, *_grid())
+    if why is not None:
+        raise NoRoomError(f"Not {doing}: {why}")
 
 
 def _where_it_folds(group: ItemRead, inside: list[ItemRead]) -> Placement:

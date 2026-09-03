@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, status
 from core.hub import hub
 from repositories import board as repo
 from schemas.board import (
+    Arrangement,
     Background,
     BoardStatus,
     ItemCreate,
@@ -12,6 +13,7 @@ from schemas.board import (
     ItemUpdate,
     PlaybackReport,
 )
+from services import arrange as arrange_service
 from services import board as service
 from services import media as media_service
 
@@ -101,6 +103,24 @@ async def update_item(item_id: str, payload: ItemUpdate) -> ItemRead:
     item = service.update(_get_or_404(item_id), payload)
     await hub.broadcast("item.updated", item.model_dump(mode="json"))
     return item
+
+
+@router.post("/arrange", response_model=list[ItemRead])
+async def arrange(payload: Arrangement) -> list[ItemRead]:
+    """Apply several changes as one, judged by the arrangement they produce.
+
+    A swap is the case this exists for: two widgets of the same size trade
+    places, which is illegal at every moment in between and perfectly legal at
+    the end. On a full board there is nowhere to park one of them, so without
+    this the swap is not slow, it is impossible.
+
+    Atomic — a rejected batch changes nothing — and broadcast as one event
+    carrying the whole board, because ten `item.updated` would make a
+    simultaneous rearrangement crawl across the television one widget at a time.
+    """
+    items = arrange_service.rearrange(payload.changes)
+    await hub.broadcast("board.arranged", {"items": [i.model_dump(mode="json") for i in items]})
+    return items
 
 
 @router.post("/items/{item_id}/playback", response_model=ItemRead)

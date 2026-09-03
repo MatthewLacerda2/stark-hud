@@ -27,6 +27,7 @@ EXPECTED = {
     "add_text",
     "add_to_group",
     "add_video",
+    "arrange",
     "board_status",
     "clear_background",
     "clear_board",

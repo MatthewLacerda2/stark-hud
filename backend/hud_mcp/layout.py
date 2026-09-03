@@ -1,15 +1,17 @@
 """MCP tools that move, remove, and report on what is already there."""
 
 from mcp.server.mcpserver import MCPServer
+from pydantic import ValidationError
 
 from core.hub import hub
 from hud_mcp.common import describe
 from repositories import board as repo
-from schemas.board import ItemUpdate
+from schemas.board import Arrangement, ItemUpdate
+from services import arrange as arrange_service
 from services import board as service
+from services.arrange import RepeatedTargetError, UnknownTargetError
 from services.board import SlotTakenError
-from services.groups import NoRoomError
-from services.placement import cells, size
+from services.placement import NoRoomError, cells, size
 
 
 def register(server: MCPServer) -> None:
@@ -31,6 +33,45 @@ def register(server: MCPServer) -> None:
     async def move_item(item_id: str, x: float, y: float) -> str:
         """Move an item, in columns and rows. Fails if something is already there."""
         return await _patch(item_id, ItemUpdate(x=x, y=y), "moved")
+
+    @server.tool()
+    async def arrange(changes: list[dict]) -> str:
+        """Change several widgets at once, judged by the arrangement it produces.
+
+        Use this whenever more than one widget has to end up somewhere. Two
+        widgets swapping places is the case it exists for: each has to go where
+        the other still is, which is illegal at every moment in between and
+        perfectly legal at the end, and on a full board there is nowhere to park
+        one of them — so one at a time the swap is not slow, it is impossible.
+
+        Each change names a widget by id or by key and says where it **ends up**,
+        not what to do to it: `{"target": "cpu", "x": 4, "y": 2, "w": 8,
+        "h": 3}`. Anything left out is left alone, so a change says only what
+        changes. `{"target": "...", "remove": true}` takes a widget off the
+        board — the one verb here, because being gone is not a place. `opacity`,
+        `color`, `background`, `border`, `scale` and `parent_id` are accepted
+        too. There is no add: a new widget has no id to name yet.
+
+        Name each widget once. Two entries for one widget is two answers to
+        where it ends up.
+
+        All of it happens or none of it does. A refusal names the two widgets
+        that would have been in the same place, so you can work out what to send
+        instead — and the board comes back as it now stands, so you do not have
+        to ask.
+        """
+        try:
+            batch = Arrangement(changes=[dict(c) for c in changes])
+            items = arrange_service.rearrange(batch.changes)
+        except ValidationError as exc:
+            return f"Not rearranged: {exc.error_count()} bad change(s) — {exc.errors()[0]['msg']}"
+        except (NoRoomError, RepeatedTargetError, UnknownTargetError) as exc:
+            return str(exc)
+        # One event carrying the board whole. Ten `item.updated` would render
+        # ten times, and a simultaneous rearrangement would still crawl across
+        # the television one widget at a time.
+        await hub.broadcast("board.arranged", {"items": [i.model_dump(mode="json") for i in items]})
+        return "Rearranged:\n" + "\n".join(describe(i) for i in items)
 
     @server.tool()
     async def resize_item(item_id: str, w: float, h: float) -> str:

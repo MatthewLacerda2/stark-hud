@@ -50,6 +50,11 @@ that fits. A refusal comes back as a sentence saying what is free, not an error.
 Someone may drag and resize widgets with a mouse, so do not assume an item is
 still where you put it. Call list_items instead of remembering.
 
+When more than one widget has to end up somewhere, use arrange rather than a
+run of move_item calls. It is judged by the arrangement it produces, so two
+widgets can swap places even though each has to go where the other still is —
+which one call at a time is not merely slow but impossible on a full board.
+
 Every widget can carry a description: a note that is never drawn on the TV and
 only sessions read. Put in it what a later session could not work out by looking
 — what a panel is for, what it is waiting on, what its number means. Pass it to
