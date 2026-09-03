@@ -11,13 +11,10 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from schemas.chart import ChartAxes, ChartKind, ChartPayload, ChartThreshold
 from schemas.colour import Colour
 from schemas.icon import Icon
 from schemas.media import MediaPayload, MediaTrack
-
-ChartKind = Literal["line", "bar", "pie", "area", "radial"]
-
-ChartAxes = Literal["both", "x", "y", "none"]
 
 
 class _Payload(BaseModel):
@@ -135,84 +132,6 @@ class VideoPayload(_Payload):
     muted: bool = True
 
 
-class ChartThreshold(BaseModel):
-    """A value a mark changes colour above.
-
-    The board's charts are all one tone on purpose, so nothing on the wall
-    shouts. This is how something earns the right to: a mark above ``at`` stops
-    being that tone and turns, and colour reads as a signal rather than as
-    decoration.
-
-    ``at`` is in the units of the plotted value. A gauge that plots a percentage
-    is crossed at ``77``, not at the twelve gigabytes that percentage stands for.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    at: float
-    color: Colour
-
-
-class ChartPayload(_Payload):
-    """A chart drawn from data supplied inline.
-
-    The board never fetches or polls: whoever has the numbers sends them.
-    Updating a chart means writing the item again with new ``data``.
-
-    A ``radial`` chart is the odd one out: it reads the first row only and draws
-    it as an arc of a full ring whose ceiling is ``max``. It is a gauge, not a
-    series. The ring carries the proportion, so the middle is an identity —
-    ``icon`` and ``title`` — with ``data[0][x_key]`` under it for when a number
-    is genuinely wanted. Each of the three is drawn only if it is there.
-
-    ``unit`` does nothing on a radial: there is no longer a bare number for it
-    to sit against, and whatever wrote ``data[0][x_key]`` already spelled the
-    reading out the way it wants it read.
-    """
-
-    kind: Literal["chart"] = "chart"
-    chart: ChartKind
-    data: list[dict[str, float | int | str]]
-    x_key: str
-    series: list[str]
-    # Drawn at the origin on a cartesian chart, stacked above ``icon`` and
-    # anchored to that corner, so a longer one grows upward into space the axes
-    # already frame rather than pushing the plot down. A gauge draws it in the
-    # middle of its ring instead. Either way it costs no height.
-    title: str | None = None
-    # Where a chart says what it is. A gauge draws it beside its title in the
-    # middle of its ring; every other chart draws it at the origin, in the
-    # corner the axes already frame, where it costs no height. The same three
-    # forms an icon has anywhere else on the board.
-    icon: Icon | None = None
-    # A ceiling for the value axis. Left out, the axis fits the data, which is
-    # right for a count and wrong for a percentage: 21% would draw nearly full.
-    # A radial always has one, defaulting to 100.
-    max: float | None = None
-    # What the numbers are counted in. A radial ignores it — see the note above
-    # — and it is the only chart that ever drew it, so nothing draws it today.
-    # Kept because it is a published field and a caller may still be sending it.
-    unit: str | None = None
-    axes: ChartAxes = "both"
-    # A gauge's ring behind the value. Left alone it is white kept see-through,
-    # which is what a ring on a dark video wants; it is a field because finding
-    # the right amount of white took more than one try, and a constant costs a
-    # rebuild each time. Ignored by every chart that is not a gauge.
-    unfilled: Colour | None = None
-    # One CSS colour per series, cycled if shorter. Any colour the browser
-    # understands, so `var(--chart-2)` picks a theme token and anything else is
-    # literal. Empty means the default palette.
-    colors: list[Colour] = []
-    # Values above which a mark turns. The highest one a value clears wins, so
-    # an "attention" and an "alarm" level can sit on the same chart; a value
-    # under all of them keeps the colour it would have had anyway. Bar and
-    # radial only: a bar decides one bar at a time and a gauge decides on its
-    # single value, while a pie and a line already give every series a colour of
-    # its own and a threshold on top of that would fight what the colour means.
-    # Empty is the default, so a chart that names none looks exactly as it did.
-    thresholds: list[ChartThreshold] = []
-
-
 class InboxPayload(_Payload):
     """Where notifications are shown.
 
@@ -254,6 +173,51 @@ class FeedPayload(_Payload):
     # the heading. A picture is served by this item's id, never by its path.
     icon: Icon | None = None
     entries: list[FeedEntry] = []
+    empty: str | None = None
+
+
+class Countdown(BaseModel):
+    """One thing that is going to happen, is happening, or just did.
+
+    Two datetimes and a name. Deliberately no "remaining" field: that is a
+    reading of the clock against these, and the browser is the only part of this
+    board that has a clock — see ``CountdownPayload``.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: str
+    # A name from the icon set, a path to a picture, or SVG markup, drawn beside
+    # the title. A picture is served by the id of the widget holding it.
+    icon: Icon | None = None
+    start: datetime
+    # Left out, the thing is a moment rather than a window: it has a start and
+    # is over as soon as it has begun.
+    end: datetime | None = None
+
+
+class CountdownPayload(_Payload):
+    """How long until the next few things, stacked oldest deadline first.
+
+    Nothing is ever written to this after it is set, for the reason a clock is
+    never written to: the browser already knows what time it is, and a countdown
+    fed over the socket would be one write a second forever and would freeze the
+    moment its writer stopped. So this carries the datetimes — facts a browser
+    cannot know — and the browser works out the reading.
+
+    The order is not stored either, because it changes on its own as the clock
+    passes each start and each end. What is happening comes before what is still
+    to happen, which comes before what is over; the browser sorts on every tick.
+
+    An entry stops being drawn twelve hours after it ends, but stays in the
+    payload: this is a record somebody wrote, and dropping out is a reading of
+    the clock against it like everything else here.
+    """
+
+    kind: Literal["countdown"] = "countdown"
+    title: str | None = None
+    icon: Icon | None = None
+    items: list[Countdown] = []
     empty: str | None = None
 
 
@@ -306,13 +270,15 @@ Payload = Annotated[
     | InboxPayload
     | ClockPayload
     | FeedPayload
-    | GroupPayload,
+    | GroupPayload
+    | CountdownPayload,
     Field(discriminator="kind"),
 ]
 
-# The media widget lives in its own module — it is a queue, a transport and a
-# report, not one more block of fields — and is named here because this is where
-# every layer already looks for a payload.
+# The media widget and the chart each live in their own module — one is a queue,
+# a transport and a report, the other is five kinds, four axis settings and a
+# gauge that is not a series at all — and both are named here because this is
+# where every layer already looks for a payload.
 __all__ = [
     "BoxPayload",
     "ChartAxes",
@@ -320,6 +286,8 @@ __all__ = [
     "ChartPayload",
     "ChartThreshold",
     "ClockPayload",
+    "Countdown",
+    "CountdownPayload",
     "FeedEntry",
     "FeedPayload",
     "GroupPayload",

@@ -23,5 +23,8 @@
   "inbox": {
     "empty": "No notifications",
     "justNow": "now"
+  },
+  "countdown": {
+    "empty": "Nothing coming up"
   }
 }

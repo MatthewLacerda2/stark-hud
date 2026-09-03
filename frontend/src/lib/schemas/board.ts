@@ -216,6 +216,33 @@ export interface ClockPayload {
   kind: "clock";
 }
 
+/** One thing that is going to happen, is happening, or just did. */
+export interface Countdown {
+  title: string;
+  icon: IconRef | null;
+  /** ISO 8601. Deliberately no "remaining": that is the browser's to work out. */
+  start: string;
+  /** Left out, it is a moment rather than a window. */
+  end: string | null;
+}
+
+/**
+ * How long until the next few things.
+ *
+ * Nothing is ever written to this after it is set, for the reason a clock is
+ * never written to: a countdown fed over the socket would be one write a second
+ * forever and would freeze the moment its writer stopped. It carries the
+ * datetimes — facts the browser cannot know — and the browser renders the
+ * reading. See `lib/countdown.ts` for the order, the expiry and both strings.
+ */
+export interface CountdownPayload {
+  kind: "countdown";
+  title: string | null;
+  icon: IconRef | null;
+  items: Countdown[];
+  empty: string | null;
+}
+
 /**
  * A widget that holds widgets. Membership is `parent_id` on the widgets.
  *
@@ -257,7 +284,8 @@ export type Payload =
   | InboxPayload
   | ClockPayload
   | FeedPayload
-  | GroupPayload;
+  | GroupPayload
+  | CountdownPayload;
 
 export type ItemKind = Payload["kind"];
 

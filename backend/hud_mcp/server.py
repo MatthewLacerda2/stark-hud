@@ -13,6 +13,7 @@ from hud_mcp import (
     background,
     charts,
     content,
+    countdowns,
     groups,
     layout,
     lists,
@@ -117,6 +118,7 @@ def build_server() -> MCPServer:
     server = MCPServer(name="stark-hud", instructions=instructions)
     content.register(server)
     charts.register(server)
+    countdowns.register(server)
     layout.register(server)
     groups.register(server)
     background.register(server)
