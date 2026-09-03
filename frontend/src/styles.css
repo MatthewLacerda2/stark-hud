@@ -492,91 +492,29 @@
    rather than the look being dialled back to a fraction of a number that was
    wrong. A ceiling is a claim about taste, and that claim is what was off.
 
-   All of it is drawn inside one widget, not over the page. Over the whole
-   screen it said the television was old; stopping at the edge of each pane it
-   says the panel is a display and the room behind it is just the room. The
-   background video is the one thing on this board that is never touched.
+   It is drawn on the widgets and never on the page. Over the whole screen it
+   said the television was old; on the widgets alone it says the panel is a
+   display and the room behind it is just the room, which is the difference
+   between a filter and a fault.
 
-   Nothing here samples what is underneath. A CSS or SVG filter over the board
-   would re-run across 1920x1080 of moving video every frame, on a machine
-   already spending a core decoding it; these are flat colours and gradients
-   moved with a transform, which the compositor does for nothing.
+   Two of the parts live in a filter, because they belong to what a widget drew
+   rather than to the rectangle it occupies — `vhs-holo`, below. The two that
+   stay here are panel phenomena, and are as present as the panel is.
    -------------------------------------------------------------------------- */
 
-/* How much pane there is to draw on.
+/* What the tape happens to: whatever the widget drew.
 
-   The tape is a property of the glass, not of the rectangle the widget occupies.
-   Turn a widget's background down to nothing and there is no pane there — the
-   video is simply showing through — and grain laid over that patch would be
-   grain on the room, which is the one thing this look must not touch.
+   `filter` rather than a layer over the top. A layer covers a rectangle, and
+   most widgets here are mostly empty rectangle — so grain and scanlines over
+   one fall on the room showing through it rather than on the board. The filter
+   composites its texture into `SourceAlpha`, which is the shape of what the
+   widget actually painted: the letters, the rings, the icons, and the panel to
+   the exact extent the panel is there.
 
-   Not a straight multiplication by the opacity, because that would fade the
-   texture out of a pane that is plainly still there. A third of the way up is
-   already a pane; below that a widget is on its way to not existing, and the
-   tape goes with it. */
-@utility vhs-pane {
-  --vhs-pane: min(1, var(--widget-alpha, 1) * 3);
-}
-
-/* The lines of the tube. 1.5px of every 4 is about what reads as a scanline on
-   a 1080p panel from a sofa: at 1px it disappears into the pixel grid, and much
-   past 2 it stops being a texture and starts being a blind. */
-@utility vhs-scanlines {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: calc(var(--vhs-scanlines, 0) * 0.26 * var(--vhs-pane, 1));
-  background-image: repeating-linear-gradient(
-    to bottom,
-    rgb(0 0 0 / 0.55) 0 1.5px,
-    transparent 1.5px 4px
-  );
-}
-
-/* Moving grain: one tile of fractal noise, desaturated, laid over everything
-   and jumped to a new offset several times a second. The element is twice the
-   screen so there is always tile to move into, and it moves by transform so the
-   compositor never has to repaint it. */
-@utility vhs-grain {
-  position: absolute;
-  inset: -50%;
-  pointer-events: none;
-  opacity: calc(var(--vhs-grain, 0) * 0.1 * var(--vhs-pane, 1));
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23g)'/%3E%3C/svg%3E");
-  /* Overlay rather than a flat wash: grain should lift the lights and sink the
-     darks, which is what makes it read as film rather than as fog. */
-  mix-blend-mode: overlay;
-  animation: vhs-grain 800ms steps(1, end) infinite;
-}
-
-/* Eight offsets, none of them a multiple of another, so the eye never finds the
-   loop. Whole percentages of a 220px tile land off the grid, which is what
-   stops the noise from appearing to slide. */
-@keyframes vhs-grain {
-  0% {
-    transform: translate3d(0, 0, 0);
-  }
-  12.5% {
-    transform: translate3d(-7%, 3%, 0);
-  }
-  25% {
-    transform: translate3d(5%, -9%, 0);
-  }
-  37.5% {
-    transform: translate3d(-11%, -4%, 0);
-  }
-  50% {
-    transform: translate3d(9%, 6%, 0);
-  }
-  62.5% {
-    transform: translate3d(-3%, -12%, 0);
-  }
-  75% {
-    transform: translate3d(12%, 2%, 0);
-  }
-  87.5% {
-    transform: translate3d(-6%, 10%, 0);
-  }
+   Pictures never get it — see `holographic`. A film is somebody else's picture,
+   and a filter over moving video would re-run every frame besides. */
+@utility vhs-holo {
+  filter: url(#vhs-tape);
 }
 
 /* The tracking bar. It crosses the picture in about three seconds and then the
@@ -589,7 +527,7 @@
   right: 0;
   height: 45%;
   pointer-events: none;
-  opacity: calc(var(--vhs-sweep, 0) * 0.32 * var(--vhs-pane, 1));
+  opacity: calc(var(--vhs-sweep, 0) * 0.32 * var(--widget-alpha, 1));
   background-image: linear-gradient(
     to bottom,
     transparent,
@@ -617,7 +555,7 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: calc(var(--vhs-vignette, 0) * 0.5 * var(--vhs-pane, 1));
+  opacity: calc(var(--vhs-vignette, 0) * 0.5 * var(--widget-alpha, 1));
   background-image: radial-gradient(
     ellipse at center,
     transparent 42%,
@@ -640,11 +578,8 @@
 
 /* Asked for stillness, the tape stops moving and simply sits there. */
 @media (prefers-reduced-motion: reduce) {
-  .vhs-grain,
   .vhs-sweep {
     animation: none;
-  }
-  .vhs-sweep {
     opacity: 0;
   }
 }

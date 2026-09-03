@@ -6,6 +6,7 @@ import { boardStatus, showPage } from "@/lib/api/board";
 import { Background } from "@/components/board/background";
 import { BoardGrid } from "@/components/board/board-grid";
 import { PageDots } from "@/components/board/page-dots";
+import { VhsFilter } from "@/components/board/vhs-filter";
 import { useBoard } from "@/hooks/use-board";
 import { usePageTurn } from "@/hooks/use-page-turn";
 import { useSpeech } from "@/hooks/use-speech";
@@ -63,6 +64,7 @@ function BoardPage() {
       style={tapeVars(TAPE)}
     >
       <Background background={background} covered={covered} />
+      <VhsFilter tape={TAPE} />
 
       {/* The fringe belongs to the content and the rest belongs over it: a
           text-shadow is inherited, so it is set here and every widget inside

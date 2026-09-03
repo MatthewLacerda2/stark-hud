@@ -7,33 +7,23 @@ function Layer({ className, amount }: { className: string; amount: number }) {
 }
 
 /**
- * The tape look, drawn over one widget.
+ * The two parts of the tape that belong to the panel rather than to what is
+ * written on it.
  *
- * Over a widget rather than over the board, because the board is a window onto
- * a room and the widgets are the panes held up in front of it. Grain and
- * scanlines over the whole screen said the television was old; the same grain
- * stopping at the edge of each pane says the *panel* is a display and the room
- * behind it is simply the room.
+ * Grain and scanlines are not here any more. They fall on what the widget drew,
+ * which a rectangle cannot express, so they moved into a filter — see
+ * `vhs-filter.tsx`. What is left is a vignette and the tracking bar, and both
+ * of those are things that happen to a panel: they exist to the extent the
+ * panel does, which is what the multiplication by `--widget-alpha` says. Turn a
+ * widget's background off and these go with it, because there is nothing left
+ * for them to happen to and the video behind is not theirs to touch.
  *
- * Four layers, each a flat colour or a gradient moved with a transform —
- * nothing here reads the pixels underneath. A filter that did would re-run over
- * moving video every frame on a machine already spending a core decoding it.
- *
- * The clip is what keeps the grain inside the pane: it is twice the size of
- * what it covers so there is always tile to move into. It is deliberately not
- * given a `z-index`, so it does not become a stacking context of its own and
- * the grain still has the widget under it to blend with. It also carries how
- * much pane there is — see `vhs-pane` — so a widget turned down to nothing
- * takes its tape with it and leaves the video underneath alone.
- *
- * The fifth part, the colour fringe on the letters, is not here: it is a
- * text-shadow, which is inherited, so it is a class on the board.
+ * The clip keeps the bar inside the pane on its way past. It is deliberately
+ * not given a `z-index`, so it does not become a stacking context of its own.
  */
 export function Vhs({ tape }: { tape: Tape }) {
   return (
-    <div className="vhs-pane pointer-events-none absolute inset-0 overflow-hidden rounded-xl">
-      <Layer className="vhs-scanlines" amount={tape.scanlines} />
-      <Layer className="vhs-grain" amount={tape.grain} />
+    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl">
       <Layer className="vhs-sweep" amount={tape.sweep} />
       <Layer className="vhs-vignette" amount={tape.vignette} />
     </div>

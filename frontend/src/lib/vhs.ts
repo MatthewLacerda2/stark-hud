@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import type { ItemKind } from "@/lib/schemas/board";
 
 /**
  * How much of the tape look to draw, part by part.
@@ -83,4 +84,15 @@ export function tapeVars(tape: Tape): CSSProperties {
     "--vhs-fringe": tape.fringe,
     "--vhs-sweep": tape.sweep,
   } as CSSProperties;
+}
+
+// A picture is not a hologram. These four are photographs, films and players —
+// things the board shows rather than things it draws — and a tape texture over
+// a film is a texture over somebody else's picture. The rule the board already
+// keeps for chrome, kept here for the look.
+const PICTURES: ItemKind[] = ["image", "video", "media"];
+
+/** Whether the tape belongs on what this widget draws. */
+export function holographic(kind: ItemKind): boolean {
+  return !PICTURES.includes(kind);
 }
