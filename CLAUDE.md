@@ -85,57 +85,27 @@ requests are in use.
 
 ### Issues
 
-An issue is the agreed *purpose and direction* of a piece of work, written
-before it — an intention, not a spec. Because it is written before the work, its
-suggestion may not survive contact with the code. When the work diverges, the
-**pull request is the source of truth**: say so there, and reflect the gap back
-into the issue if it still matters.
+An issue is the agreed purpose and direction of a piece of work, written before
+it — an intention, not a spec. When the work diverges, the **pull request is the
+source of truth**.
 
-- **Title** starts with a scope tag — `[FE]` frontend, `[BE]` backend, `[FS]`
-  fullstack, `[OT]` other (the agent in `tools/`, Docker, root files, docs). Tags
-  are scan cues, not walls; work may cross one when the outcome needs it. Then a
-  sentence that says the outcome, in this repo's plain voice — `[FE] A chart's
-  title stops costing height`, not `[FE] Chart layout`.
-- **Type label** (exactly one): `architecture` (structure and conventions —
-  layer boundaries, the `backend/schemas/` ↔ `board.ts` contract, the `.hud` format),
-  `infrastructure` (the machinery that constrains how we write — a `Makefile`
-  gate, a lint rule, a test harness), `bug`, `documentation`, `foundation`
-  (groundwork the board already assumes but does not have yet), `feature` (a new
-  capability, built on top of all of that).
-- **Stage label** (at most one, alongside the type): `planning` — we don't know
-  how yet, or nobody has decided it's worth doing; both are the user's call — and
-  `human`, which can't be finished by an agent alone.
-- **`minor`** — ~30 lines or fewer, small enough to ride along in another
-  issue's PR. A size marker, not a type: it stands alone or joins anything.
-- **Assignment** — no assignee means free for grabs. When we start *actually
-  working* an issue, assign the user and say so.
+- **Title** starts with a scope tag: `[FE]`, `[BE]`, `[FS]`, `[OT]` (the agent in
+  `tools/`, Docker, root files, docs). Then a sentence saying the outcome.
+- **One type label**: `architecture`, `infrastructure`, `bug`, `documentation`,
+  `foundation`, `feature`.
+- **At most one stage label**, `planning` or `human`. Both mean **do not start**,
+  absolutely; their absence means ready, including on an issue filed a minute
+  ago. The judgement lives in the label, so put it on honestly.
+- **`minor`** is a size marker (~30 lines or fewer), not a type.
 
 **Priority — `architecture` → `infrastructure` → `bug` → `foundation` →
-`feature`; `documentation` never waits its turn.** This is "foundations come
-first" written as an order: a missing boundary or contract and a missing gate
-both halt everything downstream, then what is broken, then what the board
-assumes and lacks, then what is new. Priority orders what gets **merged**, not
-what gets **worked**.
+`feature`; `documentation` never waits its turn.** That is "foundations come
+first" as an order, and it governs what gets **merged**, not what gets **worked**.
 
-**`planning` and `human` are absolute stops, and their absence means ready.** An
-issue carrying neither is startable the moment it exists, including one filed a
-minute ago. The judgement lives in the label, so an agent-written issue must
-carry one if it is a breaking change, changes what the television shows, or needs
-a call the user has not made. A `bug` usually should not — the deciding happened
-when the board broke.
-
-**The dependency graph is the plan.** Record how issues relate with GitHub's
-**Blocked by / Blocks** and **sub-issues**; there are no rigid batches. Split by
-responsibility, never by parallelism. Never split a payload change into a `[BE]`
-and an `[FE]`: `frontend/src/lib/schemas/board.ts` mirrors `backend/schemas/` by
-hand and no gate holds the halves together — that is one `[FS]` issue.
-
-The same nine labels are used across the user's repos, so an issue reads the same
-wherever it was filed. **Two skills carry the procedures** — `issue-write` and
-`issue-batch` — so this file holds the reasoning and they hold the steps. Invoke
-them rather than reconstructing one from memory, and name them when briefing a
-subagent. Where a rule here is one line and a skill has ten, the line is the rule;
-where they disagree, this file wins and the skill is wrong.
+The same nine labels are used across the user's repos. **`issue-write` and
+`issue-batch` hold the procedures** — invoke them rather than reconstructing one
+from memory, and name them when briefing a subagent. Where they disagree with
+this file, this file wins.
 
 ## Working agreement
 
