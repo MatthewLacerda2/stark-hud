@@ -472,3 +472,114 @@
     opacity: 0.45;
   }
 }
+
+/* --------------------------------------------------------------------------
+   The tape look.
+
+   A readout in a film is never a clean render. There is grain over it, the
+   lines of a tube through it, the corners fall away, and the colour separates a
+   little at the edges of the letters. None of it carries information — it is
+   what makes information look *displayed* rather than pasted on.
+
+   Every part is driven by a `--vhs-*` variable between 0 and 1, set on the
+   board from `lib/vhs.ts`. Each layer multiplies that by its own ceiling, so 1
+   means the most of that part that is still a look rather than damage, and the
+   number in the URL never has to know what "a lot of grain" is in pixels.
+
+   The ceilings here are the second set. The first were judged on a still, and
+   on the television they read as a fault in the panel rather than a texture
+   over it — so what "1" is worth came down by about a third across every part,
+   rather than the look being dialled back to a fraction of a number that was
+   wrong. A ceiling is a claim about taste, and that claim is what was off.
+
+   It is drawn on the widgets and never on the page. Over the whole screen it
+   said the television was old; on the widgets alone it says the panel is a
+   display and the room behind it is just the room, which is the difference
+   between a filter and a fault.
+
+   Two of the parts live in a filter, because they belong to what a widget drew
+   rather than to the rectangle it occupies — `vhs-holo`, below. The two that
+   stay here are panel phenomena, and are as present as the panel is.
+   -------------------------------------------------------------------------- */
+
+/* What the tape happens to: whatever the widget drew.
+
+   `filter` rather than a layer over the top. A layer covers a rectangle, and
+   most widgets here are mostly empty rectangle — so grain and scanlines over
+   one fall on the room showing through it rather than on the board. The filter
+   composites its texture into `SourceAlpha`, which is the shape of what the
+   widget actually painted: the letters, the rings, the icons, and the panel to
+   the exact extent the panel is there.
+
+   Pictures never get it — see `holographic`. A film is somebody else's picture,
+   and a filter over moving video would re-run every frame besides. */
+@utility vhs-holo {
+  filter: url(#vhs-tape);
+}
+
+/* The tracking bar. It crosses the picture in about three seconds and then the
+   tape is clean for six, because a band that never stopped would be a thing on
+   the board rather than a fault in it. */
+@utility vhs-sweep {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  pointer-events: none;
+  opacity: calc(var(--vhs-sweep, 0) * 0.32 * var(--widget-alpha, 1));
+  background-image: linear-gradient(
+    to bottom,
+    transparent,
+    rgb(255 255 255 / 0.02) 35%,
+    rgb(255 255 255 / 0.07) 50%,
+    rgb(255 255 255 / 0.02) 65%,
+    transparent
+  );
+  animation: vhs-sweep 9s linear infinite;
+}
+
+@keyframes vhs-sweep {
+  0% {
+    transform: translateY(-100%);
+  }
+  35%,
+  100% {
+    transform: translateY(240%);
+  }
+}
+
+/* The corners falling away. Last of the four, so it darkens the grain and the
+   scanlines too rather than sitting under them. */
+@utility vhs-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: calc(var(--vhs-vignette, 0) * 0.5 * var(--widget-alpha, 1));
+  background-image: radial-gradient(
+    ellipse at center,
+    transparent 42%,
+    rgb(0 0 0 / 0.7) 100%
+  );
+}
+
+/* Colour separating at the edges of the letters.
+   Inherited rather than drawn: a text-shadow set on the board reaches every
+   piece of text in it, and reaches nothing else — the icons are SVG and a
+   video has no letters to fringe. Sized in `em` so it stays proportional as
+   type grows with its widget. */
+@utility vhs-fringe {
+  text-shadow:
+    calc(var(--vhs-fringe, 0) * 0.035em) 0 0
+      rgb(255 40 90 / calc(var(--vhs-fringe, 0) * 0.3)),
+    calc(var(--vhs-fringe, 0) * -0.035em) 0 0
+      rgb(40 225 255 / calc(var(--vhs-fringe, 0) * 0.26));
+}
+
+/* Asked for stillness, the tape stops moving and simply sits there. */
+@media (prefers-reduced-motion: reduce) {
+  .vhs-sweep {
+    animation: none;
+    opacity: 0;
+  }
+}

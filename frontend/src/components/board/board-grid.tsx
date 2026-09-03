@@ -9,8 +9,11 @@ import { updateItem } from "@/lib/api/board";
 import { ItemView } from "@/components/board/item-view";
 import { WidgetControls } from "@/components/board/widget-controls";
 import { WidgetWake } from "@/components/board/widget-wake";
+import { Vhs } from "@/components/board/vhs";
 import { useContainerSize } from "@/hooks/use-container-size";
 import { drawn, maximisedIn } from "@/lib/maximised";
+import { cn } from "@/lib/utils";
+import { holographic, type Tape } from "@/lib/vhs";
 
 const MARGIN = 8;
 const PADDING = 8;
@@ -42,6 +45,12 @@ const HANDLES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
 // does with an overlapping placement, so the two now agree.
 const NO_SHOVING = { ...noCompactor, preventCollision: true };
 
+/** The class that puts the tape on what this widget draws, if it should have it. */
+function taped(item: Item, tape: Tape): string | undefined {
+  const asked = tape.grain > 0 || tape.scanlines > 0;
+  return asked && holographic(item.payload.kind) ? "vhs-holo" : undefined;
+}
+
 /** The CSS variables that say what one widget is made of. */
 function widgetVars(item: Item, alpha: number): React.CSSProperties {
   return {
@@ -70,17 +79,22 @@ function widgetVars(item: Item, alpha: number): React.CSSProperties {
  * `wakes` counts how often each widget has been told work is coming. It is not
  * part of what a widget is, so it rides beside the items rather than on them:
  * nothing about the board has changed at the point one of these arrives.
+ *
+ * `tape` is the look, and it arrives here rather than being drawn over the
+ * whole page because it belongs to the panes and not to the room behind them.
  */
 export function BoardGrid({
   items,
   notifications,
   wakes,
+  tape,
   cols,
   rows,
 }: {
   items: Item[];
   notifications: Notification[];
   wakes: Record<string, number>;
+  tape: Tape;
   cols: number;
   rows: number;
 }) {
@@ -182,7 +196,10 @@ export function BoardGrid({
             >
               {drawn(item, maximised) ? (
                 <>
-                  <ItemView item={item} notifications={notifications} />
+                  <div className={cn("size-full", taped(item, tape))}>
+                    <ItemView item={item} notifications={notifications} />
+                  </div>
+                  <Vhs tape={tape} />
                   <WidgetWake nonce={wakes[item.id] ?? 0} />
                 </>
               ) : null}
@@ -218,12 +235,15 @@ export function BoardGrid({
           className="@container absolute inset-0 z-30 bg-background"
           style={widgetVars(maximised, alphaOf(maximised))}
         >
-          <ItemView
-            // It is the whole board now, so that is the size it is told it has:
-            // what a widget draws depends on how many cells it was given.
-            item={{ ...maximised, w: cols, h: rows }}
-            notifications={notifications}
-          />
+          <div className={cn("size-full", taped(maximised, tape))}>
+            <ItemView
+              // It is the whole board now, so that is the size it is told it
+              // has: what a widget draws depends on how many cells it was given.
+              item={{ ...maximised, w: cols, h: rows }}
+              notifications={notifications}
+            />
+          </div>
+          <Vhs tape={tape} />
           <WidgetWake nonce={wakes[maximised.id] ?? 0} />
         </div>
       ) : null}
