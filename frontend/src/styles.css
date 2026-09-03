@@ -116,6 +116,29 @@
   );
   --text-chart-mark--line-height: 1;
 
+  /* --- Motion. A closed, named set, exactly the way the colours are.
+
+         Motion says a thing moved, and that is the whole of its job. It is over
+         as soon as it has said so. This board is read from a sofa, across a
+         room, mostly out of the corner of an eye, and a board where things are
+         frequently moving is a board permanently asking to be looked at — with
+         no way to look away from a television in your own living room.
+
+         Nothing here recolours. Colour is each widget's own, and a board where
+         everything changes at once is a board where everything competes.
+
+         The set grows by a commit somebody reviews, never by improvisation at
+         runtime: if every session writes its own easing the board stops looking
+         like one thing, which is the exact failure the colour tokens prevent.
+         --- */
+  --motion-settle: 420ms;
+  /* Fast away, slow into place: a widget that has arrived somewhere reads as
+     having been put there rather than having drifted to a stop. */
+  --motion-settle-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --motion-arrive: 300ms;
+  --motion-leave: 220ms;
+  --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+
   /* --- Typography tokens: size / line-height / weight. --- */
   --text-display: 4.2rem;
   --text-display--line-height: 1.05;
@@ -485,6 +508,80 @@
 /* The release, set by the component the moment the answer lands. */
 @utility widget-wake-out {
   opacity: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Motion: appearing, going somewhere else, and going away.
+
+   The board cuts otherwise. A widget told to go from the bottom left to the top
+   right is simply somewhere else on the next frame, and nothing on screen ever
+   says *this is the same thing, it went over there* — which is the one job
+   motion has.
+
+   Nothing is stored. The board records where things end up, never where they
+   are mid-flight: cut the power during a slide and the widget is simply in its
+   new place when it comes back, and we do not want a half-finished motion to
+   resume. The trigger is the difference between what the socket just sent and
+   what the browser drew last time, which needs no new plumbing at all.
+
+   Moves and scales, and that is the whole vocabulary.
+   -------------------------------------------------------------------------- */
+@utility widget-settle {
+  transition:
+    left var(--motion-settle) var(--motion-settle-ease),
+    top var(--motion-settle) var(--motion-settle-ease),
+    width var(--motion-settle) var(--motion-settle-ease),
+    height var(--motion-settle) var(--motion-settle-ease);
+
+  /* Asked for stillness, a widget is simply where it is. */
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+@utility widget-arriving {
+  animation: widget-arrive var(--motion-arrive) var(--motion-ease);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* A widget already gone from the board, kept on screen exactly long enough to
+   be seen going. It is drawn under the others and takes no pointer: it is a
+   picture of something that is not there any more. */
+@utility widget-leaving {
+  z-index: 0;
+  pointer-events: none;
+  animation: widget-leave var(--motion-leave) var(--motion-ease) forwards;
+
+  /* The leave still ends — it ends at once — because its ending is what tells
+     the board to forget the widget. Cancelled outright, a ghost would stay. */
+  @media (prefers-reduced-motion: reduce) {
+    animation-duration: 1ms;
+  }
+}
+
+@keyframes widget-arrive {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes widget-leave {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.94);
+  }
 }
 
 @keyframes widget-wake-rise {

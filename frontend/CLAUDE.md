@@ -21,6 +21,11 @@ only allowed exception). `lib/schemas/` mirrors the backend Pydantic models.
   carry weight/line-height — don't repeat `font-*` next to them.
 - **Color is an allowlist** of semantic tokens. No raw palette classes
   (`bg-red-500`), no hex/`rgb()` literals in `className`/`style`.
+- **Motion is a token set too**, in `styles.css` beside the colours:
+  `--motion-settle` for a widget going somewhere else, `--motion-arrive` and
+  `--motion-leave` for one appearing or going. Nothing invents an easing at
+  runtime — the set grows by a commit, or the board stops looking like one
+  thing. Motion moves and scales; it never recolours.
 - **One exported React component per file** (`components/ui/**`, barrels, and
   Router objects exempt).
 - ≤ 550 lines per `.ts`/`.tsx` (`mock-*.ts` exempt).

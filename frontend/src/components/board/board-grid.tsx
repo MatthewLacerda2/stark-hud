@@ -6,6 +6,7 @@ import { WidgetControls } from "@/components/board/widget-controls";
 import { WidgetWake } from "@/components/board/widget-wake";
 import { Vhs } from "@/components/board/vhs";
 import { useContainerSize } from "@/hooks/use-container-size";
+import { useLeaving } from "@/hooks/use-leaving";
 import { useWidgetDrag } from "@/hooks/use-widget-drag";
 import { EDGES, type Rect } from "@/lib/drag";
 import { held } from "@/lib/groups";
@@ -160,6 +161,10 @@ export function BoardGrid({
     { cols, rows, width, height },
     persist,
   );
+  // Removal is the one change with nothing left to animate by the time the
+  // board hears about it, so what has just gone is held for as long as it takes
+  // to be seen going.
+  const { drawn: onScreen, leaving, forget } = useLeaving(items);
 
   return (
     <div className="relative size-full">
@@ -168,8 +173,9 @@ export function BoardGrid({
           are measured against this box, and it is this box that is measured, so
           a pointer travelling one cell moves a widget exactly one cell. */}
       <div ref={ref} className="absolute inset-1">
-        {items.map((item) => {
+        {onScreen.map((item) => {
           const rect = placed(item.id, item);
+          const going = leaving(item.id);
           return (
             <div
               key={item.id}
@@ -179,9 +185,14 @@ export function BoardGrid({
               className={cn(
                 "absolute p-1",
                 holding === item.id ? "cursor-grabbing" : "cursor-grab",
+                // Not while a pointer is holding it: a widget easing towards
+                // where the hand already is lags behind the hand.
+                holding === item.id ? undefined : "widget-settle",
+                going ? "widget-leaving" : "widget-arriving",
               )}
               style={frame(rect, cols, rows)}
               onPointerDown={(event) => grab(event, item.id, item, "move")}
+              onAnimationEnd={going ? () => forget(item.id) : undefined}
             >
               <div
                 className="@container relative size-full min-h-0 min-w-0"
