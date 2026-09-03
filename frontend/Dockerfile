@@ -2,8 +2,11 @@
 FROM oven/bun:1-alpine AS builder
 WORKDIR /app
 
+# The cache mount keeps bun's package store between builds, so a lockfile change
+# re-fetches what changed rather than the whole tree.
 COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --frozen-lockfile
 
 COPY . .
 # `bun run build` is `vite build` alone: types are checked by `make front-lint`,
