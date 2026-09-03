@@ -5,7 +5,7 @@ import type { Background as BackgroundType } from "@/lib/schemas/board";
 /**
  * A looping video behind the grid, always muted.
  *
- * 11px: enough to stop the video competing with the widgets, not so much that
+ * 9px: enough to stop the video competing with the widgets, not so much that
  * it stops being a picture of something.
  *
  * Keyed on the path so swapping videos remounts the element: the URL never
@@ -60,7 +60,7 @@ export function Background({
       playsInline
       className={cn(
         "absolute inset-0 size-full object-cover",
-        background.blur && "scale-105 blur-[11px]",
+        background.blur && "scale-105 blur-[9px]",
       )}
     />
   );
