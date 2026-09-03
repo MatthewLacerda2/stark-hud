@@ -22,7 +22,7 @@ every = 3
 place = { x = 0, y = 0, w = 12, h = 7 }
 # Only the core numbers along the bottom. The vertical scale was a gutter of
 # labels for a bar chart whose ceiling is already fixed at 100.
-panel = { kind = "chart", chart = "bar", title = "CPU por núcleo", x_key = "core", series = ["use"], max = 100, axes = "x", colors = ["#ffffffa6"] }
+panel = { kind = "chart", chart = "bar", title = "CPU por núcleo", x_key = "core", series = ["use"], max = 100, axes = "x", colors = ["#ffffffa6"], icon = "cpu" }
 
 [[source]]
 name = "mem"
