@@ -51,6 +51,11 @@ export function useWidgetDrag(
       if (event.button !== 0) return;
       if ((event.target as HTMLElement).closest(".no-drag")) return;
       event.preventDefault();
+      // The grips sit inside the widget, so a pointer landing on one also
+      // reaches the widget itself on the way up. Without this the edge gesture
+      // was started and then immediately replaced by a move, and resizing was
+      // not merely broken but impossible — every grab became a drag.
+      event.stopPropagation();
       hold.current = {
         id,
         grip,

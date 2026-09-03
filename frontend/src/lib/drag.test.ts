@@ -22,10 +22,31 @@ describe("moving a widget", () => {
     });
   });
 
-  it("pulls to the old cell size unless a modifier is held", () => {
-    expect(dragged(WIDGET, "move", { x: 1.4, y: -0.7 }, BOARD, true)).toEqual({
+  it("is pulled onto a cell when it comes near one", () => {
+    expect(dragged(WIDGET, "move", { x: 1.1, y: -0.9 }, BOARD, true)).toEqual({
       x: 5,
       y: 1,
+      w: 8,
+      h: 4,
+    });
+  });
+
+  it("keeps its decimals when it stops between cells", () => {
+    // The magnet is the point. Rounding every position to the nearest cell is
+    // not soft snapping, it is the grid back again — it makes the fractional
+    // coordinates unreachable by hand, which is what they were for.
+    expect(dragged(WIDGET, "move", { x: 1.4, y: -0.7 }, BOARD, true)).toEqual({
+      x: 5.4,
+      y: 1.3,
+      w: 8,
+      h: 4,
+    });
+  });
+
+  it("is not pulled at all while the modifier is held", () => {
+    expect(dragged(WIDGET, "move", { x: 1.1, y: -0.9 }, BOARD, false)).toEqual({
+      x: 5.1,
+      y: 1.1,
       w: 8,
       h: 4,
     });

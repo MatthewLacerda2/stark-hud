@@ -33,6 +33,19 @@ function colourOf(item: Item): string | undefined {
     return item.payload.color;
   return undefined;
 }
+/** Just the four numbers a gesture is allowed to touch.
+ *
+ * An `Item` is a `Rect` and a great deal else, and handing the whole thing to
+ * the gesture meant the whole thing came back out of it: a drag PATCHed the
+ * payload, the key and the parent alongside the coordinates. Harmless while
+ * nothing else was changing, and a way to quietly undo a panel refresh that
+ * landed mid-drag — the widget would be written back with the contents it had
+ * when the pointer went down.
+ */
+function rectOf(item: Item): Rect {
+  return { x: item.x, y: item.y, w: item.w, h: item.h };
+}
+
 /** Where a widget sits on the board, as a share of it.
  *
  * Percentages rather than pixels because that is what the coordinates already
@@ -174,7 +187,7 @@ export function BoardGrid({
           a pointer travelling one cell moves a widget exactly one cell. */}
       <div ref={ref} className="absolute inset-1">
         {onScreen.map((item) => {
-          const rect = placed(item.id, item);
+          const rect = placed(item.id, rectOf(item));
           const going = leaving(item.id);
           return (
             <div
@@ -191,7 +204,9 @@ export function BoardGrid({
                 going ? "widget-leaving" : "widget-arriving",
               )}
               style={frame(rect, cols, rows)}
-              onPointerDown={(event) => grab(event, item.id, item, "move")}
+              onPointerDown={(event) =>
+                grab(event, item.id, rectOf(item), "move")
+              }
               onAnimationEnd={going ? () => forget(item.id) : undefined}
             >
               <div
@@ -231,7 +246,9 @@ export function BoardGrid({
                   <div
                     key={edge}
                     className={`widget-grip widget-grip-${edge}`}
-                    onPointerDown={(event) => grab(event, item.id, item, edge)}
+                    onPointerDown={(event) =>
+                      grab(event, item.id, rectOf(item), edge)
+                    }
                   />
                 ))}
               </div>
