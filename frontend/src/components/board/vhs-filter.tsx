@@ -9,23 +9,13 @@ const STRIPES =
 // The grain, as a picture of noise rather than as noise.
 //
 // `feTurbulence` in the filter itself cost about a core and a half across the
-// board: it is generated per widget, over that widget's whole region, and the
-// drift below made it do that eight times a second. Here the turbulence is run
-// once, inside a 220px image the browser rasterises and caches, and the filter
-// only tiles it. Same grain, and the arithmetic happens once for the session
-// instead of eighty times a second for the life of the board.
+// board: it is generated per widget, over that widget's whole region, and back
+// when the grain drifted it did that several times a second. Here the
+// turbulence is run once, inside a 220px image the browser rasterises and
+// caches, and the filter only tiles it. Same grain, computed once for the
+// session.
 const NOISE =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0.33 0.33 0.33 0 0 0.33 0.33 0.33 0 0 0.33 0.33 0.33 0 0 0 0 0 0 1'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E";
-
-// Where the tile starts, moved five times a second. None of the offsets is a
-// multiple of another, so the eye never finds the loop.
-//
-// Five and not eight: every step is a repaint of every filtered widget, and
-// that rate is the single biggest thing this look costs. Grain does not read as
-// faster at eight, it only reads as present, and it is present at five.
-const DRIFT_X = "0;-37;19;-53;41;-13";
-const DRIFT_Y = "0;23;-47;-19;31;-59";
-const DRIFT = "1.2s";
 
 /**
  * The tape, as something that happens to what a widget drew.
@@ -42,6 +32,13 @@ const DRIFT = "1.2s";
  * over it is a third as strong, and a panel turned off contributes nothing —
  * while the text on top of it, which is not the panel, keeps the tape at full.
  *
+ * Nothing here moves. The grain used to drift five times a second, and every
+ * step of it was a repaint of every filtered widget — the single most expensive
+ * thing on this board. Still grain, still a tube; it simply sits there now, so
+ * the browser rasterises each widget once and keeps it. A television is looked
+ * at from a sofa, not stared into, and motion in the texture reads as a fault
+ * in the screen rather than as a look.
+ *
  * Rendered once for the whole board. A filter is a definition, and ten widgets
  * pointing at one is ten widgets and one definition.
  */
@@ -57,24 +54,7 @@ export function VhsFilter({ tape }: { tape: Tape }) {
     <svg aria-hidden className="pointer-events-none absolute size-0">
       <defs>
         <filter id="vhs-tape" colorInterpolationFilters="sRGB">
-          {/* The tile's own corner is what moves. Offsetting the tiled result
-              instead would drag a bare edge in from one side. */}
-          <feImage href={NOISE} width="220" height="220" result="noise">
-            <animate
-              attributeName="x"
-              dur={DRIFT}
-              calcMode="discrete"
-              repeatCount="indefinite"
-              values={DRIFT_X}
-            />
-            <animate
-              attributeName="y"
-              dur={DRIFT}
-              calcMode="discrete"
-              repeatCount="indefinite"
-              values={DRIFT_Y}
-            />
-          </feImage>
+          <feImage href={NOISE} width="220" height="220" result="noise" />
           <feTile in="noise" result="grainy" />
           <feComponentTransfer in="grainy" result="dimGrain">
             <feFuncA type="linear" slope={grain} />

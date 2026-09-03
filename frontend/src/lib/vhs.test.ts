@@ -16,7 +16,6 @@ describe("tapeFrom", () => {
       grain: 1,
       vignette: 1,
       fringe: 1,
-      sweep: 1,
     });
   });
 
@@ -26,7 +25,6 @@ describe("tapeFrom", () => {
       grain: 0.5,
       vignette: 0.5,
       fringe: 0.5,
-      sweep: 0.5,
     });
   });
 
@@ -59,7 +57,6 @@ describe("tapeVars", () => {
       "--vhs-grain": 0,
       "--vhs-vignette": 0,
       "--vhs-fringe": 0,
-      "--vhs-sweep": 0,
     });
   });
 });
