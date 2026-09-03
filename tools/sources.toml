@@ -20,9 +20,12 @@ name = "cpu"
 command = "python3 {collectors}/cpu.py"
 every = 3
 place = { x = 0, y = 0, w = 12, h = 7 }
-# Only the core numbers along the bottom. The vertical scale was a gutter of
-# labels for a bar chart whose ceiling is already fixed at 100.
-panel = { kind = "chart", chart = "bar", title = "CPU por núcleo", x_key = "core", series = ["use"], max = 100, axes = "x", colors = ["#ffffffa6"], icon = "cpu" }
+# Bars and nothing else. No title and no axis: the icon at the origin says what
+# this is, the ceiling is already fixed at 100, and a core number under each bar
+# is a thing to read on a widget meant to be understood without reading. The
+# axis stays declared as `none` rather than dropped, because it is still what
+# holds the bars to 100 — hidden, it gives its room back to the marks.
+panel = { kind = "chart", chart = "bar", x_key = "core", series = ["use"], max = 100, axes = "none", colors = ["#ffffffa6"], icon = "cpu" }
 
 [[source]]
 name = "mem"
