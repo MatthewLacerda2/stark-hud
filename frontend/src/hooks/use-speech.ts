@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { Spoken } from "@/lib/schemas/board";
+import { duck, unduck } from "@/lib/ducking";
 
 /**
  * Say out loud what the board has been told to say.
@@ -18,6 +19,10 @@ import type { Spoken } from "@/lib/schemas/board";
  * Nothing is drawn, so this is a hook and not a widget. There is no queue on
  * screen and no transport: a line said out loud is gone, the way a line said
  * out loud is.
+ *
+ * While it is saying anything at all the music steps back, so a line is heard
+ * rather than merely noticed. That lasts the whole run rather than one line —
+ * see `lib/ducking`.
  */
 export function useSpeech(lines: Spoken[]): void {
   /** Lines waiting their turn, oldest first. */
@@ -37,6 +42,7 @@ export function useSpeech(lines: Spoken[]): void {
       const line = waiting.current.shift();
       if (!line) {
         speaking.current = false;
+        unduck();
         return;
       }
       const audio = new Audio(line.url);
@@ -56,8 +62,11 @@ export function useSpeech(lines: Spoken[]): void {
       void audio.play().catch(onward);
     };
 
-    if (!speaking.current) {
+    // Nothing to say is not a run: ducking here would step the music back and
+    // put it straight back for a board that never opened its mouth.
+    if (!speaking.current && waiting.current.length > 0) {
       speaking.current = true;
+      duck();
       next();
     }
   }, [lines]);

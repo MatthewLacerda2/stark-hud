@@ -88,6 +88,10 @@ class FakeYouTubePlayer {
   }
   mute(): void {}
   unMute(): void {}
+  volume = 100;
+  setVolume(volume: number): void {
+    this.volume = volume;
+  }
   loadVideoById(options: { videoId: string }): void {
     this.videoId = options.videoId;
   }

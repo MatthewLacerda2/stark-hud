@@ -19,6 +19,7 @@ export interface YouTubePlayer {
   pauseVideo(): void;
   mute(): void;
   unMute(): void;
+  setVolume(volume: number): void;
   loadVideoById(options: { videoId: string; startSeconds?: number }): void;
   cueVideoById(options: { videoId: string; startSeconds?: number }): void;
   seekTo(seconds: number, allowSeekAhead: boolean): void;
