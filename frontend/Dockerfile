@@ -10,8 +10,8 @@ RUN --mount=type=cache,target=/root/.bun/install/cache \
 
 COPY . .
 # `bun run build` is `vite build` alone: types are checked by `make front-lint`,
-# which is where that gate lives. Doing it again here would be the same eight
-# seconds paid a second time, on every rebuild.
+# which is where that gate lives. Doing it again here would be the same
+# typecheck paid for twice, on every rebuild.
 RUN bun run build
 
 # --- Runtime ---

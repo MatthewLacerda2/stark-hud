@@ -13,23 +13,26 @@ This is what that costs, and where it goes wrong. Every rule below was paid for.
 
 ## The bottleneck is the machine, not the merge queue
 
-Nothing here is compiled. `make check` finishes in about thirty seconds and a
-rebase is a small `git merge`. Four branches in flight cost almost nothing to
-reconcile — the arithmetic that makes Rust projects serialise their merges does
-not apply.
+Nothing here is compiled: `make check` is quick and a rebase is a small `git
+merge`. Four branches in flight cost almost nothing to reconcile — the
+arithmetic that makes Rust projects serialise their merges does not apply.
 
-**What does apply is CPU.** Three agents running `bun install` and vite builds
-put this eight-core machine at load 23, and at that load `make check` **lies**:
-`chart.test.tsx` renders take about 1.5 seconds each, eight parallel test files
-starve vitest's timeout, and a dozen tests go red. Two separate agents hit this
-independently and both diagnosed it correctly before believing it.
+**What does apply is CPU.** Several agents running `bun install` and vite builds
+at once will bury this machine, and a buried machine makes `make check` **lie**:
+tests that pass on their own time out while competing for a core, and go red
+over nothing that is in the diff. Two separate agents hit this independently and
+both diagnosed it correctly before believing it.
+
+Run the gate yourself before you believe a number anybody writes down about it,
+this file included. What it costs depends on the machine, what else is on it,
+and what has changed since — which is why none of that is written here.
 
 So:
 
 - **At most two agents building the frontend at the same time.** A third is not
   faster; it makes all three untrustworthy.
-- **A red gate under load is re-run, not believed.** Check `uptime` first. Above
-  load ~8, the result means nothing either way.
+- **A red gate under load is re-run, not believed.** Check `uptime` first. Once
+  load is up around the core count, the result means nothing either way.
 - A green gate under load is not proof either — but nobody is tempted by that
   one.
 
