@@ -83,6 +83,30 @@ requests are in use.
   branch and through a PR, because the user reviews the board by looking at it,
   not by reading a diff — see the worktree workflow below.
 
+### Issues
+
+An issue is the agreed purpose and direction of a piece of work, written before
+it — an intention, not a spec. When the work diverges, the **pull request is the
+source of truth**.
+
+- **Title** starts with a scope tag: `[FE]`, `[BE]`, `[FS]`, `[OT]` (the agent in
+  `tools/`, Docker, root files, docs). Then a sentence saying the outcome.
+- **One type label**: `architecture`, `infrastructure`, `bug`, `documentation`,
+  `foundation`, `feature`.
+- **At most one stage label**, `planning` or `human`. Both mean **do not start**,
+  absolutely; their absence means ready, including on an issue filed a minute
+  ago. The judgement lives in the label, so put it on honestly.
+- **`minor`** is a size marker (~30 lines or fewer), not a type.
+
+**Priority — `architecture` → `infrastructure` → `bug` → `foundation` →
+`feature`; `documentation` never waits its turn.** That is "foundations come
+first" as an order, and it governs what gets **merged**, not what gets **worked**.
+
+The same nine labels are used across the user's repos. **`issue-write` and
+`issue-batch` hold the procedures** — invoke them rather than reconstructing one
+from memory, and name them when briefing a subagent. Where they disagree with
+this file, this file wins.
+
 ## Working agreement
 
 These govern how the agent operates in this repo. **Any of them can be
