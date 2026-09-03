@@ -163,8 +163,7 @@ class ChartPayload(_Payload):
     it as an arc of a full ring whose ceiling is ``max``. It is a gauge, not a
     series. The ring carries the proportion, so the middle is an identity —
     ``icon`` and ``title`` — with ``data[0][x_key]`` under it for when a number
-    is genuinely wanted. Each of the three is drawn only if it is there, and
-    ``title`` is drawn in the middle rather than in the widget's corner.
+    is genuinely wanted. Each of the three is drawn only if it is there.
 
     ``unit`` does nothing on a radial: there is no longer a bare number for it
     to sit against, and whatever wrote ``data[0][x_key]`` already spelled the
@@ -176,6 +175,10 @@ class ChartPayload(_Payload):
     data: list[dict[str, float | int | str]]
     x_key: str
     series: list[str]
+    # Drawn at the origin on a cartesian chart, stacked above ``icon`` and
+    # anchored to that corner, so a longer one grows upward into space the axes
+    # already frame rather than pushing the plot down. A gauge draws it in the
+    # middle of its ring instead. Either way it costs no height.
     title: str | None = None
     # Where a chart says what it is. A gauge draws it beside its title in the
     # middle of its ring; every other chart draws it at the origin, in the

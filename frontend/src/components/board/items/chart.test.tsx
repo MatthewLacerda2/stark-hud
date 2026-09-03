@@ -266,14 +266,17 @@ describe("a gauge", () => {
     expect(host.textContent).not.toContain("%");
   });
 
-  it("keeps its title out of the corner the chart card draws one in", async () => {
+  it("says its title inside its ring, where the corner would be", async () => {
+    // The gauge solved this first: a ring given the corner as well is a bigger
+    // ring. Every other chart now says its title at the origin for the same
+    // reason, so neither of them draws a header band any more.
     const host = await render(GAUGE);
     const titled = await render({ ...BARS, title: "Memory" });
 
-    expect(host.querySelector("[data-slot=card-title]")).toBe(null);
-    expect(titled.querySelector("[data-slot=card-title]")?.textContent).toBe(
-      "Memory",
-    );
+    expect(host.textContent).toContain("Memory");
+    expect(titled.textContent).toContain("Memory");
+    expect(host.querySelector("[data-slot=card-header]")).toBe(null);
+    expect(titled.querySelector("[data-slot=card-header]")).toBe(null);
   });
 
   it("draws an icon given as markup, beside the label", async () => {
@@ -286,7 +289,7 @@ describe("a gauge", () => {
   });
 });
 
-describe("a chart's icon", () => {
+describe("a chart's corner", () => {
   const MARK = '<svg viewBox="0 0 24 24"><path d="M4 4h16"/></svg>';
 
   it("is drawn by a bar chart, which used to throw it away", async () => {
@@ -314,10 +317,48 @@ describe("a chart's icon", () => {
     expect(gauge.querySelectorAll('svg > path[d="M4 4h16"]')).toHaveLength(1);
   });
 
-  it("draws nothing at all when none was given", async () => {
+  it("draws nothing at all when neither was given", async () => {
     const host = await render(BARS);
 
     expect(host.querySelector('[class*="text-chart-mark"]')).toBe(null);
+  });
+
+  it("costs the plot no height for a title either", async () => {
+    // The header band this replaced pushed the plot down by its full height
+    // whether the widget had height to spare or not. On a chart that wants to
+    // be a strip of bars, that band was most of the widget.
+    const plain = await render(BARS);
+    const titled = await render({ ...BARS, title: "Commits this week" });
+
+    expect(titled.textContent).toContain("Commits this week");
+    expect(firstBarHeight(titled)).toBe(firstBarHeight(plain));
+  });
+
+  it("stacks the title above the icon, anchored to the same corner", async () => {
+    const host = await render({ ...BARS, title: "CPU", icon: MARK });
+    const corner = host.querySelector('[class*="text-chart-mark"]');
+
+    expect(corner?.className).toContain("bottom-0");
+    expect(corner?.className).toContain("left-0");
+    // Title first in the flow, so with the box pinned by its bottom edge the
+    // words grow upward and the icon stays put against the corner.
+    expect(corner?.firstElementChild?.textContent).toBe("CPU");
+    expect(corner?.lastElementChild?.querySelector("svg")).not.toBe(null);
+  });
+
+  it("means something in all four combinations", async () => {
+    const bare = await render(BARS);
+    const marked = await render({ ...BARS, icon: MARK });
+    const named = await render({ ...BARS, title: "CPU" });
+    const both = await render({ ...BARS, title: "CPU", icon: MARK });
+
+    expect(bare.querySelector('[class*="text-chart-mark"]')).toBe(null);
+    expect(marked.textContent).not.toContain("CPU");
+    expect(marked.querySelector('svg > path[d="M4 4h16"]')).not.toBe(null);
+    expect(named.textContent).toContain("CPU");
+    expect(named.querySelector('svg > path[d="M4 4h16"]')).toBe(null);
+    expect(both.textContent).toContain("CPU");
+    expect(both.querySelector('svg > path[d="M4 4h16"]')).not.toBe(null);
   });
 });
 

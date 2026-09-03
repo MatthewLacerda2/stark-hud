@@ -77,12 +77,15 @@ def register(server: MCPServer) -> None:
         does nothing on a radial, because there is no bare number for it to sit
         against.
 
-        Every other chart draws `icon` at the origin instead: the corner where
-        the axes meet, left of the first bar and below the baseline, which is
-        empty space the plot already reserves. It says what the chart is
-        without costing a single row of height, so a CPU widget can be a slim
-        strip of bars and still say it is the CPU. A pie has no axes and so no
-        origin, but it has the same empty corner and uses it.
+        Every other chart says what it is at the origin instead: the corner
+        where the axes meet, left of the first bar and below the baseline, which
+        is empty space the plot already reserves. `icon` sits at the bottom of
+        that corner and `title` stacks above it, anchored there — a longer title
+        grows upward into the plot rather than pushing it down, so neither of
+        them costs the chart any height. That is what lets a CPU widget be a
+        slim strip of bars and still say it is the CPU. Pass either, both or
+        neither; all four are meaningful. A pie has no axes and so no origin,
+        but it has the same empty corner and uses it.
 
         `icon` is a name from the notification icon set, an absolute path to a
         picture on this machine, or SVG markup — `<svg viewBox="0 0 24 24" ...>`

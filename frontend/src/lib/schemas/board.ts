@@ -166,7 +166,8 @@ export interface ChartPayload {
   data: Record<string, string | number>[];
   x_key: string;
   series: string[];
-  /** A radial draws this in the middle of its ring; every other chart, in its corner. */
+  /** A radial draws this inside its ring; every other chart, at its origin,
+   *  anchored above the icon so it grows upward and costs the plot no height. */
   title: string | null;
   /** A gauge draws this beside its title; every other chart, at its origin. */
   icon: IconRef | null;

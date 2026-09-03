@@ -17,7 +17,7 @@ import {
 } from "recharts";
 import type { ChartPayload, ChartThreshold } from "@/lib/schemas/board";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@/components/board/icon";
 import { cn } from "@/lib/utils";
 
@@ -195,7 +195,7 @@ function Gauge({ id, payload }: { id: string; payload: ChartPayload }) {
 }
 
 /**
- * What the chart is, drawn at the origin.
+ * What the chart is, drawn at the origin: the icon, and the title above it.
  *
  * A cartesian chart has an x axis along the bottom and a y axis up the left, and
  * the corner where they meet — left of the first bar, below the baseline — is
@@ -207,20 +207,42 @@ function Gauge({ id, payload }: { id: string; payload: ChartPayload }) {
  * never fills the bottom-left of the rectangle it is drawn in. So it gets the
  * mark too, in the same place, for the same reason.
  *
- * A gauge does not, and never did want one. It draws its own in the middle of
- * its ring — see `Gauge` — which is where its corner went.
+ * A gauge does not, and never did want one. It draws its own inside its ring —
+ * see `Gauge` — for exactly this reason, and the comment there said so: "a ring
+ * given the corner as well is a bigger ring, which is the whole reason the
+ * margins came off it." The same argument was always true of every other chart;
+ * it just had not been made there.
  *
- * Anchored rather than laid out: it is positioned against the bottom-left
- * corner and sits outside the vertical flow entirely, so nothing it holds can
- * push the plot down.
+ * **Anchored** is the operative word. The box is pinned by its bottom edge, so
+ * a longer title grows *upward* — the icon stays where it is against the corner
+ * and the words rise, the way a note stuck to the corner of a screen does. It
+ * is outside the vertical flow entirely, so nothing here can push the plot down;
+ * a chart with a short title costs no height for it, and one with a long title
+ * costs height only where the words actually are.
+ *
+ * A title long enough to climb into the plot overlaps it rather than being
+ * clipped or given a box of its own. On a dark board that reads correctly: it
+ * is a label over the marks, and clipping would lose words a caller meant to
+ * say. It is held to a share of the width so it wraps rather than running the
+ * length of the chart.
+ *
+ * Both parts are optional and all four combinations mean something — nothing at
+ * all for the slimmest a chart gets, an icon alone for the CPU strip, a title
+ * alone where the header band used to be, or the two of them stacked as one
+ * thing. That is the rule the gauge already keeps for its middle.
  */
 function Corner({ id, payload }: { id: string; payload: ChartPayload }) {
-  if (!payload.icon) return null;
+  if (!payload.icon && !payload.title) return null;
   return (
-    <div className="pointer-events-none absolute bottom-0 left-0 flex flex-col items-start text-chart-mark widget-text">
-      <span className="flex">
-        <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />
-      </span>
+    <div className="pointer-events-none absolute bottom-0 left-0 flex max-w-[70%] flex-col items-start gap-[0.25em] text-chart-mark widget-text">
+      {payload.title ? (
+        <span className="text-node-sm">{payload.title}</span>
+      ) : null}
+      {payload.icon ? (
+        <span className="flex">
+          <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -337,24 +359,21 @@ function Body({ payload }: { payload: ChartPayload }) {
  */
 export function Chart({ id, payload }: { id: string; payload: ChartPayload }) {
   const { t } = useTranslation();
-  // A gauge carries its title in the middle of its ring, so the corner the
-  // header would sit in is free — and a ring given the corner as well is a
-  // bigger ring, which is the whole reason the margins came off it.
+  // A gauge carries its identity in the middle of its ring; every other chart
+  // carries it at the origin. Either way nothing is drawn above the plot, which
+  // is why there is no header here any more: a header band costs its full
+  // height whether the widget has height to spare or not, and on a chart that
+  // wants to be a strip of bars it was most of the widget.
   const gauge = payload.chart === "radial";
   return (
     // Only a colour at an opacity. A border and a blur survive at zero opacity
     // and still draw a rectangle, which defeats the point of turning it down.
     <Card
       className={cn(
-        "size-full gap-2 border-0 widget-surface widget-edge shadow-none widget-text",
+        "size-full border-0 widget-surface widget-edge shadow-none widget-text",
         gauge ? "py-0" : "py-3",
       )}
     >
-      {payload.title && !gauge ? (
-        <CardHeader className="px-4">
-          <CardTitle>{payload.title}</CardTitle>
-        </CardHeader>
-      ) : null}
       <CardContent
         className={cn("relative min-h-0 flex-1", gauge ? "p-0" : "px-3 pb-1")}
       >
