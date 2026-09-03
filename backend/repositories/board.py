@@ -43,10 +43,10 @@ def get_by_key(key: str) -> ItemRead | None:
 
 def add(
     payload: Payload,
-    x: int,
-    y: int,
-    w: int,
-    h: int,
+    x: float,
+    y: float,
+    w: float,
+    h: float,
     parent_id: str | None,
     pinned: bool,
     key: str | None = None,

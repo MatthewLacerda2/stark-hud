@@ -56,13 +56,25 @@ __all__ = [
 ]
 
 
-class Placement(BaseModel):
-    """Where an item sits, in grid cells. Never pixels."""
+# The smallest a widget may be, in cells. A cell is roughly 60px on the 1080p
+# television this is read from, so a quarter of one is about 15px — the point
+# below which a widget stops being small and becomes invisible while still
+# refusing to let anything overlap it. Zero is not the floor for that reason.
+MIN_SIZE = 0.25
 
-    x: int = Field(ge=0)
-    y: int = Field(ge=0)
-    w: int = Field(ge=1)
-    h: int = Field(ge=1)
+
+class Placement(BaseModel):
+    """Where an item sits, in columns and rows. Never pixels.
+
+    Fractional: the board is a 32-by-18 space rather than 576 slots, so a
+    widget sits where it was put. Whole numbers still mean exactly what they
+    always meant, which is why every call written before this went on working.
+    """
+
+    x: float = Field(ge=0)
+    y: float = Field(ge=0)
+    w: float = Field(ge=MIN_SIZE)
+    h: float = Field(ge=MIN_SIZE)
 
 
 class ItemCreate(BaseModel):
@@ -82,10 +94,10 @@ class ItemCreate(BaseModel):
     background: Colour | None = None
     border: Colour | None = None
     scale: float | None = Field(default=None, ge=0.25, le=4)
-    x: int | None = Field(default=None, ge=0)
-    y: int | None = Field(default=None, ge=0)
-    w: int | None = Field(default=None, ge=1)
-    h: int | None = Field(default=None, ge=1)
+    x: float | None = Field(default=None, ge=0)
+    y: float | None = Field(default=None, ge=0)
+    w: float | None = Field(default=None, ge=MIN_SIZE)
+    h: float | None = Field(default=None, ge=MIN_SIZE)
     parent_id: str | None = None
     pinned: bool = False
 
@@ -106,10 +118,10 @@ class ItemUpdate(BaseModel):
     background: Colour | None = None
     border: Colour | None = None
     scale: float | None = Field(default=None, ge=0.25, le=4)
-    x: int | None = Field(default=None, ge=0)
-    y: int | None = Field(default=None, ge=0)
-    w: int | None = Field(default=None, ge=1)
-    h: int | None = Field(default=None, ge=1)
+    x: float | None = Field(default=None, ge=0)
+    y: float | None = Field(default=None, ge=0)
+    w: float | None = Field(default=None, ge=MIN_SIZE)
+    h: float | None = Field(default=None, ge=MIN_SIZE)
     parent_id: str | None = None
     pinned: bool | None = None
 
@@ -160,10 +172,10 @@ class ItemRead(BaseModel):
     # scrolls: a second screenful is the only way to have more than fits, and
     # the board shows exactly one at a time.
     page: int = 0
-    x: int
-    y: int
-    w: int
-    h: int
+    x: float
+    y: float
+    w: float
+    h: float
     parent_id: str | None
     pinned: bool
     created_at: datetime
@@ -201,8 +213,8 @@ class BoardStatus(BaseModel):
     # Occupancy is per page: each page is its own grid of the same size.
     page: int
     pages: int
-    cells_total: int
-    cells_used: int
-    cells_free: int
+    cells_total: float
+    cells_used: float
+    cells_free: float
     item_count: int
     largest_free_rect: Placement | None

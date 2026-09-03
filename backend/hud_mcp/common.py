@@ -12,7 +12,7 @@ from repositories import board as repo
 from schemas.board import ItemCreate, ItemRead, Payload
 from services import board as service
 from services.board import SlotTakenError
-from services.placement import BoardFullError
+from services.placement import BoardFullError, cells, size
 
 
 def _playing(item: ItemRead) -> str:
@@ -41,7 +41,7 @@ def describe(item: ItemRead) -> str:
     # a key and a session has no other way to learn it.
     if item.key:
         named = f"{named} keyed {item.key!r}"
-    line = f"{named} at ({item.x},{item.y}) size {item.w}x{item.h}"
+    line = f"{named} at ({cells(item.x)},{cells(item.y)}) size {size(item.w, item.h)}"
     if item.playback is not None:
         line = f"{line} [{_playing(item)}]"
     return f"{line} — {item.description}" if item.description else line
@@ -49,10 +49,10 @@ def describe(item: ItemRead) -> str:
 
 async def add(
     payload: Payload,
-    x: int | None = None,
-    y: int | None = None,
-    w: int | None = None,
-    h: int | None = None,
+    x: float | None = None,
+    y: float | None = None,
+    w: float | None = None,
+    h: float | None = None,
     parent_id: str | None = None,
     description: str | None = None,
 ) -> str:

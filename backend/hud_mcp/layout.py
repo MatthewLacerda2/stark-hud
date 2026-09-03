@@ -8,6 +8,7 @@ from repositories import board as repo
 from schemas.board import ItemUpdate
 from services import board as service
 from services.board import SlotTakenError
+from services.placement import cells, size
 
 
 def register(server: MCPServer) -> None:
@@ -26,8 +27,8 @@ def register(server: MCPServer) -> None:
         return f"{verb.capitalize()} {describe(updated)}"
 
     @server.tool()
-    async def move_item(item_id: str, x: int, y: int, page: int | None = None) -> str:
-        """Move an item to a grid cell. Fails if something is already there.
+    async def move_item(item_id: str, x: float, y: float, page: int | None = None) -> str:
+        """Move an item, in columns and rows. Fails if something is already there.
 
         Pass `page` to send it to another screen. Each page is its own grid of
         the same size, so a slot taken here may be free there.
@@ -52,8 +53,8 @@ def register(server: MCPServer) -> None:
         return f"Showing page {current}{note}"
 
     @server.tool()
-    async def resize_item(item_id: str, w: int, h: int) -> str:
-        """Resize an item, in grid cells. Fails if it would overlap or overflow."""
+    async def resize_item(item_id: str, w: float, h: float) -> str:
+        """Resize an item, in columns and rows. Fails if it would overlap or overflow."""
         return await _patch(item_id, ItemUpdate(w=w, h=h), "resized")
 
     @server.tool()
@@ -172,9 +173,11 @@ def register(server: MCPServer) -> None:
         """
         status = service.status()
         free = status.largest_free_rect
-        largest = f"{free.w}x{free.h} at ({free.x},{free.y})" if free else "nothing"
+        largest = (
+            f"{size(free.w, free.h)} at ({cells(free.x)},{cells(free.y)})" if free else "nothing"
+        )
         return (
-            f"Grid {status.cols}x{status.rows}, {status.item_count} items. "
-            f"{status.cells_used}/{status.cells_total} cells used, "
-            f"{status.cells_free} free. Largest free rectangle: {largest}."
+            f"Board {size(status.cols, status.rows)}, {status.item_count} items. "
+            f"{cells(status.cells_used)}/{cells(status.cells_total)} cells used, "
+            f"{cells(status.cells_free)} free. Largest free rectangle: {largest}."
         )

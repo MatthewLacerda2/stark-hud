@@ -8,7 +8,7 @@ from pathlib import Path
 from core.config import get_settings
 from repositories import board as repo
 from schemas.board import Background, BoardStatus, ItemCreate, ItemRead, ItemUpdate, Placement
-from services.placement import default_size, find_slot, is_free, largest_free_rect
+from services.placement import cells, default_size, find_slot, is_free, largest_free_rect, size
 
 
 class SlotTakenError(Exception):
@@ -17,7 +17,8 @@ class SlotTakenError(Exception):
     def __init__(self, place: Placement) -> None:
         self.place = place
         super().__init__(
-            f"Slot {place.w}x{place.h} at ({place.x}, {place.y}) is taken or out of bounds"
+            f"Slot {size(place.w, place.h)} at ({cells(place.x)}, {cells(place.y)}) "
+            f"is taken or out of bounds"
         )
 
 
@@ -81,7 +82,7 @@ def _resolve(data: ItemCreate | ItemUpdate, current: ItemRead | None, page: int)
     """
     cols, rows = _grid()
     items = [i for i in repo.list_items() if i.page == page]
-    dw, dh = default_size(data.payload) if data.payload else (3, 2)
+    dw, dh = default_size(data.payload) if data.payload else (3.0, 2.0)
 
     base_w = current.w if current else dw
     base_h = current.h if current else dh

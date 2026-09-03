@@ -8,7 +8,7 @@ from services.placement import is_free, largest_free_rect
 COLS, ROWS = 12, 8
 
 
-def _item(x: int, y: int, w: int, h: int, item_id: str = "i") -> ItemRead:
+def _item(x: float, y: float, w: float, h: float, item_id: str = "i") -> ItemRead:
     """Build a placed item for occupancy maths."""
     return ItemRead(
         id=item_id,
@@ -43,3 +43,22 @@ def test_largest_free_rect_shrinks_as_the_board_fills() -> None:
     half = [_item(0, 0, COLS, 4)]
     assert largest_free_rect(half, COLS, ROWS) == Placement(x=0, y=4, w=12, h=4)
     assert largest_free_rect([_item(0, 0, COLS, ROWS)], COLS, ROWS) is None
+
+
+def test_touching_edges_do_not_count_as_overlapping() -> None:
+    """Flush is the normal result of sliding something up against something else."""
+    existing = [_item(0, 0, 3.5, 2, item_id="a")]
+    assert is_free(existing, Placement(x=3.5, y=0, w=2, h=2), COLS, ROWS)
+    assert not is_free(existing, Placement(x=3.4, y=0, w=2, h=2), COLS, ROWS)
+
+
+def test_largest_free_rect_measures_decimals() -> None:
+    """The reported rectangle is exact whether or not the edges are whole."""
+    strip = [_item(0, 0, COLS, 4.5)]
+    assert largest_free_rect(strip, COLS, ROWS) == Placement(x=0, y=4.5, w=12, h=3.5)
+
+
+def test_largest_free_rect_finds_a_gap_between_two_widgets() -> None:
+    """A maximal rectangle is bounded by edges, so a hole between two is found."""
+    walls = [_item(0, 0, 4, ROWS, "left"), _item(7, 0, COLS - 7, ROWS, "right")]
+    assert largest_free_rect(walls, COLS, ROWS) == Placement(x=4, y=0, w=3, h=ROWS)

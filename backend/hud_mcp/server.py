@@ -31,9 +31,14 @@ The TV has no keyboard and no mouse, and from the sofa nobody touches it, so
 whatever you put there has to make sense unattended and be readable from across
 a room. Prefer few large widgets to many small ones.
 
-The grid is {cols} columns by {rows} rows and never scrolls: anything that does
-not fit would be invisible forever, so a full board refuses new items rather
-than overlapping them. Placement is in grid cells, never pixels.
+The board is a space {cols} columns wide and {rows} rows tall, and it
+never scrolls: anything that does not fit would be invisible forever, so a full
+board refuses new items rather than overlapping them. Placement is in those columns
+and rows, never pixels, and they are not slots — a widget sits exactly where it
+is put and may take decimals, so x=4.5 and w=3.25 are ordinary. Whole numbers
+are still the common case; reach for a fraction when a widget has to line up
+with something that is not on one. Nothing may overlap anything else, whether
+the numbers are whole or not.
 
 Omit x and y and the board finds a free slot — prefer that unless you have a
 reason to arrange things. Call board_status before adding several items, or

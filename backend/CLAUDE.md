@@ -21,10 +21,12 @@ governs how we work; this file governs how this package is built.
 
 ## The board is finite
 
-The grid is fixed and never scrolls, so running out of room is a normal outcome,
-not an edge case. Nothing silently shrinks, evicts, or overlaps: when a request
-does not fit, the caller gets a 409 saying how much space is free, and decides
-what to do. `GET /board/status` lets a caller look before it leaps.
+The board is a fixed space and never scrolls, so running out of room is a normal
+outcome, not an edge case. Coordinates are fractional — a widget sits where it
+was put, not in the nearest of 576 squares — and nothing silently shrinks,
+evicts, or overlaps: when a request does not fit, the caller gets a 409 saying
+how much space is free, and decides what to do. `GET /board/status` lets a
+caller look before it leaps.
 
 ## Size limits (enforced by `tools/house_lint.py`)
 
