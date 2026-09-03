@@ -28,7 +28,7 @@ evicts, or overlaps: when a request does not fit, the caller gets a 409 saying
 how much space is free, and decides what to do. `GET /board/status` lets a
 caller look before it leaps.
 
-## Size limits (enforced by `tools/house_lint.py`)
+## Size limits (enforced by `lint/house_lint.py`)
 
 - File ≤ 350 lines — opt a data module out with `# lint: data-file` in the
   first 15 lines; `tests/**` is exempt.
@@ -44,3 +44,9 @@ API tests drive the real app through `httpx.ASGITransport` with nothing mocked.
 
 `make backend` = `back-lint` (ruff + ruff-format + `house_lint.py`) ·
 `back-build` (imports `main`) · `back-test` (pytest). Green before you push.
+
+`back-test` also runs `tests/agent/`, which tests `tools/` at the repository
+root — the agent that feeds the panels. Those files are linted by `make agent`
+instead, with this package's ruff settings passed explicitly. The linter itself
+lives in `lint/` rather than a `tools/` of its own, because two directories
+called `tools` is how it came to be checking a tree nobody had pointed it at.

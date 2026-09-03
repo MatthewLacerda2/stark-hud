@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from tools import house_lint
+from lint import house_lint
 
 
 def test_too_long_file_fails():

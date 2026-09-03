@@ -11,7 +11,13 @@ Rules enforced:
      ``MAX_TEST_LINES`` fails.
 
 The module is importable (rules return violation lists) and runnable as
-``python tools/house_lint.py`` to scan the backend tree.
+``python lint/house_lint.py`` to scan the backend tree, or with paths to scan
+those instead — which is how the agent under the repository's own ``tools/``
+gets looked at by the same rules.
+
+It lives in ``lint/`` and not in a ``tools/`` of its own: there is a ``tools/``
+at the repository root holding the agent, and two directories with one name is
+how this file came to be linting a tree it was never pointed at.
 """
 
 from __future__ import annotations
@@ -106,10 +112,11 @@ def scan(root: Path) -> list[str]:
     return violations
 
 
-def main() -> int:
-    """Entry point: scan the backend tree, print violations, set exit code."""
-    root = Path(__file__).resolve().parent.parent
-    violations = scan(root)
+def main(argv: list[str] | None = None) -> int:
+    """Entry point: scan what was named, or the backend tree, and set exit code."""
+    named = argv if argv is not None else sys.argv[1:]
+    roots = [Path(a) for a in named] or [Path(__file__).resolve().parent.parent]
+    violations = [v for root in roots for v in scan(root)]
     if violations:
         for v in violations:
             print(v)

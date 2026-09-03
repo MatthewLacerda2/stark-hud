@@ -77,49 +77,73 @@ class Board:
 
 
 # ------------------------------------------------------------------ reading
-def read_source(source: dict) -> list[Row] | str | None:
-    """Run a source and return what it produced, or None if it failed.
+#
+# Split in two on purpose. `fetch` is where the machine is touched — a
+# subprocess, a socket — and can only really be exercised by having the machine
+# there. `interpret` is where the answer is shaped, takes a string and returns a
+# value, and is the half that has actually had the bugs in it.
+def fetch(source: dict) -> str | None:
+    """Run a source and return what it printed, or None if it failed.
 
-    A command prints JSON on stdout. A URL returns JSON. Either way the shape is
-    the chart's rows, or a string for a note.
+    A command prints on stdout, a URL answers with a body. A source declaring
+    neither has nothing to run: the panel is whatever the config says it is,
+    which is how a widget fed some other way — the inbox, over the socket —
+    gets to exist and stay put.
     """
     if "command" in source:
         # {collectors} so the config does not have to know where it was checked
         # out to, and can be run from any working directory.
         command = source["command"].format(collectors=Path(__file__).parent / "collectors")
         try:
-            out = subprocess.run(
-                command, shell=True, capture_output=True,
-                text=True, timeout=source.get("timeout", 20), check=True,
+            return subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=source.get("timeout", 20),
+                check=True,
             ).stdout
         except (OSError, subprocess.SubprocessError) as exc:
             print(f"  ! {source['name']}: {exc}", file=sys.stderr)
             return None
-    elif "url" in source:
+    if "url" in source:
         try:
             with urllib.request.urlopen(source["url"], timeout=10) as response:
-                out = response.read().decode()
+                return response.read().decode()
         except (urllib.error.HTTPError, OSError) as exc:
             print(f"  ! {source['name']}: {exc}", file=sys.stderr)
             return None
-    else:
-        # No source of data: the panel is whatever the config says it is. Used
-        # for a widget that is fed some other way — the inbox gets its contents
-        # over the socket, it just needs to exist and stay put.
-        return []
+    return ""
 
+
+def interpret(out: str, json_path: str = "", name: str = "") -> list[Row] | str | None:
+    """What a source printed, as a value: rows, or the text of a note.
+
+    Anything that will not parse as JSON is text, deliberately. A collector that
+    prints a sentence is a note that says the sentence, which is more useful on
+    a television than a panel that went blank.
+    """
     try:
         value = json.loads(out)
     except ValueError:
         return out.strip()  # not JSON: treat it as the text of a note
 
-    for key in filter(None, source.get("json_path", "").split(".")):
+    for key in filter(None, json_path.split(".")):
         if not isinstance(value, dict) or key not in value:
-            print(f"  ! {source['name']}: no {source['json_path']!r} in the response",
-                  file=sys.stderr)
+            print(f"  ! {name}: no {json_path!r} in the response", file=sys.stderr)
             return None
         value = value[key]
     return value
+
+
+def read_source(source: dict) -> list[Row] | str | None:
+    """Run a source and shape what it produced, or None if either half failed."""
+    out = fetch(source)
+    if out is None:
+        return None
+    if not source.get("command") and not source.get("url"):
+        return []
+    return interpret(out, source.get("json_path", ""), source["name"])
 
 
 # ------------------------------------------------------------------ running

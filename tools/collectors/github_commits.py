@@ -50,19 +50,18 @@ def gh(path: str) -> object | None:
         return None
 
 
-def commits(user: str, limit: int) -> list[dict]:
-    """Your public commits, newest first, whatever repository they landed in."""
-    # Ordered by committer date rather than by relevance, which is what search
-    # gives you otherwise and is not a feed.
-    query = f"author:{user}+is:public"
-    found = gh(
-        f"/search/commits?q={query}&sort=committer-date&order=desc&per_page={limit}"
-    )
+def entries(found: object) -> list[dict]:
+    """Feed entries out of what the commit search answered.
+
+    Every field is reached for defensively rather than indexed: this is
+    somebody else's JSON, and one commit missing a committer should cost that
+    line and not the whole panel.
+    """
     items = found.get("items") if isinstance(found, dict) else None
     if not items:
         return []
 
-    entries = []
+    shaped = []
     for item in items:
         commit = item.get("commit") or {}
         message = commit.get("message") or ""
@@ -72,8 +71,16 @@ def commits(user: str, limit: int) -> list[dict]:
         at = (commit.get("committer") or {}).get("date")
         if not message or not at:
             continue
-        entries.append({"title": message.split("\n")[0], "source": repo, "at": at})
-    return entries
+        shaped.append({"title": message.split("\n")[0], "source": repo, "at": at})
+    return shaped
+
+
+def commits(user: str, limit: int) -> list[dict]:
+    """Your public commits, newest first, whatever repository they landed in."""
+    # Ordered by committer date rather than by relevance, which is what search
+    # gives you otherwise and is not a feed.
+    query = f"author:{user}+is:public"
+    return entries(gh(f"/search/commits?q={query}&sort=committer-date&order=desc&per_page={limit}"))
 
 
 def main() -> int:
@@ -90,15 +97,15 @@ def main() -> int:
         print("no GitHub user: is gh logged in?", file=sys.stderr)
         return 1
 
-    entries = commits(user, args.limit)
+    feed = commits(user, args.limit)
 
-    if not entries:
+    if not feed:
         # Better to fail than to print an empty feed: the agent leaves the last
         # good contents on the board instead of blanking it over a hiccup.
         print("no commits found", file=sys.stderr)
         return 1
 
-    print(json.dumps(entries))
+    print(json.dumps(feed))
     return 0
 
 

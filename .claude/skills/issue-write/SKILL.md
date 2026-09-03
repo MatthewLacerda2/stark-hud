@@ -97,7 +97,7 @@ shape — say so and propose the right one.
   second-class citizen, and anything of that sort belongs on hover, where a
   pointer exists and a television never is.
 - **Length discipline is enforced, not encouraged.** Backend: file ≤ 350,
-  endpoint handler ≤ 50, test ≤ 50 (`backend/tools/house_lint.py`). Frontend:
+  endpoint handler ≤ 50, test ≤ 50 (`backend/lint/house_lint.py`). Frontend:
   `max-lines` 550. An issue whose honest shape is a 600-line module is an issue
   that needs splitting by responsibility first. Note that this ceiling fires on
   the *sum* of what merges, not on one branch — see `issue-batch`.

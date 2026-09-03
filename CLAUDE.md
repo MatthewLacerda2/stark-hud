@@ -143,11 +143,19 @@ skipped it.
 ```
 make check      # everything
 make backend    # back-lint + back-build + back-test
+make agent      # agent-lint — ruff and house_lint over tools/
 make frontend   # front-lint + front-build + front-test
 ```
 
+`tools/` is inside the gates too. It is not part of the backend package — the
+agent is standard library only so cron can run it with no virtualenv — but it
+is Python this project ships, and it was outside every gate here until the
+`agent` target existed. Its tests live in `backend/tests/agent/` and run under
+`back-test`, because that is the one pytest this project has.
+
 **Gates must be green before you push.** Scope your run to the layer you touched
-(`make backend` / `make frontend`) and run `make check` before opening a PR.
+(`make backend` / `make agent` / `make frontend`) and run `make check` before
+opening a PR.
 
 ## Server-start guardrails
 
