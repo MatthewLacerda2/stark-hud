@@ -21,6 +21,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Item, Payload } from "@/lib/schemas/board";
 import { BoardGrid } from "@/components/board/board-grid";
 import { NO_TAPE } from "@/lib/vhs";
+import { NO_BLOOM } from "@/lib/bloom";
 import "@/i18n";
 
 vi.mock("@/hooks/use-container-size", () => ({
@@ -146,6 +147,7 @@ async function grid(): Promise<{
           notifications={[]}
           wakes={{}}
           tape={NO_TAPE}
+          bloom={NO_BLOOM}
           cols={32}
           rows={18}
         />,

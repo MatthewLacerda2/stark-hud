@@ -11,7 +11,10 @@ import type { ItemKind } from "@/lib/schemas/board";
  * reads as a thing in a room.
  *
  * Every part is a number from 0 to 1, where 1 is the strongest each one goes
- * before it stops being a look and starts being damage. What that means in
+ * before it stops being a look and starts being damage. None of them moves: a
+ * tracking bar used to cross the picture and the grain used to drift, and both
+ * are gone — motion in a texture reads as a fault in the television rather than
+ * as a look, and it cost a repaint of every widget to say so. What that means in
  * pixels lives in `styles.css`, next to the layer it belongs to: this file only
  * says how much.
  */
@@ -24,8 +27,6 @@ export type Tape = {
   vignette: number;
   /** Colour separating at the edges of text. */
   fringe: number;
-  /** The tracking bar, crossing the picture every few seconds. */
-  sweep: number;
 };
 
 /** No look at all: the board exactly as it was before any of this existed. */
@@ -34,7 +35,6 @@ export const NO_TAPE: Tape = {
   grain: 0,
   vignette: 0,
   fringe: 0,
-  sweep: 0,
 };
 
 /** Every part at full. What `?vhs=1` — and no query string at all — means. */
@@ -43,7 +43,6 @@ const FULL: Tape = {
   grain: 1,
   vignette: 1,
   fringe: 1,
-  sweep: 1,
 };
 
 const PARTS = Object.keys(FULL) as (keyof Tape)[];
@@ -82,7 +81,6 @@ export function tapeVars(tape: Tape): CSSProperties {
     "--vhs-grain": tape.grain,
     "--vhs-vignette": tape.vignette,
     "--vhs-fringe": tape.fringe,
-    "--vhs-sweep": tape.sweep,
   } as CSSProperties;
 }
 
