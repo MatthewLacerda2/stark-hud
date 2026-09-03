@@ -393,6 +393,20 @@
 }
 
 @utility widget-surface {
+  /* An inset shadow rather than a border, because a border occupies layout: a
+     transparent one on every widget that never asked for a line would still
+     shift what is inside it by two pixels. This draws on top of the background
+     instead, follows the same rounded corner, and costs nothing when the colour
+     is transparent.
+
+     Two pixels. One disappears from a sofa, and three reads as a frame around
+     the widget rather than an edge to it. Not tunable: a board where every
+     widget has its own line weight is a board that stopped looking like one
+     board, and the colour is already enough to say which widget is special.
+
+     Deliberately outside the `color-mix` below: this line does not fade with
+     the background it surrounds, which is the whole reason to want one. */
+  box-shadow: inset 0 0 0 2px var(--widget-border, transparent);
   background-color: color-mix(
     in oklab,
     var(--widget-colour, var(--color-card))

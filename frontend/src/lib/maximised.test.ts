@@ -20,6 +20,7 @@ function item(id: string, payload: Payload, page = 0): Item {
     opacity: null,
     background: null,
     color: null,
+    border: null,
     scale: null,
     payload,
     playback: null,

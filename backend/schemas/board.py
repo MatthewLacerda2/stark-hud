@@ -80,6 +80,7 @@ class ItemCreate(BaseModel):
     opacity: float | None = Field(default=None, ge=0, le=1)
     color: Colour | None = None
     background: Colour | None = None
+    border: Colour | None = None
     scale: float | None = Field(default=None, ge=0.25, le=4)
     x: int | None = Field(default=None, ge=0)
     y: int | None = Field(default=None, ge=0)
@@ -103,6 +104,7 @@ class ItemUpdate(BaseModel):
     opacity: float | None = Field(default=None, ge=0, le=1)
     color: Colour | None = None
     background: Colour | None = None
+    border: Colour | None = None
     scale: float | None = Field(default=None, ge=0.25, le=4)
     x: int | None = Field(default=None, ge=0)
     y: int | None = Field(default=None, ge=0)
@@ -136,6 +138,13 @@ class ItemRead(BaseModel):
     # the card colour every other widget uses, which is the case needing no
     # thought; this is for the one widget that should not look like the rest.
     background: str | None = None
+    # A line around the widget, at whatever colour is given. None is no line,
+    # which is what almost every widget wants: a board of outlined rectangles is
+    # a form, not a view. This is the one style that ignores `opacity` — the
+    # point of it is a clear edge on a widget whose background has been turned
+    # right down, so fading it with the thing it is drawn around would defeat
+    # it. A colour carrying its own alpha is how you ask for a faint one.
+    border: str | None = None
     # Multiplies the text sizes inside this widget. The type still scales with the
     # widget, this just moves the whole range.
     scale: float | None = None

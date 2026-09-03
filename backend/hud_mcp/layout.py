@@ -62,6 +62,7 @@ def register(server: MCPServer) -> None:
         opacity: float | None = None,
         color: str | None = None,
         background: str | None = None,
+        border: str | None = None,
         scale: float | None = None,
     ) -> str:
         """Change how a widget looks. Everything is optional; only what you pass moves.
@@ -80,6 +81,13 @@ def register(server: MCPServer) -> None:
         board look like one board — so set this only when a widget is meant to
         stand apart from the rest.
 
+        `border` draws a line around the widget in whatever colour is given.
+        Almost nothing wants one — a board of outlined rectangles is a form
+        rather than a view — so this is for the widget that needs an edge of its
+        own. It is the one style `opacity` does not touch, because the point of
+        it is a clear line around a widget whose background has been turned
+        right down; pass an eight-digit hex if you want the line itself faint.
+
         `scale` multiplies the text inside, 0.25 to 4. Type already grows with
         the widget; this moves the whole range.
         """
@@ -87,9 +95,19 @@ def register(server: MCPServer) -> None:
             return f"Not set: opacity must be between 0 and 1 (got {opacity})"
         if scale is not None and not 0.25 <= scale <= 4:
             return f"Not set: scale must be between 0.25 and 4 (got {scale})"
-        if opacity is None and color is None and background is None and scale is None:
-            return "Nothing to set: pass at least one of opacity, color, background or scale"
-        update = ItemUpdate(opacity=opacity, color=color, background=background, scale=scale)
+        if (
+            opacity is None
+            and color is None
+            and background is None
+            and border is None
+            and scale is None
+        ):
+            return (
+                "Nothing to set: pass at least one of opacity, color, background, border or scale"
+            )
+        update = ItemUpdate(
+            opacity=opacity, color=color, background=background, border=border, scale=scale
+        )
         return await _patch(item_id, update, "restyled")
 
     @server.tool()

@@ -31,6 +31,7 @@ function note(id: string, text: string): Item {
     opacity: null,
     background: null,
     color: null,
+    border: null,
     scale: null,
     payload: { kind: "note", text, color: null },
     playback: null,

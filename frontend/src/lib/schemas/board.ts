@@ -258,6 +258,12 @@ export interface Item {
   background: string | null;
   /** The widget's background colour. Null means its kind's default. */
   color: string | null;
+  /**
+   * A line around the widget, at whatever colour is given. Null is no line,
+   * which is what almost every widget wants. The one style `opacity` does not
+   * touch: the point of it is a clear edge on a widget turned right down.
+   */
+  border: string | null;
   /** Multiplies the text sizes inside the widget. Null means 1. */
   scale: number | null;
   payload: Payload;

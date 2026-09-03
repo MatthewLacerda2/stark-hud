@@ -68,6 +68,9 @@ function widgetVars(item: Item, alpha: number): React.CSSProperties {
     "--widget-alpha": alpha,
     "--widget-colour": colourOf(item),
     "--widget-text": item.color ?? undefined,
+    // Transparent rather than absent, so the line costs nothing when nobody
+    // asked for one and the rule below needs no condition to express.
+    "--widget-border": item.border ?? "transparent",
     "--widget-scale": item.scale ?? 1,
   } as React.CSSProperties;
 }

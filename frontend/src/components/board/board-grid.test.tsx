@@ -67,6 +67,7 @@ function item(id: string, payload: Payload, x: number): Item {
     opacity: null,
     background: null,
     color: null,
+    border: null,
     scale: null,
     payload,
     playback: null,
