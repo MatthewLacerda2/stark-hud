@@ -128,8 +128,36 @@ export function reduceBoard(
         items: state.items.filter((i) => i.id !== message.data.id),
         wakes: settled(state.wakes, message.data.id),
       };
-    default:
+    // The inbox is newest first, both in the snapshot and in what the widget
+    // draws, so an arrival goes on the front rather than the end.
+    case "notification.created":
+      return {
+        ...state,
+        notifications: [message.data, ...state.notifications],
+      };
+    case "notification.removed":
+      return {
+        ...state,
+        notifications: state.notifications.filter(
+          (n) => n.id !== message.data.id,
+        ),
+      };
+    case "notifications.cleared":
+      return { ...state, notifications: [] };
+    default: {
+      // `message` is `never` here only while every arm of BoardEvent is handled
+      // above, so an event added to the union and forgotten here stops
+      // compiling. It is what the three notification arms needed and did not
+      // have: they fell through this default for as long as they existed, and
+      // an inbox that only filled on page load looked exactly like an empty one.
+      //
+      // The state is still returned unchanged at runtime. A backend a version
+      // ahead of this page should leave the television showing what it has,
+      // not break on a word it does not know yet.
+      const unhandled: never = message;
+      void unhandled;
       return state;
+    }
   }
 }
 
