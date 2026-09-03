@@ -39,6 +39,11 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  /* What a widget is made of when nobody said. Its own token rather than the
+     card colour, because a panel on this board is a pane held up in front of a
+     room, and a card is a piece of paper lying on one. */
+  --color-glass: var(--glass);
+
   /* --- State colours. A HUD announces outcomes, not just errors. --- */
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
@@ -149,6 +154,10 @@
 
 /* --- Light theme token values. --- */
 :root {
+  /* Not listed again under `.dark`: glass is white whichever way the room is
+     lit, and it is the opacity beside it that decides how much of the room
+     comes through. */
+  --glass: oklch(1 0 0);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -395,7 +404,7 @@
 @utility widget-surface {
   background-color: color-mix(
     in oklab,
-    var(--widget-colour, var(--color-card))
+    var(--widget-colour, var(--color-glass))
       calc(var(--widget-alpha, 0.65) * 100%),
     transparent
   );
