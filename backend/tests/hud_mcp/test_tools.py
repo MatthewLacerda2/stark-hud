@@ -16,6 +16,7 @@ ROWS = get_settings().GRID_ROWS
 EXPECTED = {
     "add_box",
     "add_chart",
+    "add_countdown",
     "add_image",
     "add_inbox",
     "add_clock",
@@ -25,6 +26,7 @@ EXPECTED = {
     "add_to_list",
     "add_note",
     "add_text",
+    "add_to_countdown",
     "add_to_group",
     "add_video",
     "arrange",
@@ -39,6 +41,7 @@ EXPECTED = {
     "list_notifications",
     "move_item",
     "notify",
+    "remove_from_countdown",
     "remove_from_group",
     "remove_from_list",
     "remove_item",

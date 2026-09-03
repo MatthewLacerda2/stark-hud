@@ -9,6 +9,7 @@ import {
   Rss,
   Square,
   StickyNote,
+  Timer,
   Type,
 } from "lucide-react";
 import type { ComponentType, CSSProperties } from "react";
@@ -37,6 +38,7 @@ const GLYPH: Record<
   chart: BarChart3,
   inbox: Inbox,
   clock: Clock,
+  countdown: Timer,
   feed: Rss,
   // A group never holds a group, so this is only ever the fallback a folded
   // group draws for itself when it is holding nothing at all.
