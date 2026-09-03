@@ -77,3 +77,31 @@ async def test_a_panel_keeps_its_description_through_a_refresh(client: AsyncClie
     assert refreshed["id"] == first["id"]
     assert refreshed["payload"]["data"][0]["use"] == 40
     assert refreshed["description"] == "cpu, from the agent"
+
+
+async def test_a_key_names_one_widget(client: AsyncClient) -> None:
+    """A second widget wanting the same name is refused, and told who has it."""
+    holder = (await client.put(KEY, json=chart(10))).json()
+    other = (await client.post("/api/v1/board/items", json=chart(20))).json()
+
+    response = await client.patch(f"/api/v1/board/items/{other['id']}", json={"key": "cpu"})
+    assert response.status_code == 409
+    assert response.json()["holder"] == holder["id"]
+    assert "a key names one widget" in response.json()["detail"].lower()
+
+
+async def test_a_widget_may_keep_the_key_it_already_has(client: AsyncClient) -> None:
+    """Writing a widget's own key back to it is not a collision with itself."""
+    item = (await client.put(KEY, json=chart(10))).json()
+
+    again = await client.patch(f"/api/v1/board/items/{item['id']}", json={"key": "cpu"})
+    assert again.status_code == 200
+    assert again.json()["key"] == "cpu"
+
+
+async def test_the_panel_path_is_still_an_upsert(client: AsyncClient) -> None:
+    """The rule must not cost the agent its every-few-seconds write."""
+    first = (await client.put(KEY, json=chart(10))).json()
+    second = await client.put(KEY, json=chart(90))
+    assert second.status_code == 200
+    assert second.json()["id"] == first["id"]

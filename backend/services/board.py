@@ -30,6 +30,28 @@ class SlotTakenError(Exception):
         )
 
 
+class KeyTakenError(Exception):
+    """Raised when a key is given to a second widget.
+
+    A key names one widget. Two widgets holding one name made the second
+    unreachable: every lookup — ``PUT /board/items/by-key``, ``wake_item``, the
+    agent's panel writes every few seconds — took the first match, so the other
+    one sat on the television being fed by nobody.
+
+    The holder is named because a caller that hits this almost certainly wanted
+    the panel path, which updates the widget already carrying the key instead of
+    making a second one.
+    """
+
+    def __init__(self, key: str, holder: ItemRead) -> None:
+        self.key = key
+        self.holder = holder
+        super().__init__(
+            f"The key {key!r} already names {holder.payload.kind} {holder.id}. "
+            f"Write to that widget instead — a key names one widget."
+        )
+
+
 class MissingFileError(Exception):
     """Raised when a background points at a path that is not a file."""
 
@@ -107,6 +129,15 @@ def _resolve(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> Placeme
     return place
 
 
+def _claim(key: str | None, current: ItemRead | None) -> None:
+    """Raise unless this key is free, or already this widget's own."""
+    if key is None:
+        return
+    holder = repo.get_by_key(key)
+    if holder is not None and (current is None or holder.id != current.id):
+        raise KeyTakenError(key, holder)
+
+
 def _described(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> str | None:
     """The note an item is left with.
 
@@ -121,6 +152,7 @@ def _described(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> str |
 
 def create(data: ItemCreate) -> ItemRead:
     """Add an item, auto-placing it when coordinates are omitted."""
+    _claim(data.key, None)
     place = _resolve(data, None)
     return repo.add(
         data.payload,
@@ -144,6 +176,7 @@ def create(data: ItemCreate) -> ItemRead:
 
 def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
     """Apply a partial update, revalidating placement when geometry changes."""
+    _claim(data.key, item)
     place = _resolve(data, item)
     return repo.replace(
         item.model_copy(

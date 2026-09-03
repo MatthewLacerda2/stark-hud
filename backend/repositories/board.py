@@ -32,8 +32,9 @@ def get(item_id: str) -> ItemRead | None:
 def get_by_key(key: str) -> ItemRead | None:
     """Return the item carrying ``key``, or ``None``.
 
-    Keys are how a repeating writer finds its own panel again. They are unique
-    by convention, not by constraint; the first match wins.
+    Keys are how a repeating writer finds its own panel again, and a key names
+    one widget: ``services.board`` refuses a second widget the same key, so
+    there is never more than one match to pick between.
     """
     return next((item for item in list_items() if item.key == key), None)
 

@@ -103,3 +103,18 @@ def test_a_mutation_marks_the_board_dirty(tmp_path, monkeypatch):
 
     board.add(NotePayload(text="anything"), 0, 0, 2, 2, None, False)
     assert store.dirty()
+
+
+def test_a_file_with_two_widgets_holding_one_key_loads_with_one():
+    """The rule is enforced on the way in, and a file predates it.
+
+    A widget that cannot answer to its name is unreachable rather than wrong, so
+    the later claimant keeps everything it shows and loses only the name.
+    """
+    board.add(NotePayload(text="a"), 0, 0, 4, 2, None, False, key="cpu")
+    board.add(NotePayload(text="b"), 4, 0, 4, 2, None, False, key="cpu")
+
+    kept = persistence._named_once(board.list_items())
+
+    assert [i.key for i in kept] == ["cpu", None]
+    assert [i.payload.text for i in kept] == ["a", "b"]

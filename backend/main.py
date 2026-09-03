@@ -28,7 +28,7 @@ from repositories import board as repo
 from repositories import notifications as notifications_repo
 from schemas.board import BoardSnapshot
 from services import persistence
-from services.board import MissingFileError, SlotTakenError
+from services.board import KeyTakenError, MissingFileError, SlotTakenError
 from services.notifications import BadIconError
 from services.placement import BoardFullError
 
@@ -77,6 +77,12 @@ def _slot_taken_handler(_request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(status_code=409, content={"detail": str(exc)})
 
 
+def _key_taken_handler(_request: Request, exc: Exception) -> JSONResponse:
+    """Return 409 naming the widget that already holds the key."""
+    assert isinstance(exc, KeyTakenError)
+    return JSONResponse(status_code=409, content={"detail": str(exc), "holder": exc.holder.id})
+
+
 def _missing_file_handler(_request: Request, exc: Exception) -> JSONResponse:
     """Return 404 when a background points at a path that is not there."""
     assert isinstance(exc, MissingFileError)
@@ -107,6 +113,7 @@ def create_app() -> FastAPI:
     app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
     app.add_exception_handler(BoardFullError, _board_full_handler)
     app.add_exception_handler(SlotTakenError, _slot_taken_handler)
+    app.add_exception_handler(KeyTakenError, _key_taken_handler)
     app.add_exception_handler(MissingFileError, _missing_file_handler)
     app.add_exception_handler(BadIconError, _bad_icon_handler)
 
