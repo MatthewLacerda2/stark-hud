@@ -483,8 +483,14 @@
 
    Every part is driven by a `--vhs-*` variable between 0 and 1, set on the
    board from `lib/vhs.ts`. Each layer multiplies that by its own ceiling, so 1
-   means the most of that part we think is a look rather than damage, and the
+   means the most of that part that is still a look rather than damage, and the
    number in the URL never has to know what "a lot of grain" is in pixels.
+
+   The ceilings here are the second set. The first were judged on a still, and
+   on the television they read as a fault in the panel rather than a texture
+   over it — so what "1" is worth came down by about a third across every part,
+   rather than the look being dialled back to a fraction of a number that was
+   wrong. A ceiling is a claim about taste, and that claim is what was off.
 
    Nothing here samples what is underneath. A CSS or SVG filter over the board
    would re-run across 1920x1080 of moving video every frame, on a machine
@@ -500,7 +506,7 @@
   inset: 0;
   z-index: 40;
   pointer-events: none;
-  opacity: calc(var(--vhs-scanlines, 0) * 0.45);
+  opacity: calc(var(--vhs-scanlines, 0) * 0.26);
   background-image: repeating-linear-gradient(
     to bottom,
     rgb(0 0 0 / 0.55) 0 1.5px,
@@ -517,7 +523,7 @@
   inset: -50%;
   z-index: 41;
   pointer-events: none;
-  opacity: calc(var(--vhs-grain, 0) * 0.16);
+  opacity: calc(var(--vhs-grain, 0) * 0.1);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23g)'/%3E%3C/svg%3E");
   /* Overlay rather than a flat wash: grain should lift the lights and sink the
      darks, which is what makes it read as film rather than as fog. */
@@ -566,7 +572,7 @@
   height: 22vh;
   z-index: 42;
   pointer-events: none;
-  opacity: calc(var(--vhs-sweep, 0) * 0.55);
+  opacity: calc(var(--vhs-sweep, 0) * 0.32);
   background-image: linear-gradient(
     to bottom,
     transparent,
@@ -595,7 +601,7 @@
   inset: 0;
   z-index: 43;
   pointer-events: none;
-  opacity: calc(var(--vhs-vignette, 0) * 0.75);
+  opacity: calc(var(--vhs-vignette, 0) * 0.5);
   background-image: radial-gradient(
     ellipse at center,
     transparent 42%,
@@ -610,10 +616,10 @@
    type grows with its widget. */
 @utility vhs-fringe {
   text-shadow:
-    calc(var(--vhs-fringe, 0) * 0.05em) 0 0
-      rgb(255 40 90 / calc(var(--vhs-fringe, 0) * 0.45)),
-    calc(var(--vhs-fringe, 0) * -0.05em) 0 0
-      rgb(40 225 255 / calc(var(--vhs-fringe, 0) * 0.4));
+    calc(var(--vhs-fringe, 0) * 0.035em) 0 0
+      rgb(255 40 90 / calc(var(--vhs-fringe, 0) * 0.3)),
+    calc(var(--vhs-fringe, 0) * -0.035em) 0 0
+      rgb(40 225 255 / calc(var(--vhs-fringe, 0) * 0.26));
 }
 
 /* Asked for stillness, the tape stops moving and simply sits there. */
