@@ -50,6 +50,43 @@ every = 3
 place = { x = 22, y = 0, w = 5, h = 5 }
 panel = { kind = "chart", chart = "radial", title = "VRAM", x_key = "label", series = ["pct"], max = 100, colors = ["#ffffffa6"], unfilled = "#00000059" }
 
+# The same three readings as the rings above, kept rather than replaced.
+#
+# A gauge says where a number is now and a line says where it has been, and the
+# second question is a different one: a ring at 60% looks the same whether it
+# has been climbing for ten minutes or is falling back from 90. `history` is
+# what turns a collector that never remembers anything into a series — the
+# agent keeps the last N rows, so the collectors are untouched and none of them
+# has to learn about time.
+#
+# No axis and no title. A shape over time needs neither, the icon at the origin
+# says which chip it is, and both of them would cost height these strips do not
+# have. The x values are all the empty label the collector prints; nothing draws
+# them, and what the eye reads is the shape.
+[[source]]
+name = "mem-line"
+command = "python3 {collectors}/mem.py"
+every = 3
+history = 120
+place = { x = 0, y = 3, w = 7, h = 3.5 }
+panel = { kind = "chart", chart = "line", x_key = "label", series = ["use"], max = 100, axes = "none", colors = ["#ffffffa6"], icon = "hard-drive" }
+
+[[source]]
+name = "gpu-line"
+command = "python3 {collectors}/gpu.py util"
+every = 3
+history = 120
+place = { x = 0, y = 6.5, w = 7, h = 3.5 }
+panel = { kind = "chart", chart = "line", x_key = "label", series = ["pct"], max = 100, axes = "none", colors = ["#ffffffa6"], icon = "zap" }
+
+[[source]]
+name = "vram-line"
+command = "python3 {collectors}/gpu.py vram"
+every = 3
+history = 120
+place = { x = 0, y = 10, w = 7, h = 3.5 }
+panel = { kind = "chart", chart = "line", x_key = "label", series = ["pct"], max = 100, axes = "none", colors = ["#ffffffa6"], icon = "flame" }
+
 # One reading each time; `history` turns it into four minutes of line.
 # 90 °C is the ceiling we chose to draw against, not a hardware limit.
 [[source]]
