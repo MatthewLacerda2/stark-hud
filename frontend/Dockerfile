@@ -6,6 +6,9 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
 COPY . .
+# `bun run build` is `vite build` alone: types are checked by `make front-lint`,
+# which is where that gate lives. Doing it again here would be the same eight
+# seconds paid a second time, on every rebuild.
 RUN bun run build
 
 # --- Runtime ---
