@@ -9,7 +9,7 @@
  */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
-import { beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { ChartPayload } from "@/lib/schemas/board";
 import { Chart } from "@/components/board/items/chart";
 import "@/i18n";
@@ -20,6 +20,10 @@ const ALARM = "#ff3b30";
 const SIZE = { width: 640, height: 360 };
 
 beforeAll(() => {
+  // The marks animate themselves in over real seconds. Nothing here is waiting
+  // on a real clock — only on enough frames going by — so we hand the suite a
+  // fake one and wind it forward instead of sitting through it.
+  vi.useFakeTimers();
   (
     globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
   ).IS_REACT_ACT_ENVIRONMENT = true;
@@ -60,6 +64,10 @@ beforeAll(() => {
   });
 });
 
+afterAll(() => {
+  vi.useRealTimers();
+});
+
 async function render(payload: ChartPayload): Promise<HTMLElement> {
   const host = document.createElement("div");
   document.body.appendChild(host);
@@ -68,7 +76,7 @@ async function render(payload: ChartPayload): Promise<HTMLElement> {
   });
   // Long enough for every mark's entrance animation to land on its final value.
   await act(async () => {
-    await new Promise((done) => setTimeout(done, 1600));
+    await vi.advanceTimersByTimeAsync(1600);
   });
   return host;
 }
