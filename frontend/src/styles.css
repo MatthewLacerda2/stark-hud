@@ -501,11 +501,31 @@
    rather than the look being dialled back to a fraction of a number that was
    wrong. A ceiling is a claim about taste, and that claim is what was off.
 
+   All of it is drawn inside one widget, not over the page. Over the whole
+   screen it said the television was old; stopping at the edge of each pane it
+   says the panel is a display and the room behind it is just the room. The
+   background video is the one thing on this board that is never touched.
+
    Nothing here samples what is underneath. A CSS or SVG filter over the board
    would re-run across 1920x1080 of moving video every frame, on a machine
    already spending a core decoding it; these are flat colours and gradients
    moved with a transform, which the compositor does for nothing.
    -------------------------------------------------------------------------- */
+
+/* How much pane there is to draw on.
+
+   The tape is a property of the glass, not of the rectangle the widget occupies.
+   Turn a widget's background down to nothing and there is no pane there — the
+   video is simply showing through — and grain laid over that patch would be
+   grain on the room, which is the one thing this look must not touch.
+
+   Not a straight multiplication by the opacity, because that would fade the
+   texture out of a pane that is plainly still there. A third of the way up is
+   already a pane; below that a widget is on its way to not existing, and the
+   tape goes with it. */
+@utility vhs-pane {
+  --vhs-pane: min(1, var(--widget-alpha, 1) * 3);
+}
 
 /* The lines of the tube. 1.5px of every 4 is about what reads as a scanline on
    a 1080p panel from a sofa: at 1px it disappears into the pixel grid, and much
@@ -513,9 +533,8 @@
 @utility vhs-scanlines {
   position: absolute;
   inset: 0;
-  z-index: 40;
   pointer-events: none;
-  opacity: calc(var(--vhs-scanlines, 0) * 0.26);
+  opacity: calc(var(--vhs-scanlines, 0) * 0.26 * var(--vhs-pane, 1));
   background-image: repeating-linear-gradient(
     to bottom,
     rgb(0 0 0 / 0.55) 0 1.5px,
@@ -530,9 +549,8 @@
 @utility vhs-grain {
   position: absolute;
   inset: -50%;
-  z-index: 41;
   pointer-events: none;
-  opacity: calc(var(--vhs-grain, 0) * 0.1);
+  opacity: calc(var(--vhs-grain, 0) * 0.1 * var(--vhs-pane, 1));
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23g)'/%3E%3C/svg%3E");
   /* Overlay rather than a flat wash: grain should lift the lights and sink the
      darks, which is what makes it read as film rather than as fog. */
@@ -578,10 +596,9 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 22vh;
-  z-index: 42;
+  height: 45%;
   pointer-events: none;
-  opacity: calc(var(--vhs-sweep, 0) * 0.32);
+  opacity: calc(var(--vhs-sweep, 0) * 0.32 * var(--vhs-pane, 1));
   background-image: linear-gradient(
     to bottom,
     transparent,
@@ -599,7 +616,7 @@
   }
   35%,
   100% {
-    transform: translateY(100vh);
+    transform: translateY(240%);
   }
 }
 
@@ -608,9 +625,8 @@
 @utility vhs-vignette {
   position: absolute;
   inset: 0;
-  z-index: 43;
   pointer-events: none;
-  opacity: calc(var(--vhs-vignette, 0) * 0.5);
+  opacity: calc(var(--vhs-vignette, 0) * 0.5 * var(--vhs-pane, 1));
   background-image: radial-gradient(
     ellipse at center,
     transparent 42%,

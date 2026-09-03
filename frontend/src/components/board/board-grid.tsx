@@ -9,8 +9,10 @@ import { updateItem } from "@/lib/api/board";
 import { ItemView } from "@/components/board/item-view";
 import { WidgetControls } from "@/components/board/widget-controls";
 import { WidgetWake } from "@/components/board/widget-wake";
+import { Vhs } from "@/components/board/vhs";
 import { useContainerSize } from "@/hooks/use-container-size";
 import { drawn, maximisedIn } from "@/lib/maximised";
+import type { Tape } from "@/lib/vhs";
 
 const MARGIN = 8;
 const PADDING = 8;
@@ -75,17 +77,22 @@ function widgetVars(item: Item, alpha: number): React.CSSProperties {
  * `wakes` counts how often each widget has been told work is coming. It is not
  * part of what a widget is, so it rides beside the items rather than on them:
  * nothing about the board has changed at the point one of these arrives.
+ *
+ * `tape` is the look, and it arrives here rather than being drawn over the
+ * whole page because it belongs to the panes and not to the room behind them.
  */
 export function BoardGrid({
   items,
   notifications,
   wakes,
+  tape,
   cols,
   rows,
 }: {
   items: Item[];
   notifications: Notification[];
   wakes: Record<string, number>;
+  tape: Tape;
   cols: number;
   rows: number;
 }) {
@@ -188,6 +195,7 @@ export function BoardGrid({
               {drawn(item, maximised) ? (
                 <>
                   <ItemView item={item} notifications={notifications} />
+                  <Vhs tape={tape} />
                   <WidgetWake nonce={wakes[item.id] ?? 0} />
                 </>
               ) : null}
@@ -229,6 +237,7 @@ export function BoardGrid({
             item={{ ...maximised, w: cols, h: rows }}
             notifications={notifications}
           />
+          <Vhs tape={tape} />
           <WidgetWake nonce={wakes[maximised.id] ?? 0} />
         </div>
       ) : null}

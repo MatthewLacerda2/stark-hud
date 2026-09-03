@@ -6,7 +6,6 @@ import { boardStatus, showPage } from "@/lib/api/board";
 import { Background } from "@/components/board/background";
 import { BoardGrid } from "@/components/board/board-grid";
 import { PageDots } from "@/components/board/page-dots";
-import { Vhs } from "@/components/board/vhs";
 import { useBoard } from "@/hooks/use-board";
 import { usePageTurn } from "@/hooks/use-page-turn";
 import { useSpeech } from "@/hooks/use-speech";
@@ -75,6 +74,7 @@ function BoardPage() {
           items={shown}
           notifications={notifications}
           wakes={wakes}
+          tape={TAPE}
           cols={cols}
           rows={rows}
         />
@@ -93,8 +93,6 @@ function BoardPage() {
           </p>
         ) : null}
       </div>
-
-      <Vhs tape={TAPE} />
     </main>
   );
 }

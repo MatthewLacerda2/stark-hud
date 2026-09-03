@@ -20,6 +20,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Item, Payload } from "@/lib/schemas/board";
 import { BoardGrid } from "@/components/board/board-grid";
+import { NO_TAPE } from "@/lib/vhs";
 import "@/i18n";
 
 vi.mock("@/hooks/use-container-size", () => ({
@@ -144,6 +145,7 @@ async function grid(): Promise<{
           items={board(maximised)}
           notifications={[]}
           wakes={{}}
+          tape={NO_TAPE}
           cols={32}
           rows={18}
         />,
