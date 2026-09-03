@@ -2,8 +2,40 @@
 
 from httpx import AsyncClient
 
+from schemas.board import ItemUpdate
+
 NOTE = {"payload": {"kind": "note", "text": "hello"}}
 ITEMS = "/api/v1/board/items"
+
+# How a widget is allowed to look, and a value for each that is not a default.
+#
+# The service layer names every one of these by hand, twice — once creating and
+# once updating — so a field added to the schema and forgotten there is accepted
+# by the API, validated, and then quietly dropped. That has happened twice: to
+# `color`, which left a comment about it, and to `border`, which arrived after
+# the comment and did it anyway. The guard below is why this is a dict rather
+# than a handful of literals.
+STYLES = {
+    "opacity": 0.5,
+    "color": "#ff0000",
+    "background": "#00ff00",
+    "border": "#0000ff",
+    "scale": 2.0,
+}
+
+# Everything on an update that is not a style: geometry, identity, and content.
+NOT_STYLE = {
+    "payload",
+    "key",
+    "description",
+    "page",
+    "x",
+    "y",
+    "w",
+    "h",
+    "parent_id",
+    "pinned",
+}
 
 
 async def test_unknown_kind_is_rejected(client: AsyncClient) -> None:
@@ -83,3 +115,26 @@ async def test_a_description_survives_a_round_trip(client: AsyncClient) -> None:
     # is the only way back to no note at all.
     assert (await client.patch(url, json={"x": 4})).json()["description"] == changed["description"]
     assert (await client.patch(url, json={"description": ""})).json()["description"] is None
+
+
+def test_every_style_is_covered_here() -> None:
+    """A new way for a widget to look has to be added to the cases below.
+
+    This is the guard, not the test. The two that follow only check the fields
+    they are given, so without this a sixth style could be added, dropped on the
+    way through the service, and pass a green suite.
+    """
+    assert set(ItemUpdate.model_fields) - NOT_STYLE == set(STYLES)
+
+
+async def test_a_style_given_at_creation_comes_back(client: AsyncClient) -> None:
+    """What the API accepted is what the board holds, for every style at once."""
+    created = (await client.post(ITEMS, json={**NOTE, **STYLES})).json()
+    assert {name: created[name] for name in STYLES} == STYLES
+
+
+async def test_a_style_set_later_sticks(client: AsyncClient) -> None:
+    """And the same again through an update, which is a separate code path."""
+    item = (await client.post(ITEMS, json=NOTE)).json()
+    updated = (await client.patch(f"{ITEMS}/{item['id']}", json=STYLES)).json()
+    assert {name: updated[name] for name in STYLES} == STYLES

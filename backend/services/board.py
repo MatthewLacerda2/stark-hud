@@ -131,6 +131,7 @@ def create(data: ItemCreate) -> ItemRead:
         opacity=data.opacity,
         color=data.color,
         background=data.background,
+        border=data.border,
         scale=data.scale,
         description=_described(data, None),
     )
@@ -154,6 +155,7 @@ def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
                 "opacity": data.opacity if data.opacity is not None else item.opacity,
                 "color": data.color if data.color is not None else item.color,
                 "background": data.background if data.background is not None else item.background,
+                "border": data.border if data.border is not None else item.border,
                 "scale": data.scale if data.scale is not None else item.scale,
                 "parent_id": data.parent_id if data.parent_id is not None else item.parent_id,
                 "pinned": data.pinned if data.pinned is not None else item.pinned,

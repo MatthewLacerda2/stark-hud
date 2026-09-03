@@ -54,6 +54,7 @@ def add(
     opacity: float | None = None,
     color: str | None = None,
     background: str | None = None,
+    border: str | None = None,
     scale: float | None = None,
     description: str | None = None,
 ) -> ItemRead:
@@ -65,6 +66,7 @@ def add(
         opacity=opacity,
         color=color,
         background=background,
+        border=border,
         scale=scale,
         payload=payload,
         page=page,
