@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { stale } from "@/lib/freshness";
 import type {
   Background,
   BoardEvent,
@@ -170,6 +171,7 @@ export function useBoard(): BoardState & { connected: boolean } {
     let socket: WebSocket | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let closed = false;
+    let first = true;
 
     const open = () => {
       socket = new WebSocket(WS_URL);
@@ -177,6 +179,12 @@ export function useBoard(): BoardState & { connected: boolean } {
       socket.onopen = () => {
         retryRef.current = RETRY_MIN_MS;
         setConnected(true);
+        // A backend restart is what a deploy looks like from here, so coming
+        // back is the moment to ask whether this page is still running the code
+        // the server is serving. Not on the first connection of a page's life:
+        // it has just loaded whatever it was given and cannot be behind.
+        if (!first) void stale().then((old) => old && location.reload());
+        first = false;
       };
 
       socket.onmessage = (event) => {
