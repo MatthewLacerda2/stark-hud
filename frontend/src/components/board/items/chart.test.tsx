@@ -279,6 +279,22 @@ describe("a gauge", () => {
     expect(titled.querySelector("[data-slot=card-header]")).toBe(null);
   });
 
+  it("gives a lone label the room the icon would have taken", async () => {
+    const alone = await render(GAUGE);
+    const paired = await render({
+      ...GAUGE,
+      icon: '<svg viewBox="0 0 24 24"><path d="M4 4h16"/></svg>',
+    });
+
+    const label = (host: HTMLElement) =>
+      [...host.querySelectorAll("span")].find((s) =>
+        s.className.includes("text-gauge-label"),
+      )?.className ?? "";
+
+    expect(label(alone)).toContain("text-gauge-label-alone");
+    expect(label(paired)).not.toContain("text-gauge-label-alone");
+  });
+
   it("draws an icon given as markup, beside the label", async () => {
     const host = await render({
       ...GAUGE,
@@ -334,16 +350,16 @@ describe("a chart's corner", () => {
     expect(firstBarHeight(titled)).toBe(firstBarHeight(plain));
   });
 
-  it("stacks the title above the icon, anchored to the same corner", async () => {
+  it("stacks the title under the icon, anchored to the top-left corner", async () => {
     const host = await render({ ...BARS, title: "CPU", icon: MARK });
     const corner = host.querySelector('[class*="text-chart-mark"]');
 
-    expect(corner?.className).toContain("bottom-0");
+    expect(corner?.className).toContain("top-0");
     expect(corner?.className).toContain("left-0");
-    // Title first in the flow, so with the box pinned by its bottom edge the
-    // words grow upward and the icon stays put against the corner.
-    expect(corner?.firstElementChild?.textContent).toBe("CPU");
-    expect(corner?.lastElementChild?.querySelector("svg")).not.toBe(null);
+    // Icon first in the flow, so with the box pinned by its top edge the words
+    // grow downward and the icon stays put against the corner.
+    expect(corner?.firstElementChild?.querySelector("svg")).not.toBe(null);
+    expect(corner?.lastElementChild?.textContent).toBe("CPU");
   });
 
   it("means something in all four combinations", async () => {

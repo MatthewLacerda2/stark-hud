@@ -64,15 +64,16 @@ class ChartPayload(BaseModel):
     data: list[dict[str, float | int | str]]
     x_key: str
     series: list[str]
-    # Drawn at the origin on a cartesian chart, stacked above ``icon`` and
-    # anchored to that corner, so a longer one grows upward into space the axes
-    # already frame rather than pushing the plot down. A gauge draws it in the
-    # middle of its ring instead. Either way it costs no height.
+    # Drawn in the top-left corner on a cartesian chart, stacked under ``icon``
+    # and anchored there, so a longer one grows downward over the plot rather
+    # than pushing it anywhere. A gauge draws it in the middle of its ring
+    # instead. Either way it costs no height.
     title: str | None = None
     # Where a chart says what it is. A gauge draws it beside its title in the
-    # middle of its ring; every other chart draws it at the origin, in the
-    # corner the axes already frame, where it costs no height. The same three
-    # forms an icon has anywhere else on the board.
+    # middle of its ring; every other chart draws it in the top-left corner,
+    # where a chart has been labelled since long before this one and where the
+    # eye starts. It costs no height either way. The same three forms an icon
+    # has anywhere else on the board.
     icon: Icon | None = None
     # A ceiling for the value axis. Left out, the axis fits the data, which is
     # right for a count and wrong for a percentage: 21% would draw nearly full.

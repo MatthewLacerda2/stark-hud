@@ -156,7 +156,10 @@ function Gauge({ id, payload }: { id: string; payload: ChartPayload }) {
           {payload.icon || payload.title ? (
             <span
               className={cn(
-                "flex w-full min-w-0 items-center gap-[0.3em] text-gauge-label widget-text",
+                "flex w-full min-w-0 items-center gap-[0.3em] widget-text",
+                // Alone in the ring, the word takes the room the icon would
+                // have had. Beside one it is sized to sit next to something.
+                payload.icon ? "text-gauge-label" : "text-gauge-label-alone",
                 paired ? "justify-start" : "justify-center",
               )}
             >
@@ -195,36 +198,35 @@ function Gauge({ id, payload }: { id: string; payload: ChartPayload }) {
 }
 
 /**
- * What the chart is, drawn at the origin: the icon, and the title above it.
+ * What the chart is, drawn in the top-left corner: the icon, and the title
+ * under it.
  *
- * A cartesian chart has an x axis along the bottom and a y axis up the left, and
- * the corner where they meet — left of the first bar, below the baseline — is
- * space the plot already reserves and nothing occupies. That position is the
- * point rather than a detail: a mark sitting where the plot starts reads as a
- * label for the whole plot, and it costs no height, which a header band does.
+ * It used to sit at the origin, on the argument that the corner where the axes
+ * meet is space the plot already reserves. True, and it stopped being the point
+ * once most charts on this board turned their axes off: with no axes there is
+ * no origin, only four corners, and the top-left is where a chart has been
+ * labelled since before any of this. It is also where the eye starts.
  *
- * A pie has no axes and so no origin, but it does have that corner: a circle
- * never fills the bottom-left of the rectangle it is drawn in. So it gets the
- * mark too, in the same place, for the same reason.
+ * A gauge does not have one, and never did want one. It draws its own inside
+ * its ring — see `Gauge` — for the reason this exists at all: "a ring given the
+ * corner as well is a bigger ring".
  *
- * A gauge does not, and never did want one. It draws its own inside its ring —
- * see `Gauge` — for exactly this reason, and the comment there said so: "a ring
- * given the corner as well is a bigger ring, which is the whole reason the
- * margins came off it." The same argument was always true of every other chart;
- * it just had not been made there.
+ * **Anchored** is the operative word, and the half that has not changed. The
+ * box is pinned by its top edge and sits outside the vertical flow entirely, so
+ * a longer title grows *downward* into space the plot is already drawing
+ * through, and never pushes the plot anywhere. A chart with a short title costs
+ * no height for it, and one with a long title costs height only where the words
+ * actually are.
  *
- * **Anchored** is the operative word. The box is pinned by its bottom edge, so
- * a longer title grows *upward* — the icon stays where it is against the corner
- * and the words rise, the way a note stuck to the corner of a screen does. It
- * is outside the vertical flow entirely, so nothing here can push the plot down;
- * a chart with a short title costs no height for it, and one with a long title
- * costs height only where the words actually are.
+ * A title long enough to reach into the plot overlaps it rather than being
+ * clipped or given a box of its own. On a dark board that reads correctly — it
+ * is a label over the marks, not a box — and clipping would lose words a caller
+ * meant to say. It is held to a share of the width so it wraps rather than
+ * running the length of the chart.
  *
- * A title long enough to climb into the plot overlaps it rather than being
- * clipped or given a box of its own. On a dark board that reads correctly: it
- * is a label over the marks, and clipping would lose words a caller meant to
- * say. It is held to a share of the width so it wraps rather than running the
- * length of the chart.
+ * The one thing this costs: on a chart that *does* draw a y axis, the mark now
+ * shares the corner with the topmost tick label rather than sitting under the
+ * baseline where nothing was. Worth knowing; not worth two rules.
  *
  * Both parts are optional and all four combinations mean something — nothing at
  * all for the slimmest a chart gets, an icon alone for the CPU strip, a title
@@ -234,14 +236,14 @@ function Gauge({ id, payload }: { id: string; payload: ChartPayload }) {
 function Corner({ id, payload }: { id: string; payload: ChartPayload }) {
   if (!payload.icon && !payload.title) return null;
   return (
-    <div className="pointer-events-none absolute bottom-0 left-0 flex max-w-[70%] flex-col items-start gap-[0.25em] text-chart-mark widget-text">
-      {payload.title ? (
-        <span className="text-node-sm">{payload.title}</span>
-      ) : null}
+    <div className="pointer-events-none absolute top-0 left-0 flex max-w-[70%] flex-col items-start gap-[0.25em] text-chart-mark widget-text">
       {payload.icon ? (
         <span className="flex">
           <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />
         </span>
+      ) : null}
+      {payload.title ? (
+        <span className="text-node-sm">{payload.title}</span>
       ) : null}
     </div>
   );
