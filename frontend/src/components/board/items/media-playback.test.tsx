@@ -1,4 +1,16 @@
 /**
+ * What the media widget tells the server it is doing.
+ *
+ * Split from `media.test.tsx`, which is about what the widget *draws*. This is
+ * the other question and a different one: the `playback` field exists so a
+ * widget can report what is actually happening to it — a file that is gone, a
+ * codec the browser will not take, where in a track it has got to — none of
+ * which anyone can see from anywhere but the sofa.
+ *
+ * The stubs are the same, because a player with no media element and no clock
+ * reports nothing at all.
+ */
+/**
  * What the player draws at the size it was given, and what it never draws.
  *
  * Two rules are the whole of this file. A video is video: no title over it, no
@@ -179,19 +191,6 @@ function video(): MediaTrack {
   };
 }
 
-/** A local video file, which draws exactly as much chrome as a YouTube one. */
-function film(): MediaTrack {
-  return {
-    path: "/mnt/d_drive/Video/Live at Donington.mp4",
-    youtube: null,
-    title: "Live at Donington",
-    artist: "AC/DC",
-    album: "Live at Donington",
-    stamp: "f11m",
-    kind: "video",
-  };
-}
-
 function queue(tracks: number, over: Partial<MediaPayload> = {}): MediaPayload {
   return {
     kind: "media",
@@ -242,152 +241,11 @@ function player(host: HTMLElement): HTMLVideoElement {
   return host.querySelector("video") as HTMLVideoElement;
 }
 
-describe("audio is a record sleeve", () => {
-  it("names the track, who is playing it, and what it came off", async () => {
+describe("what the widget says it is doing", () => {
+  it("tells the server a track ended, which is what moves the queue on", async () => {
     const host = await render(queue(19), 10, 6);
-
-    expect(host.textContent).toContain("Track 1");
-    expect(host.textContent).toContain("ACDC");
-    expect(host.textContent).toContain("Greatest Hell's Hits (CD1)");
-  });
-
-  it("never says where in the queue it is", async () => {
-    const host = await render(queue(19), 10, 6);
-
-    expect(host.textContent).not.toContain("1 of 19");
-    expect(host.textContent).not.toContain("19");
-  });
-
-  it("says what it can when the file carried no tags", async () => {
-    const bare = queue(1);
-    bare.tracks[0] = { ...bare.tracks[0], artist: null, album: null };
-    const host = await render(bare, 10, 6);
-
-    // The title it derived from the filename, and the album the queue was given
-    // — never a label with nothing beside it, and never the word "Unknown".
-    expect(host.textContent).toContain("Track 1");
-    expect(host.textContent).toContain("Greatest Hell's Hits");
-    expect(host.textContent).not.toContain("Unknown");
-    expect(host.textContent).not.toContain("·");
-  });
-
-  it("plays the track by the widget's id, never by its path", async () => {
-    const host = await render(queue(19, { index: 2 }), 10, 6);
-
-    expect(player(host).getAttribute("src")).toBe(
-      "/api/v1/media/widget-1/track/2?v=t3",
-    );
-    expect(host.innerHTML).not.toContain("AC DC");
-    expect(played).toHaveBeenCalled();
-  });
-
-  it("shows the album art beside the tracks, and a symbol without one", async () => {
-    const host = await render(queue(19), 10, 6);
-    const art = host.querySelector("img") as HTMLImageElement;
-    expect(art.getAttribute("src")).toBe(
-      "/api/v1/media/widget-1/track/0/art?v=t1",
-    );
-
     await act(async () => {
-      art.dispatchEvent(new Event("error", { bubbles: true }));
-    });
-    expect(host.querySelector("img")).toBe(null);
-    expect(host.querySelector("svg")).not.toBe(null);
-  });
-});
-
-describe("a video is video and nothing else", () => {
-  it("draws no title, no artist and no album over a local one", async () => {
-    const host = await render(queue(0, { tracks: [film()] }), 10, 6);
-
-    expect(host.textContent).toBe("");
-    expect(player(host).getAttribute("src")).toBe(
-      "/api/v1/media/widget-1/track/0?v=f11m",
-    );
-  });
-
-  it("draws nothing over a YouTube one either, not even its refusal", async () => {
-    const host = await render(queue(0, { tracks: [video()] }), 10, 6);
-    await act(async () => {
-      built.player?.refuses(150);
-    });
-
-    expect(host.textContent).toBe("");
-    // It is not silent about it — it is silent on the television, and says so
-    // to the only place that can do anything about it.
-    expect(sent.at(-1)?.body).toEqual({
-      state: "failed",
-      track: 0,
-      error: "the owner does not allow this video to be played outside YouTube",
-    });
-  });
-});
-
-describe("a player too small to read", () => {
-  it("draws a thumbnail instead, on either axis", async () => {
-    for (const [cols, rows] of [
-      [3, 6],
-      [10, 3],
-    ]) {
-      const host = await render(queue(19), cols, rows);
-      expect(host.textContent).toBe("");
-      expect(host.querySelector("img")).not.toBe(null);
-    }
-  });
-
-  it("keeps playing: small is not a way to ask for silence", async () => {
-    const host = await render(queue(19), 3, 3);
-
-    expect(player(host)).not.toBe(null);
-    expect(played).toHaveBeenCalled();
-  });
-});
-
-describe("fullscreen is the one thing a call cannot do", () => {
-  it("gives a pointer a button, on a file and on YouTube alike", async () => {
-    for (const track of [film(), video()]) {
-      const host = await render(queue(0, { tracks: [track] }), 10, 6);
-      const control = host.querySelector("button");
-
-      expect(control?.getAttribute("aria-label")).toBe("Fullscreen");
-      await act(async () => {
-        control?.click();
-      });
-      // The whole widget, so a YouTube iframe and a `<video>` both come with it.
-      expect(filled.at(-1)).toBe(host.firstElementChild);
-    }
-  });
-
-  it("is not there at all when there is nothing to watch", async () => {
-    const host = await render(queue(0), 10, 6);
-
-    expect(host.querySelector("button")).toBe(null);
-  });
-});
-
-describe("a YouTube video is another kind of track", () => {
-  it("hands it to YouTube's player, and never to the file element", async () => {
-    const host = await render(queue(0, { tracks: [video()] }), 10, 6);
-
-    expect(built.player?.videoId).toBe(VIDEO);
-    // The one thing that must not happen: an element with no source being told
-    // to play, which fails on nothing and reports a working video as broken.
-    expect(player(host).getAttribute("src")).toBe(null);
-    expect(built.player?.did).toContain("play");
-  });
-
-  it("starts with the captions off, and turns them on when asked", async () => {
-    await render(queue(0, { tracks: [video()] }), 10, 6);
-    expect(built.player?.vars.cc_load_policy).toBe(0);
-
-    await render(queue(0, { tracks: [video()], captions: true }), 10, 6);
-    expect(built.player?.vars.cc_load_policy).toBe(1);
-  });
-
-  it("tells the server a video ended, which is what moves the queue on", async () => {
-    await render(queue(0, { tracks: [video()] }), 10, 6);
-    await act(async () => {
-      built.player?.says(0);
+      player(host).dispatchEvent(new Event("ended"));
     });
 
     expect(sent.at(-1)).toEqual({
@@ -396,38 +254,115 @@ describe("a YouTube video is another kind of track", () => {
     });
   });
 
-  it("sits in a queue beside files, each played by what can play it", async () => {
-    const mixed = queue(2);
-    mixed.tracks.splice(1, 0, video());
-
-    const files = await render({ ...mixed, index: 0 }, 10, 6);
-    expect(player(files).getAttribute("src")).toBe(
-      "/api/v1/media/widget-1/track/0?v=t1",
-    );
-    expect(built.player).toBe(null);
-
-    const watching = await render({ ...mixed, index: 1 }, 10, 6);
-    expect(built.player?.videoId).toBe(VIDEO);
-    expect(player(watching).getAttribute("src")).toBe(null);
-    expect(sent.at(-1)).toEqual({
-      url: "/api/v1/board/items/widget-1/playback",
-      body: { state: "playing", track: 1 },
-    });
-
-    // The file element is emptied and stopped on the way to a video. What it
-    // says about that is about the file it left, not about what is playing now.
+  it("names a codec it will not take, rather than going quiet", async () => {
+    const host = await render(queue(19), 10, 6);
+    const media = player(host);
+    Object.defineProperty(media, "error", { value: { code: 3 } });
     await act(async () => {
-      player(watching).dispatchEvent(new Event("pause"));
+      media.dispatchEvent(new Event("error"));
     });
-    expect(sent.at(-1)?.body).toEqual({ state: "playing", track: 1 });
+
+    expect(sent.at(-1)?.body).toEqual({
+      state: "failed",
+      track: 0,
+      error: "decode",
+    });
+    expect(host.textContent).toContain("will not play");
   });
 
-  it("keeps playing when it is too small to watch, and shows the thumbnail", async () => {
-    const host = await render(queue(0, { tracks: [video()] }), 3, 3);
+  it("says it has stopped when it is taken off the screen", async () => {
+    // Folding a group takes the player off the board and the sound stops. The
+    // last thing it said used to stand for as long as it stayed folded, so the
+    // board reported a player silent since yesterday as playing — in the one
+    // field a widget has for saying what it is actually doing.
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    await act(async () => {
+      root.render(<Media id="gone" payload={queue(19)} cols={10} rows={6} />);
+    });
+    sent = [];
 
-    expect(built.player?.did).toContain("play");
-    expect(host.querySelector("img")?.getAttribute("src")).toBe(
-      `https://i.ytimg.com/vi/${VIDEO}/hqdefault.jpg`,
+    await act(async () => root.unmount());
+
+    expect(sent.at(-1)).toEqual({
+      url: "/api/v1/board/items/gone/playback",
+      body: { state: "idle" },
+    });
+  });
+
+  it("has something honest to say with nothing queued", async () => {
+    const host = await render(queue(0), 10, 6);
+
+    expect(sent.at(-1)?.body).toEqual({ state: "idle" });
+    expect(host.textContent).toContain("Nothing queued");
+  });
+});
+
+describe("where in a track the widget is", () => {
+  it("goes where the board says a four-hour film had got to", async () => {
+    // A page that has just loaded is at zero and the board is not. This is the
+    // whole of what survives a reload and a container restart.
+    await render(queue(19, { seconds: 11160 }), 10, 6, "widget-seek");
+
+    expect(at).toBe(11160);
+  });
+
+  it("is not jogged by its own tick coming back round through the server", async () => {
+    at = 300;
+    await render(queue(19, { seconds: 296 }), 10, 6, "widget-lag");
+
+    expect(at).toBe(300);
+  });
+
+  it("says where it has got to, every so often and never every frame", async () => {
+    vi.useFakeTimers();
+    try {
+      const host = await render(queue(19), 10, 6, "widget-tick");
+      at = 742;
+      await act(async () => {
+        player(host).dispatchEvent(new Event("timeupdate"));
+      });
+      // Nothing yet, and that is the point: `timeupdate` fires several times a
+      // second, and every report is a write on the server and a broadcast to
+      // every other browser looking at the board.
+      expect(sent).toHaveLength(0);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10_000);
+      });
+      expect(sent.at(-1)?.body).toEqual({
+        state: "playing",
+        track: 0,
+        seconds: 742,
+      });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("sends a YouTube video where the board says, and leaves it alone otherwise", async () => {
+    await render(
+      queue(0, { tracks: [video()], seconds: 900 }),
+      10,
+      6,
+      "widget-tube",
+    );
+    expect(built.player?.sought).toBe(900);
+
+    await render(queue(0, { tracks: [video()] }), 10, 6, "widget-tube-2");
+    expect(built.player?.sought).toBe(null);
+  });
+
+  it("fetches a replaced queue from a new URL, not the one already cached", async () => {
+    // Index 0 is a different file now behind an identical path, which is how a
+    // `<video>` came to insist a film was as long as the song before it.
+    const before = await render(queue(19), 10, 6);
+    const after = queue(19);
+    after.tracks[0] = { ...after.tracks[0], stamp: "elsewhere" };
+
+    expect(player(before).getAttribute("src")).not.toBe(
+      player(await render(after, 10, 6)).getAttribute("src"),
     );
   });
 });
