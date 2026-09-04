@@ -293,6 +293,28 @@ export function Media({
     return () => clearInterval(tick);
   }, [id, index, track, payload.playing]);
 
+  // Gone from the screen is gone: say so on the way out.
+  //
+  // `playback` is the one field a widget has for saying what it is *actually*
+  // doing, and it was outliving the widget. Folding a group takes the player off
+  // the board, the element goes with it and the sound stops — and the last thing
+  // it ever said stood for a day, so `list_items` reported a player that had been
+  // silent since yesterday as playing. A field that exists to catch a widget
+  // lying is the last one that should.
+  //
+  // It fires for every way of leaving: folded away, removed, or a page going
+  // elsewhere. Reporting against an id that has just been deleted is a 404, and
+  // is swallowed like every other failure here.
+  //
+  // In development StrictMode mounts, unmounts and mounts again, so this says
+  // `idle` once for nothing and the remount corrects it immediately. Not worth a
+  // mechanism to avoid.
+  useEffect(() => {
+    return () => {
+      void reportPlayback(id, { state: "idle" }).catch(() => {});
+    };
+  }, [id]);
+
   // An empty queue fires no events, so the one honest thing it can say has to be
   // said outright — otherwise a widget with nothing in it reports nothing at all.
   useEffect(() => {
