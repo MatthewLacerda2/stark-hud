@@ -96,6 +96,13 @@
     clamp(0.729rem, 8cqmin, 3.429rem) * var(--widget-scale, 1)
   );
   --text-gauge-label--line-height: 1.15;
+  /* A label with no icon beside it has the whole hole to itself, so it takes
+     it: forty per cent over the paired size. A pair has to share the width and
+     is sized to fit next to something; a word on its own is not. */
+  --text-gauge-label-alone: calc(
+    clamp(1.02rem, 11.2cqmin, 4.8rem) * var(--widget-scale, 1)
+  );
+  --text-gauge-label-alone--line-height: 1.15;
   --text-gauge-reading: calc(
     clamp(0.686rem, 5.143cqmin, 1.714rem) * var(--widget-scale, 1)
   );
