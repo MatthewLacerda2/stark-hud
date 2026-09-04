@@ -302,9 +302,14 @@ export function Media({
   // silent since yesterday as playing. A field that exists to catch a widget
   // lying is the last one that should.
   //
-  // It fires for every way of leaving: folded away, removed, or a page going
-  // elsewhere. Reporting against an id that has just been deleted is a 404, and
-  // is swallowed like every other failure here.
+  // It fires for the ways a widget leaves *this* page: folded away into a closed
+  // group, or removed from the board. Reporting against an id that has just been
+  // deleted is a 404, and is swallowed like every other failure here.
+  //
+  // Not for the tab closing or reloading — React runs no cleanup on unload, and
+  // a beforeunload handler that fires a request the browser is free to abandon
+  // would be a worse lie than the one this fixes. A reloaded page remounts the
+  // player and says what is true a moment later anyway.
   //
   // In development StrictMode mounts, unmounts and mounts again, so this says
   // `idle` once for nothing and the remount corrects it immediately. Not worth a
