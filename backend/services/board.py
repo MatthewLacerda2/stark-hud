@@ -7,7 +7,15 @@ from pathlib import Path
 
 from core.config import get_settings
 from repositories import board as repo
-from schemas.board import Background, BoardStatus, ItemCreate, ItemRead, ItemUpdate, Placement
+from schemas.board import (
+    Background,
+    BoardStatus,
+    Ink,
+    ItemCreate,
+    ItemRead,
+    ItemUpdate,
+    Placement,
+)
 from services import groups
 from services.placement import (
     cells,
@@ -70,6 +78,16 @@ def set_background(background: Background | None) -> Background | None:
     if background is not None and not Path(background.path).is_file():
         raise MissingFileError(background.path)
     return repo.set_background(background)
+
+
+def set_ink(ink: Ink | None) -> Ink | None:
+    """Set or clear the board's default text colour.
+
+    Nothing to check that the colour type has not already checked, so this is a
+    pass through — it is here so that setting the ink crosses the same boundary
+    every other mutation crosses, rather than being the one that reaches past it.
+    """
+    return repo.set_ink(ink)
 
 
 def icon_path(item: ItemRead, index: int | None = None) -> str | None:

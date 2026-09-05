@@ -15,6 +15,7 @@ from hud_mcp import (
     content,
     countdowns,
     groups,
+    ink,
     layout,
     lists,
     media,
@@ -122,6 +123,7 @@ def build_server() -> MCPServer:
     layout.register(server)
     groups.register(server)
     background.register(server)
+    ink.register(server)
     lists.register(server)
     media.register(server)
     notifications.register(server)

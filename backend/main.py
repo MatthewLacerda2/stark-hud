@@ -170,6 +170,7 @@ def _register_socket(app: FastAPI) -> None:
             snapshot = BoardSnapshot(
                 items=repo.list_items(),
                 background=repo.get_background(),
+                ink=repo.get_ink(),
                 notifications=notifications_repo.list_all(),
             )
             await socket.send_json(

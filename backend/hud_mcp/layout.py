@@ -93,10 +93,18 @@ def register(server: MCPServer) -> None:
         behind show through — charts read fine almost transparent because they
         are mostly their own marks, prose needs something behind it.
 
-        `color` is any CSS colour for the widget's **text**, `var(--chart-2)`
-        included.
-        An eight-digit hex carries alpha — `#ffffff80` — so the text itself can be
+        `color` is the widget's **text** colour, and every colour on this board
+        is written the same way. Name one of the board's own — `foreground`,
+        `muted-foreground`, `accent`, `destructive`, `success`, `warning`,
+        `info`, `chart-1` to `chart-6` — and it follows the theme wherever the
+        theme goes. Pass hex when you mean one particular colour and nothing
+        else. An eight-digit hex carries alpha — `#ffffff80` — so the text can be
         made to read through rather than over the video the board sits on.
+
+        Prefer a name. A widget in `destructive` still says something is wrong
+        after the palette moves; the hex that colour happens to be today does
+        not, and a board where every session picked its own red stops looking
+        like one board.
 
         `background` is what the widget is made of, shown at `opacity`. Left
         alone every widget uses the same card colour, which is what makes a

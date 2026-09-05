@@ -8,6 +8,7 @@ from schemas.board import (
     Arrangement,
     Background,
     BoardStatus,
+    Ink,
     ItemCreate,
     ItemRead,
     ItemUpdate,
@@ -60,6 +61,28 @@ async def clear_background() -> None:
     """Go back to the plain dark ground."""
     service.set_background(None)
     await hub.broadcast("background.changed", None)
+
+
+@router.get("/ink", response_model=Ink | None)
+async def get_ink() -> Ink | None:
+    """Return the board's default text colour, or null for the stylesheet's."""
+    return repo.get_ink()
+
+
+@router.put("/ink", response_model=Ink)
+async def set_ink(payload: Ink) -> Ink:
+    """Set the colour every widget writes in unless it was given one of its own."""
+    ink = service.set_ink(payload)
+    await hub.broadcast("ink.changed", payload.model_dump(mode="json"))
+    assert ink is not None
+    return ink
+
+
+@router.delete("/ink", status_code=status.HTTP_204_NO_CONTENT)
+async def clear_ink() -> None:
+    """Go back to the board's own ink, which is white at 65%."""
+    service.set_ink(None)
+    await hub.broadcast("ink.changed", None)
 
 
 @router.post("/items", response_model=ItemRead, status_code=status.HTTP_201_CREATED)

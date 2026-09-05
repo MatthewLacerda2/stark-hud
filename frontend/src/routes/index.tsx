@@ -10,6 +10,7 @@ import { useBoard } from "@/hooks/use-board";
 import { useSpeech } from "@/hooks/use-speech";
 import { onBoard } from "@/lib/groups";
 import { maximisedIn } from "@/lib/maximised";
+import { inkVars } from "@/lib/ink";
 import { tapeFrom, tapeVars } from "@/lib/vhs";
 import { bloomFrom } from "@/lib/bloom";
 import { cn } from "@/lib/utils";
@@ -28,7 +29,7 @@ const BLOOM = bloomFrom(window.location.search);
  */
 function BoardPage() {
   const { t } = useTranslation();
-  const { items, background, notifications, wakes, spoken, connected } =
+  const { items, background, ink, notifications, wakes, spoken, connected } =
     useBoard();
   // The board's voice. Nothing is drawn for it: the browser is the only part of
   // this board with a speaker, so saying a line is something the page does
@@ -52,7 +53,7 @@ function BoardPage() {
   return (
     <main
       className="relative h-screen w-screen overflow-hidden bg-background"
-      style={tapeVars(TAPE)}
+      style={{ ...tapeVars(TAPE), ...inkVars(ink) }}
     >
       <Background background={background} covered={covered} />
       <VhsFilter tape={TAPE} />

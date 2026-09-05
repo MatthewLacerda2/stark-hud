@@ -17,6 +17,7 @@ import { reduceBoard } from "@/hooks/use-board";
 const EMPTY = {
   items: [] as Item[],
   background: null,
+  ink: null,
   notifications: [],
   wakes: {} as Record<string, number>,
   spoken: [] as Spoken[],
@@ -114,6 +115,7 @@ describe("a widget told work is coming", () => {
         data: {
           items: [note("a", "hello")],
           background: null,
+          ink: null,
           notifications: [],
         },
       },
@@ -166,5 +168,40 @@ describe("what the inbox hears while the page stays open", () => {
     );
     expect(state.notifications).toEqual([]);
     expect(state.items.map((i) => i.id)).toEqual(["w"]);
+  });
+});
+
+describe("the board's ink", () => {
+  it("takes a new default text colour without touching anything else", () => {
+    const state = play({
+      event: "ink.changed",
+      data: { color: "var(--color-chart-2)" },
+    });
+
+    expect(state.ink).toEqual({ color: "var(--color-chart-2)" });
+    expect(state.items).toEqual([]);
+  });
+
+  it("goes back to the stylesheet's when cleared", () => {
+    const state = play(
+      { event: "ink.changed", data: { color: "var(--color-chart-2)" } },
+      { event: "ink.changed", data: null },
+    );
+
+    expect(state.ink).toBeNull();
+  });
+
+  it("arrives with a snapshot, so a page that reconnects is not left pale", () => {
+    const state = play({
+      event: "board.snapshot",
+      data: {
+        items: [],
+        background: null,
+        ink: { color: "var(--color-chart-2)" },
+        notifications: [],
+      },
+    });
+
+    expect(state.ink).toEqual({ color: "var(--color-chart-2)" });
   });
 });
