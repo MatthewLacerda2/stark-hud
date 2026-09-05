@@ -241,6 +241,63 @@ async def test_a_chart_keeps_its_thresholds_in_the_order_it_was_given(
     assert marks[0].color == "#ff3b30"
 
 
+async def test_a_gauge_can_be_told_the_colour_of_the_ring_it_is_not_filling(
+    server: MCPServer,
+) -> None:
+    """Until this, only the agent's REST path could set it, and no session could."""
+    await call(
+        server,
+        "add_chart",
+        chart="radial",
+        data=[{"d": 40}],
+        x_key="d",
+        series=["d"],
+        max=100,
+        unfilled="#ffffff80",
+    )
+    assert repo.list_items()[0].payload.unfilled == "#ffffff80"
+
+
+async def test_a_gauge_told_nothing_leaves_the_track_to_the_frontend(
+    server: MCPServer,
+) -> None:
+    """None is not a colour: it is where the board's own translucent white lives."""
+    await call(server, "add_chart", chart="radial", data=[{"d": 40}], x_key="d", series=["d"])
+    assert repo.list_items()[0].payload.unfilled is None
+
+
+async def test_a_track_colour_is_checked_like_every_other_colour(
+    server: MCPServer,
+) -> None:
+    """A typo comes back as a sentence rather than as a ring that draws wrong."""
+    message = await call(
+        server,
+        "add_chart",
+        chart="radial",
+        data=[{"d": 40}],
+        x_key="d",
+        series=["d"],
+        unfilled="ffffff80",
+    )
+    assert "is not a colour" in message
+
+
+async def test_a_track_may_be_named_like_every_other_colour(
+    server: MCPServer,
+) -> None:
+    """The palette reaches here too, so a gauge can follow the theme."""
+    await call(
+        server,
+        "add_chart",
+        chart="radial",
+        data=[{"d": 40}],
+        x_key="d",
+        series=["d"],
+        unfilled="muted",
+    )
+    assert repo.list_items()[0].payload.unfilled == "var(--color-muted)"
+
+
 async def test_a_chart_without_thresholds_says_so_with_an_empty_list(
     server: MCPServer,
 ) -> None:
