@@ -445,3 +445,38 @@ describe("a threshold", () => {
     expect(barFills(unreached)).toEqual(barFills(plain));
   });
 });
+
+describe("the part of a gauge's ring that is not filled", () => {
+  /**
+   * As a style, not the `fill` attribute it looks like it should be.
+   *
+   * ChartContainer ships shadcn's
+   * `[&_.recharts-radial-bar-background-sector]:fill-muted`, and any CSS
+   * declaration beats an SVG presentation attribute. So the attribute form was
+   * painted over with the muted grey every single time, and no value ever passed
+   * here reached the screen — through three separate attempts to change it,
+   * because nothing failed and the ring simply stayed the colour it was.
+   */
+  it("is painted with the colour that was asked for", async () => {
+    const host = await render({ ...GAUGE, unfilled: TRANSLUCENT });
+
+    const track = host.querySelector<SVGElement>(
+      ".recharts-radial-bar-background-sector",
+    );
+
+    // jsdom serialises an inline style rather than echoing it back, so the hex
+    // returns as rgba. That is the more useful form to assert on anyway: the
+    // alpha is the entire point, and this is where it shows.
+    expect(track?.style.fill).toBe("rgba(51, 204, 255, 0.667)");
+  });
+
+  it("still names a colour when nobody asked, rather than leaving it to the class", async () => {
+    const host = await render(GAUGE);
+
+    const track = host.querySelector<SVGElement>(
+      ".recharts-radial-bar-background-sector",
+    );
+
+    expect(track?.style.fill).toBeTruthy();
+  });
+});

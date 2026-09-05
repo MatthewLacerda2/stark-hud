@@ -145,7 +145,13 @@ function Gauge({ id, payload }: { id: string; payload: ChartPayload }) {
           />
           <RadialBar
             dataKey={payload.series[0]}
-            background={{ fill: payload.unfilled ?? UNFILLED }}
+            // An inline style, not the `fill` attribute it looks like it should
+            // be. ChartContainer ships shadcn's
+            // `[&_.recharts-radial-bar-background-sector]:fill-muted`, and any
+            // CSS declaration beats an SVG presentation attribute — so the
+            // attribute form was overwritten with the muted grey every time, and
+            // no value passed here had ever reached the screen. A style wins.
+            background={{ style: { fill: payload.unfilled ?? UNFILLED } }}
             cornerRadius={999}
             fill={arc}
           />
