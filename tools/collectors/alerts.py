@@ -42,6 +42,7 @@ def failed(listing: str, scope: str) -> list[dict]:
                 "body": f"A {scope} unit is in the failed state. `systemctl {scope} status {unit}`.",
                 "icon": "x-circle",
                 "level": "error",
+                "source": "systemctl",
             }
         )
     return rows
@@ -66,6 +67,7 @@ def full(listing: str, limit: int = FULL_AT) -> list[dict]:
                 "body": f"{parts[4]} of {parts[2]} blocks free on {parts[0]}.",
                 "icon": "hard-drive",
                 "level": "error" if used >= 95 else "warn",
+                "source": "df",
             }
         )
     return rows
@@ -87,6 +89,7 @@ def stale_kernel(running: str, installed: list[str]) -> list[dict]:
             "body": f"Running {running}, which is no longer installed. Modules will not load.",
             "icon": "alert-triangle",
             "level": "warn",
+            "source": "uname",
         }
     ]
 
@@ -103,6 +106,7 @@ def waiting(listing: str) -> list[dict]:
             "body": ", ".join(names[:6]) + ("…" if len(names) > 6 else ""),
             "icon": "download",
             "level": "info",
+            "source": "pacman",
         }
     ]
 
@@ -130,6 +134,7 @@ def noisy(lines: str, keep: int = 3) -> list[dict]:
             "body": last[who],
             "icon": "bug",
             "level": "warn",
+            "source": "journalctl",
         }
         for who, n in counts.most_common(keep)
     ]
