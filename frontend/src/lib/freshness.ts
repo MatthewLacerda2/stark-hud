@@ -48,6 +48,11 @@ export function bundleRunning(doc: Document = document): string | null {
  * television on a hunch is worse than leaving it a version behind, and the
  * question gets asked again on the next reconnection anyway.
  */
+// The second exception to "pages never fetch", and it is not an API call: this
+// asks the server for the page itself and reads which bundle it names. There is
+// no domain module for that, and `client.ts` owns /api/v1 and a JSON error
+// shape that a document reply does not have.
+// eslint-disable-next-line no-restricted-globals
 export async function stale(fetcher: typeof fetch = fetch): Promise<boolean> {
   const mine = bundleRunning();
   if (!mine) return false;

@@ -9,6 +9,9 @@ Rules enforced:
      excluded) fails.
   3. Any ``test_*`` function under a ``tests/`` directory longer than
      ``MAX_TEST_LINES`` fails.
+  4. An import that crosses a layer boundary the wrong way fails. The stack runs
+     one direction and `CLAUDE.md` has always said so; this is where saying it
+     stops being the only enforcement.
 
 The module is importable (rules return violation lists) and runnable as
 ``python lint/house_lint.py`` to scan the backend tree, or with paths to scan
@@ -32,6 +35,27 @@ MAX_TEST_LINES = 50
 DATA_FILE_MARKER = "# lint: data-file"
 _HTTP_METHODS = frozenset({"get", "post", "put", "patch", "delete"})
 _MARKER_SCAN_LINES = 15
+
+# Which layer may import which, and the whole of the architecture in one dict.
+#
+# `api/` and `hud_mcp/` are both surfaces — one speaks HTTP and the other MCP,
+# and neither is above the other. Under them `services/` holds the rules, and
+# under that `repositories/` is the only place state is touched. `schemas/` and
+# `core/` sit beneath everything and reach for nothing.
+#
+# An import going the other way is not a style question. It is the boundary
+# moving, quietly, in a codebase whose entire claim is that swapping how the
+# board persists is a rewrite of one module. `main.py` and `tests/` are outside
+# the stack and unlisted, which is how they stay free to import anything.
+LAYERS: dict[str, frozenset[str]] = {
+    "api": frozenset({"core", "schemas", "services", "repositories"}),
+    "hud_mcp": frozenset({"core", "schemas", "services", "repositories"}),
+    "services": frozenset({"core", "schemas", "repositories"}),
+    "repositories": frozenset({"core", "schemas"}),
+    "schemas": frozenset({"core"}),
+    "core": frozenset(),
+    "lint": frozenset(),
+}
 
 
 def _is_under_tests(path: Path) -> bool:
@@ -98,9 +122,59 @@ def check_function_lengths(path: Path, source: str) -> list[str]:
     return violations
 
 
-def check_source(path: Path, source: str) -> list[str]:
+def layer_of(path: Path, root: Path) -> str | None:
+    """Which layer a file belongs to, or ``None`` when it sits outside the stack.
+
+    Worked out against the scan root rather than the path alone, because this
+    linter is run both with a root (`house_lint.py .`) and without one, and those
+    give relative and absolute paths respectively. Reading `parts[0]` would have
+    quietly found no layer at all in the second case — a check that inspects
+    nothing and passes, which is the failure mode this file exists to prevent.
+    """
+    try:
+        parts = path.resolve().relative_to(root.resolve()).parts
+    except ValueError:
+        return None
+    return parts[0] if parts and parts[0] in LAYERS else None
+
+
+def _imported_layers(source: str) -> list[tuple[int, str]]:
+    """Every layer this file imports from, with the line it was imported on."""
+    found = []
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.ImportFrom) and node.module:
+            names = [node.module]
+        elif isinstance(node, ast.Import):
+            names = [alias.name for alias in node.names]
+        else:
+            continue
+        for name in names:
+            top = name.split(".")[0]
+            if top in LAYERS:
+                found.append((node.lineno, top))
+    return found
+
+
+def check_layers(path: Path, source: str, layer: str | None) -> list[str]:
+    """Flag imports that climb the stack instead of descending it."""
+    if layer is None:
+        return []
+    allowed = LAYERS[layer]
+    return [
+        f"{path}:{line}: {layer}/ imports {other}/, which is above it "
+        f"({layer}/ may import: {', '.join(sorted(allowed)) or 'nothing'})"
+        for line, other in _imported_layers(source)
+        if other != layer and other not in allowed
+    ]
+
+
+def check_source(path: Path, source: str, layer: str | None = None) -> list[str]:
     """Run every rule against a single file's source text."""
-    return check_file_length(path, source) + check_function_lengths(path, source)
+    return (
+        check_file_length(path, source)
+        + check_function_lengths(path, source)
+        + check_layers(path, source, layer)
+    )
 
 
 def iter_python_files(root: Path) -> list[Path]:
@@ -113,7 +187,8 @@ def scan(root: Path) -> list[str]:
     """Scan the tree under ``root`` and return all violations."""
     violations: list[str] = []
     for path in iter_python_files(root):
-        violations.extend(check_source(path, path.read_text(encoding="utf-8")))
+        source = path.read_text(encoding="utf-8")
+        violations.extend(check_source(path, source, layer_of(path, root)))
     return violations
 
 
