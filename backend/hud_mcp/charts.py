@@ -28,6 +28,7 @@ def register(server: MCPServer) -> None:
         unit: str | None = None,
         axes: str = "both",
         colors: list[str] | None = None,
+        unfilled: str | None = None,
         thresholds: list[dict] | None = None,
         x: int | None = None,
         y: int | None = None,
@@ -56,6 +57,14 @@ def register(server: MCPServer) -> None:
         the colour it already had. Give two and the highest one a value clears
         wins, which is how an attention level and an alarm level live on the
         same chart.
+
+        `unfilled` is the rest of a gauge's ring: the part the arc has not
+        reached. Translucent white unless you say otherwise, and it is meant to
+        stay translucent — the track is what makes the arc read as a proportion
+        rather than as a lonely stripe, and a solid one turns the gauge into a
+        dark disc with a bright edge on it. An eight-digit hex is the usual way
+        to say how see-through: `#ffffff40` is a quarter, `#ffffff80` a half.
+        Only a radial has a ring, so only a radial reads this.
 
         `at` is in the units of the plotted value, not of what the number means
         to a human. The memory gauge plots a percentage, so "above 12 GB of
@@ -109,6 +118,7 @@ def register(server: MCPServer) -> None:
                 unit=unit,
                 axes=axes,
                 colors=colors or [],
+                unfilled=unfilled,
                 thresholds=thresholds or [],
             )
         except (TypeError, ValueError) as exc:
