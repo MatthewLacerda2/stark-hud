@@ -12,9 +12,9 @@ import os
 
 os.environ.setdefault("STATE_FILE", "")
 
-import pytest  # noqa: E402
+import pytest
 
-from repositories import board, notifications  # noqa: E402
+from repositories import board, notifications
 
 
 @pytest.fixture(autouse=True)

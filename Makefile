@@ -44,7 +44,7 @@ hooks:
 
 backend: back-lint back-types back-build back-test
 agent:   agent-lint
-frontend: front-lint front-build front-theme front-test
+frontend: front-lint front-dead front-build front-theme front-test
 
 # ---------------------------------------------------------------------------
 # Backend gates  (run from backend/, driven by $(PYTHON))
@@ -97,13 +97,21 @@ agent-lint:
 # ---------------------------------------------------------------------------
 # Frontend gates  (run from frontend/, driven by $(BUN))
 # ---------------------------------------------------------------------------
-.PHONY: front-lint front-quick front-build front-theme front-test front-install
+.PHONY: front-lint front-quick front-dead front-build front-theme front-test front-install
 front-lint:
 	cd frontend && $(BUN) run check
 
 # The same linters without `tsc`, which is over half of what front-lint costs.
 front-quick:
 	cd frontend && $(BUN) run lint
+
+# Unused files, unused dependencies, and imports that do not resolve. Not
+# unused *exports*: `lib/schemas/` mirrors the backend on purpose and
+# `components/ui/` is a vendored primitive library, so most of what knip finds
+# there is deliberate. A gate that has to be argued with is one that gets
+# switched off — `bun run dead` shows the exports for whoever wants to look.
+front-dead:
+	cd frontend && $(BUN) run dead
 
 front-build:
 	cd frontend && $(BUN) run build

@@ -136,7 +136,9 @@ def test_a_file_with_two_widgets_holding_one_key_loads_with_one():
     board.add(NotePayload(text="a"), 0, 0, 4, 2, None, False, key="cpu")
     board.add(NotePayload(text="b"), 4, 0, 4, 2, None, False, key="cpu")
 
-    kept = persistence._named_once(board.list_items())
+    # The rule this tests has no public door: restore() calls it on the way past,
+    # and going through restore() would test the file reader instead.
+    kept = persistence._named_once(board.list_items())  # noqa: SLF001
 
     assert [i.key for i in kept] == ["cpu", None]
     assert [i.payload.text for i in kept] == ["a", "b"]
