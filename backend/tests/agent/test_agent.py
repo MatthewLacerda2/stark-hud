@@ -67,3 +67,52 @@ def test_a_source_with_nothing_to_run_is_left_as_the_config_wrote_it():
         "kind": "inbox",
         "title": "Inbox",
     }
+
+
+def _announcer() -> Source:
+    """A source whose rows are notifications rather than a panel."""
+    return Source({"name": "alerts", "notifications": True})
+
+
+DISK = {"key": "full:/", "title": "/ is 91% full", "level": "warn"}
+
+
+def test_the_first_time_something_is_wrong_it_is_announced():
+    assert _announcer().news([DISK]) == [{"title": "/ is 91% full", "level": "warn"}]
+
+
+def test_the_agent_s_own_bookkeeping_does_not_go_to_the_board():
+    """The notification model forbids fields it does not know, so `key` is a 422."""
+    assert "key" not in _announcer().news([DISK])[0]
+
+
+def test_something_still_wrong_is_not_announced_again():
+    """An inbox that repeats itself every five minutes is one nobody reads."""
+    source = _announcer()
+    source.news([DISK])
+
+    assert source.news([DISK]) == []
+
+
+def test_a_title_that_moves_is_still_the_same_news():
+    """Three packages and four packages are one fact, so the key identifies it."""
+    source = _announcer()
+    source.news([{"key": "updates", "title": "3 packages can be upgraded"}])
+
+    assert source.news([{"key": "updates", "title": "4 packages can be upgraded"}]) == []
+
+
+def test_a_problem_that_clears_and_returns_is_news_again():
+    """Remembering forever would silence the second time a disk filled up."""
+    source = _announcer()
+    source.news([DISK])
+    source.news([])
+
+    assert source.news([DISK]) != []
+
+
+def test_a_row_with_no_key_falls_back_to_its_title():
+    source = _announcer()
+    source.news([{"title": "sshd.service has failed"}])
+
+    assert source.news([{"title": "sshd.service has failed"}]) == []
