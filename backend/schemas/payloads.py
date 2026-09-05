@@ -31,12 +31,17 @@ class NotePayload(_Payload):
     color: Colour | None = None
 
 
+# The sizes bare text comes in. Named like every other closed set here, so a
+# tool can narrow to it after checking rather than restating the four values.
+TextSize = Literal["sm", "md", "lg", "xl"]
+
+
 class TextPayload(_Payload):
     """Free-standing text with no card around it."""
 
     kind: Literal["text"] = "text"
     text: str
-    size: Literal["sm", "md", "lg", "xl"] = "md"
+    size: TextSize = "md"
 
 
 class BoxPayload(_Payload):

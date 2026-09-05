@@ -7,6 +7,8 @@ is the moment it makes one, and a follow-up call is a call that gets skipped.
 ``set_description`` changes or clears it afterwards.
 """
 
+from typing import cast
+
 from mcp.server.mcpserver import MCPServer
 
 from hud_mcp.common import add
@@ -21,6 +23,7 @@ from schemas.board import (
     ListPayload,
     NotePayload,
     TextPayload,
+    TextSize,
     VideoPayload,
 )
 
@@ -66,7 +69,10 @@ def register(server: MCPServer) -> None:
         """
         if size not in {"sm", "md", "lg", "xl"}:
             return f"Not added: size must be sm, md, lg or xl (got {size!r})"
-        return await add(TextPayload(text=text, size=size), x, y, w, h, description=description)
+        # The check above is what makes the cast true.
+        return await add(
+            TextPayload(text=text, size=cast(TextSize, size)), x, y, w, h, description=description
+        )
 
     @server.tool()
     async def add_list(

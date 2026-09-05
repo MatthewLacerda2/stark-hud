@@ -7,10 +7,12 @@ the description of that vocabulary is most of what a session reads before it
 draws one.
 """
 
+from typing import cast
+
 from mcp.server.mcpserver import MCPServer
 
 from hud_mcp.common import add
-from schemas.board import ChartPayload
+from schemas.board import ChartAxes, ChartKind, ChartPayload, ChartThreshold
 
 
 def register(server: MCPServer) -> None:
@@ -107,8 +109,12 @@ def register(server: MCPServer) -> None:
         # A typo in an icon or a colour comes back as the sentence the validator
         # wrote, rather than as a stack trace on the caller's side.
         try:
+            # The checks above are what make these casts true. Pydantic would refuse a
+            # wrong value too, but as a validation error rather than as the sentence a
+            # caller can act on — so the checking happens here, and this is how that
+            # gets said to the type checker.
             payload = ChartPayload(
-                chart=chart,
+                chart=cast(ChartKind, chart),
                 data=data,
                 x_key=x_key,
                 series=series,
@@ -116,10 +122,10 @@ def register(server: MCPServer) -> None:
                 icon=icon,
                 max=max,
                 unit=unit,
-                axes=axes,
+                axes=cast(ChartAxes, axes),
                 colors=colors or [],
                 unfilled=unfilled,
-                thresholds=thresholds or [],
+                thresholds=cast(list[ChartThreshold], thresholds or []),
             )
         except (TypeError, ValueError) as exc:
             return f"Not added: {exc}"

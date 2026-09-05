@@ -42,18 +42,24 @@ hooks:
 	git config core.hooksPath .githooks
 	@echo "hooks on: pre-commit runs 'make gate', pre-push runs 'make check'"
 
-backend: back-lint back-build back-test
+backend: back-lint back-types back-build back-test
 agent:   agent-lint
 frontend: front-lint front-build front-theme front-test
 
 # ---------------------------------------------------------------------------
 # Backend gates  (run from backend/, driven by $(PYTHON))
 # ---------------------------------------------------------------------------
-.PHONY: back-lint back-build back-test back-install
+.PHONY: back-lint back-types back-build back-test back-install
 back-lint:
 	cd backend && $(PYTHON) -m ruff check .
 	cd backend && $(PYTHON) -m ruff format --check .
 	cd backend && $(PYTHON) lint/house_lint.py .
+
+# The annotations are already required by ruff's ANN rules; this is what checks
+# they are true. Not in `gate` — it is the second most expensive thing here, and
+# a wrong annotation is not something a commit needs stopping for.
+back-types:
+	cd backend && $(PYTHON) -m mypy
 
 back-build:
 	cd backend && $(PYTHON) -c "import main"

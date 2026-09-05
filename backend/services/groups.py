@@ -20,7 +20,7 @@ which is the answer the board gives everywhere else.
 
 from core.config import get_settings
 from repositories import board as repo
-from schemas.board import ItemRead, Payload, Placement
+from schemas.board import GroupPayload, ItemRead, Payload, Placement
 from services.placement import NoRoomError, illegal
 
 __all__ = [
@@ -73,9 +73,21 @@ def is_group(item: ItemRead) -> bool:
     return item.payload.kind == "group"
 
 
+def _as_group(item: ItemRead) -> GroupPayload | None:
+    """The same question, answered with the payload instead of a yes.
+
+    `is_group` gives back a bool, which throws away the one useful thing it
+    learned: every read of `.open` after it was a read off a union of thirteen
+    payload kinds, twelve of which have no such field. It worked because the
+    check had happened; nothing said so.
+    """
+    return item.payload if isinstance(item.payload, GroupPayload) else None
+
+
 def _shut(items: list[ItemRead]) -> set[str]:
     """The ids of the groups that are currently folded."""
-    return {i.id for i in items if is_group(i) and not i.payload.open}
+    folded = ((i, _as_group(i)) for i in items)
+    return {i.id for i, held in folded if held is not None and not held.open}
 
 
 def on_board(items: list[ItemRead]) -> list[ItemRead]:
@@ -173,9 +185,10 @@ def _open_enough(item: ItemRead, items: list[ItemRead]) -> None:
 
 def gather(group: ItemRead, items: list[ItemRead]) -> list[ItemRead]:
     """Put these widgets in this group, and return them as they now stand."""
-    if not is_group(group):
+    held = _as_group(group)
+    if held is None:
         raise NotAGroupError(group)
-    if not group.payload.open:
+    if not held.open:
         raise NoRoomError(f"Not grouped: {group.id} is folded. Unfold it, then put things in it.")
     everything = repo.list_items()
     for item in items:
@@ -199,8 +212,9 @@ def disband(group: ItemRead) -> None:
     Losing a container never silently takes its contents with it, so a folded
     group can only be removed while there is still room for what is inside it.
     """
-    if not is_group(group):
+    held = _as_group(group)
+    if held is None:
         raise NotAGroupError(group)
-    if not group.payload.open:
+    if not held.open:
         unfold(group)
     repo.remove(group.id)

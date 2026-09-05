@@ -26,3 +26,17 @@ extend-immutable-calls = [
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.mypy]
+python_version = "3.12"
+# The package root is `backend/`, which is not itself a package — without this,
+# mypy finds `core.hub` and `backend.core.hub` and refuses to check anything.
+explicit_package_bases = true
+mypy_path = "."
+files = ["api", "core", "repositories", "schemas", "services", "hud_mcp", "lint", "main.py"]
+# Third-party packages that ship no stubs. Narrow on purpose: a blanket
+# ignore_missing_imports hides our own typos as readily as somebody else's
+# missing types.
+[[tool.mypy.overrides]]
+module = ["mcp.*", "mutagen.*"]
+ignore_missing_imports = true

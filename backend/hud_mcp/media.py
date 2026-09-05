@@ -18,13 +18,15 @@ running them together would mean a call that pauses and reorders an album at
 once, which nobody means.
 """
 
+from typing import cast
+
 from mcp.server.mcpserver import MCPServer
 
 from core.hub import hub
 from hud_mcp.common import add, wake
 from repositories import board as repo
 from schemas.board import ItemRead, ItemUpdate, MediaPayload
-from schemas.media import MEDIA_ACTIONS
+from schemas.media import MEDIA_ACTIONS, MediaAction
 from services import board as service
 from services import media as media_service
 from services.board import SlotTakenError
@@ -43,6 +45,8 @@ def _describe(payload: MediaPayload) -> str:
     if not payload.tracks:
         return "an empty queue"
     track = payload.current
+    if track is None:
+        return "an empty queue"
     place = f"{payload.index + 1} of {len(payload.tracks)}"
     verb = "playing" if payload.playing else "paused on"
     # Only when it is somewhere: "at 0:00" on every reply would be noise, and
@@ -67,10 +71,17 @@ DONE = {
 def register(server: MCPServer) -> None:
     """Attach the media tools to the server."""
 
-    def _media(item_id: str) -> ItemRead | None:
-        """The item with that id, when it is a media widget and not something else."""
+    def _media(item_id: str) -> tuple[ItemRead, MediaPayload] | None:
+        """The item with that id, when it is a media widget and not something else.
+
+        The payload comes back beside the item: the check that it *is* a player
+        happens here, and returning only the item throws that away — every
+        caller would then read `.tracks` off a union of thirteen payload kinds.
+        """
         item = repo.get(item_id)
-        return item if item is not None and item.payload.kind == "media" else None
+        if item is None or not isinstance(item.payload, MediaPayload):
+            return None
+        return item, item.payload
 
     async def _write(item: ItemRead, payload: MediaPayload, verb: str) -> str:
         """Put a new payload on the widget, tell every board, and say what it is doing."""
@@ -79,7 +90,9 @@ def register(server: MCPServer) -> None:
         except SlotTakenError as exc:
             return f"Not {verb}: {exc}"
         await hub.broadcast("item.updated", updated.model_dump(mode="json"))
-        return f"{verb.capitalize()} {item.id}: {_describe(updated.payload)}"
+        # The payload just written, not `updated.payload`: they are the same
+        # object and only this one is known to be a player's.
+        return f"{verb.capitalize()} {item.id}: {_describe(payload)}"
 
     @server.tool()
     async def add_media(
@@ -156,9 +169,10 @@ def register(server: MCPServer) -> None:
 
         Find the id with list_items.
         """
-        item = _media(item_id)
-        if item is None:
+        found = _media(item_id)
+        if found is None:
             return f"No media widget {item_id}. Call list_items to see what is there."
+        item, player = found
         # One of the few tools here that really is slow: a directory of tracks is
         # walked and every file's tags read off disk. It has an item and it knows
         # it is about to take a while, so it wakes the widget itself rather than
@@ -169,7 +183,7 @@ def register(server: MCPServer) -> None:
         except ValueError as exc:
             return f"Not queued: {exc}"
         index = min(max(start, 0), max(len(queue) - 1, 0))
-        payload = item.payload.model_copy(
+        payload = player.model_copy(
             update={"tracks": queue, "index": index, "seconds": 0.0, "title": title}
         )
         return await _write(item, payload, "queued")
@@ -196,15 +210,17 @@ def register(server: MCPServer) -> None:
         Find the id with list_items, which also says what the widget reports it
         is actually doing.
         """
-        item = _media(item_id)
-        if item is None:
+        found = _media(item_id)
+        if found is None:
             return f"No media widget {item_id}. Call list_items to see what is there."
+        item, player = found
         if action not in MEDIA_ACTIONS:
             named = ", ".join(MEDIA_ACTIONS[:-1])
             return f"Not done: action must be {named} or {MEDIA_ACTIONS[-1]} (got {action!r})"
-        if not item.payload.tracks:
+        if not player.tracks:
             return f"Nothing to {action}: media widget {item_id} has an empty queue."
-        moved = media_service.commanded(item.payload, action, seconds)
+        # The MEDIA_ACTIONS check above is what makes this cast true.
+        moved = media_service.commanded(player, cast(MediaAction, action), seconds)
         return await _write(item, moved, DONE[action])
 
     @server.tool()
@@ -234,13 +250,14 @@ def register(server: MCPServer) -> None:
         only ever granted to somebody clicking something, so it is a control on
         the widget for whoever has a mouse, and no call can reach it.
         """
-        item = _media(item_id)
-        if item is None:
+        found = _media(item_id)
+        if found is None:
             return f"No media widget {item_id}. Call list_items to see what is there."
+        item, player = found
         asked = {"loop": loop, "muted": muted, "maximised": maximised, "captions": captions}
         given = {name: value for name, value in asked.items() if value is not None}
         if not given:
             return "Nothing to set: pass at least one of loop, muted, maximised or captions"
-        payload = item.payload.model_copy(update=given)
+        payload = player.model_copy(update=given)
         said = ", ".join(f"{name}={str(value).lower()}" for name, value in given.items())
         return await _write(item, payload, f"set {said} on")

@@ -1,10 +1,12 @@
 """MCP tools for the notification inbox."""
 
+from typing import cast
+
 from mcp.server.mcpserver import MCPServer
 
 from core.hub import hub
 from repositories import notifications as repo
-from schemas.notifications import ICONS, NotificationCreate
+from schemas.notifications import ICONS, NotificationCreate, NotifyLevel
 from services import notifications as service
 from services.notifications import BadIconError
 
@@ -53,7 +55,8 @@ def register(server: MCPServer) -> None:
                     title=title,
                     body=body,
                     icon=icon,
-                    level=level,
+                    # The check above is what makes this cast true.
+                    level=cast(NotifyLevel, level),
                     source=source,
                     title_color=title_color,
                     body_color=body_color,
