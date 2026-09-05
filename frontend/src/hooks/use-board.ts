@@ -3,6 +3,7 @@ import { stale } from "@/lib/freshness";
 import type {
   Background,
   BoardEvent,
+  Ink,
   Item,
   Notification,
   Spoken,
@@ -29,6 +30,7 @@ const SPOKEN_KEPT = 8;
 interface BoardState {
   items: Item[];
   background: Background | null;
+  ink: Ink | null;
   notifications: Notification[];
   /**
    * Which widgets have been told work is coming, counted rather than flagged:
@@ -54,6 +56,7 @@ interface BoardState {
 const EMPTY: BoardState = {
   items: [],
   background: null,
+  ink: null,
   notifications: [],
   wakes: {},
   spoken: [],
@@ -76,6 +79,7 @@ export function reduceBoard(
       return {
         items: message.data.items,
         background: message.data.background,
+        ink: message.data.ink,
         notifications: message.data.notifications,
         wakes: {},
         // A reconnect does not replay what was said while the page was away: a
@@ -98,6 +102,8 @@ export function reduceBoard(
       return { ...state, items: message.data.items };
     case "background.changed":
       return { ...state, background: message.data };
+    case "ink.changed":
+      return { ...state, ink: message.data };
     case "item.created":
       return {
         ...state,

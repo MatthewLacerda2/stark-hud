@@ -241,11 +241,31 @@ class Background(BaseModel):
     blur: bool = False
 
 
+class Ink(BaseModel):
+    """The colour the board writes in, for every widget not given one of its own.
+
+    White at 65% is the default and it is not arbitrary: the ink is meant to let
+    the video behind it show through, which is what makes a readout look
+    displayed rather than pasted on. It lives here as a setting because the right
+    value depends on what is playing behind it — a bright background eats a
+    translucent ink, and that is a thing to fix in a second, from the sofa, not
+    in a rebuild.
+
+    A widget told its own colour still gets exactly that: this is the default,
+    never an override.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    color: Colour
+
+
 class BoardSnapshot(BaseModel):
     """Everything a client needs on connect."""
 
     items: list[ItemRead]
     background: Background | None
+    ink: Ink | None
     notifications: list[Notification]
 
 

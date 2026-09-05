@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from repositories import board, notifications, store
-from schemas.board import NotePayload
+from schemas.board import Ink, NotePayload
 from schemas.notifications import NotificationCreate
 from services import persistence
 
@@ -31,6 +31,28 @@ def test_round_trip_keeps_items_and_notifications(tmp_path, monkeypatch):
     assert [i.id for i in restored] == [item.id]
     assert restored[0].key == "greeting"
     assert [n.title for n in notifications.list_all()] == ["done"]
+
+
+def test_round_trip_keeps_the_ink(tmp_path, monkeypatch):
+    """The ink is the board's, not a widget's, so it has to survive with it."""
+    _point_at(tmp_path, monkeypatch)
+    board.set_ink(Ink(color="#ffffffa6"))
+
+    assert persistence.save()
+    board.set_ink(None)
+    persistence.restore()
+
+    assert board.get_ink() == Ink(color="#ffffffa6")
+
+
+def test_a_board_written_before_the_ink_existed_asks_for_the_default(tmp_path, monkeypatch):
+    """No ink in the file is not a broken file: it is the default, spelled null."""
+    target = _point_at(tmp_path, monkeypatch)
+    target.write_text(json.dumps({"hud": 2, "items": []}), encoding="utf-8")
+
+    persistence.restore()
+
+    assert board.get_ink() is None
 
 
 def test_unreadable_file_is_moved_aside_not_obeyed(tmp_path, monkeypatch):

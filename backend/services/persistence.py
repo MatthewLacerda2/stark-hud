@@ -27,6 +27,7 @@ def snapshot() -> HudFile:
     return HudFile(
         items=board_repo.list_items(),
         background=board_repo.get_background(),
+        ink=board_repo.get_ink(),
         notifications=notifications_repo.list_all(),
     )
 
@@ -69,7 +70,7 @@ def restore() -> None:
         logger.info("starting with an empty board (%s)", store.path() or "persistence off")
         return
 
-    board_repo.load(_named_once(state.items), state.background)
+    board_repo.load(_named_once(state.items), state.background, state.ink)
     notifications_repo.load(state.notifications)
     logger.info(
         "restored %s items and %s notifications from %s",

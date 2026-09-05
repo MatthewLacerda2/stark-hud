@@ -22,7 +22,7 @@ from pathlib import Path
 from pydantic import BaseModel, ValidationError
 
 from core.config import get_settings
-from schemas.board import Background, ItemRead
+from schemas.board import Background, Ink, ItemRead
 from schemas.notifications import Notification
 
 logger = logging.getLogger(__name__)
@@ -53,6 +53,7 @@ class HudFile(BaseModel):
     saved_at: datetime | None = None
     items: list[ItemRead] = []
     background: Background | None = None
+    ink: Ink | None = None
     notifications: list[Notification] = []
 
 
@@ -140,11 +141,21 @@ def _salvage(document: dict) -> HudFile:
         except ValidationError:
             logger.warning("dropping a background this build cannot read")
 
+    # A board written before the ink was settable simply has none, which is the
+    # same thing as asking for the default. No migration, and nothing to bump.
+    ink = None
+    if document.get("ink"):
+        try:
+            ink = Ink.model_validate(document["ink"])
+        except ValidationError:
+            logger.warning("dropping an ink this build cannot read")
+
     return HudFile(
         hud=document.get("hud", FORMAT),
         items=kept,
         notifications=notes,
         background=background,
+        ink=ink,
     )
 
 

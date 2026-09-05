@@ -13,10 +13,11 @@ import uuid
 from datetime import UTC, datetime
 
 from repositories import store
-from schemas.board import Background, ItemRead, Payload
+from schemas.board import Background, Ink, ItemRead, Payload
 
 _items: dict[str, ItemRead] = {}
 _background: Background | None = None
+_ink: Ink | None = None
 
 
 def list_items() -> list[ItemRead]:
@@ -141,12 +142,26 @@ def set_background(background: Background | None) -> Background | None:
     return _background
 
 
-def load(items: list[ItemRead], background: Background | None) -> None:
+def get_ink() -> Ink | None:
+    """Return the board's default text colour, or ``None`` for the stylesheet's."""
+    return _ink
+
+
+def set_ink(ink: Ink | None) -> Ink | None:
+    """Replace the default text colour. ``None`` goes back to white at 65%."""
+    global _ink  # noqa: PLW0603 - module-level store, same as _items
+    _ink = ink
+    store.touch()
+    return _ink
+
+
+def load(items: list[ItemRead], background: Background | None, ink: Ink | None) -> None:
     """Replace everything with what came off disk.
 
     Deliberately not marked dirty: what was just read is what is already there.
     """
-    global _background  # noqa: PLW0603 - module-level store, same as _items
+    global _background, _ink  # noqa: PLW0603 - module-level store, same as _items
     _items.clear()
     _items.update({item.id: item for item in items})
     _background = background
+    _ink = ink

@@ -6,6 +6,9 @@ it turns a typo into a sentence. Without it a misspelt colour is dropped by the
 browser and the widget simply renders wrong, with nothing anywhere saying why.
 """
 
+import re
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
@@ -17,6 +20,7 @@ from schemas.board import (
     ListPayload,
     NotePayload,
 )
+from schemas.colour import TOKENS
 
 TEXT = NotePayload(text="x")
 
@@ -49,3 +53,33 @@ def test_alpha_survives_everywhere_a_colour_is_taken():
     assert ChartPayload(
         chart="bar", data=[{"a": 1}], x_key="a", series=["a"], colors=[translucent]
     ).colors == [translucent]
+
+
+@pytest.mark.parametrize(
+    ("name", "resolved"),
+    [("accent", "var(--color-accent)"), ("chart-2", "var(--color-chart-2)")],
+)
+def test_a_token_name_becomes_the_variable_it_names(name, resolved):
+    assert ItemCreate(payload=TEXT, color=name).color == resolved
+
+
+@pytest.mark.parametrize("colour", ["acent", "chart-9", "cornflowerblue"])
+def test_a_word_that_names_no_token_is_refused(colour):
+    """A near miss used to validate as "some keyword" and vanish in the browser."""
+    with pytest.raises(ValidationError):
+        ItemCreate(payload=TEXT, color=colour)
+
+
+def test_the_tokens_are_the_ones_the_stylesheet_defines():
+    """The gate that keeps this list honest.
+
+    A token accepted here and missing from the stylesheet resolves to a variable
+    nothing defines, and the browser drops it without a word. Read the real file
+    rather than trusting the copy, so adding a colour to one and not the other
+    fails a gate instead of a widget.
+    """
+    css = Path(__file__).parents[3] / "frontend" / "src" / "styles.css"
+    theme = css.read_text(encoding="utf-8").split("@theme inline", 1)[1]
+    defined = set(re.findall(r"^\s*--color-([a-z0-9-]+):", theme, re.M))
+
+    assert defined == set(TOKENS)

@@ -343,9 +343,20 @@ export interface Background {
   blur: boolean;
 }
 
+/**
+ * The colour the board writes in, for every widget not given one of its own.
+ *
+ * Null is not "no colour": it is the stylesheet's, which is white at 65% so the
+ * video behind shows through the readout.
+ */
+export interface Ink {
+  color: string;
+}
+
 export interface BoardSnapshot {
   items: Item[];
   background: Background | null;
+  ink: Ink | null;
   notifications: Notification[];
 }
 
@@ -376,6 +387,7 @@ export interface Spoken {
 export type BoardEvent =
   | { event: "board.snapshot"; data: BoardSnapshot }
   | { event: "background.changed"; data: Background | null }
+  | { event: "ink.changed"; data: Ink | null }
   | { event: "board.cleared"; data: { removed: number } }
   /* A rearrangement: several widgets changed at once and the board is sent
      whole, so folding a group is one render rather than a widget at a time. */
