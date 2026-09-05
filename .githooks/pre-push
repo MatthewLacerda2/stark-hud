@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#
+# Everything, before anything leaves this machine.
+#
+# There is no CI, so this is the last thing between a mistake and master. It
+# costs about forty-five seconds and is meant to: pushing is rare, and the
+# alternative is finding out from the television.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+exec make --no-print-directory check

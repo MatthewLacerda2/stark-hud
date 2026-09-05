@@ -79,9 +79,19 @@ requests are in use.
 
 - Commit freely and in small steps, so any change can be walked back.
 - A commit message says *why*, not just what. `git log` is the record of intent.
-- Small fixes go straight to `master`. Anything worth a second opinion goes on a
-  branch and through a PR, because the user reviews the board by looking at it,
-  not by reading a diff — see the worktree workflow below.
+- **The user does not read the code.** Not the diff, not the PR body, not the
+  files. This is a deliberate position, not an oversight: the project is
+  reviewed by looking at the television. So a PR description is written for the
+  next Claude and for the record, the gates are the only thing actually checking
+  the work, and "I will explain it in review" is not a plan.
+- **What decides `master` versus a branch is the screen, not the size.** A change
+  that cannot alter what appears on the board — a gate, a lint rule, a test, a
+  comment, a refactor behind an unchanged surface — goes straight to `master`
+  once `make check` is green. Anything that changes what is drawn, where it sits,
+  what it says or how it behaves goes on a branch and through a PR, because that
+  is the only kind of change the user can review, and they review it by seeing
+  it. When in doubt it is a branch: an unnecessary PR costs a minute, and a
+  surprise on the television costs trust.
 
 ### Issues
 
@@ -137,15 +147,23 @@ instruction wins.
 One `Makefile` defines every gate, and it is the only place a gate lives.
 There is no CI: GitHub Actions was removed because it re-ran, on the user's
 minutes, exactly what `make check` already runs before every merge. So a gate
-that is not in the `Makefile` does not exist, and nothing catches a push that
-skipped it.
+that is not in the `Makefile` does not exist — and one that no hook calls only
+exists while somebody remembers it, which is not a gate but a habit.
 
 ```
-make check      # everything
+make hooks      # once per clone. Points git at .githooks.
+make gate       # fast: every linter. What pre-commit runs. ~9s
+make check      # everything. What pre-push runs. ~45s
 make backend    # back-lint + back-build + back-test
 make agent      # agent-lint — ruff and house_lint over tools/
-make frontend   # front-lint + front-build + front-test
+make frontend   # front-lint + front-build + front-theme + front-test
 ```
+
+**`make hooks` is the first thing to run in a fresh clone.** Until it has, the
+hooks are files nobody calls: `core.hooksPath` is not set by cloning, and a
+repository that looks defended and is not is worse than one that never claimed
+to be. The template shipped a husky `pre-commit` that had never once run for
+exactly this reason.
 
 `tools/` is inside the gates too. It is not part of the backend package — the
 agent is standard library only so cron can run it with no virtualenv — but it

@@ -1,8 +1,22 @@
-# Single task runner. CI invokes these exact targets so local and CI never drift.
-# Override the interpreter in CI with: make backend PYTHON=python
-# Locally a venv is used: make backend PYTHON=.venv/bin/python (see backend/README note).
-
-PYTHON ?= python3.12
+# The single task runner, and the only place a gate lives.
+#
+# There is no CI. GitHub Actions was removed because it re-ran, on the owner's
+# minutes, exactly what `make check` already runs — so what enforces these is the
+# git hooks in `.githooks`, installed once with `make hooks`. A gate that is not
+# a target here does not exist, and one no hook calls only exists when somebody
+# remembers it.
+#
+#   make gate     fast. Every linter, no type check, no build, no test. ~9s.
+#                 What `pre-commit` runs, so it has to stay quick enough that
+#                 nobody reaches for --no-verify.
+#   make check    everything, ~45s. What `pre-push` runs, and what has to be
+#                 green before anything leaves this machine.
+#
+# The interpreter finds itself: the local venv when there is one, else whatever
+# python3.12 is on PATH. A hook has no way to be told, and a person should not
+# have to remember a flag to run their own gates.
+PYTHON ?= $(shell test -x $(CURDIR)/backend/.venv/bin/python \
+            && echo $(CURDIR)/backend/.venv/bin/python || echo python3.12)
 BUN    ?= bun
 
 .DEFAULT_GOAL := check
@@ -10,8 +24,17 @@ BUN    ?= bun
 # ---------------------------------------------------------------------------
 # Aggregate gates
 # ---------------------------------------------------------------------------
-.PHONY: check backend agent frontend
+.PHONY: check gate hooks backend agent frontend
 check: backend agent frontend
+
+# Fast enough to run on every commit: what a linter can say without compiling,
+# building or executing anything. The type check lives in `check` rather than
+# here because it costs more than the rest of this target put together.
+gate: back-lint agent-lint front-quick
+
+hooks:
+	git config core.hooksPath .githooks
+	@echo "hooks on: pre-commit runs 'make gate', pre-push runs 'make check'"
 
 backend: back-lint back-build back-test
 agent:   agent-lint
@@ -62,9 +85,13 @@ agent-lint:
 # ---------------------------------------------------------------------------
 # Frontend gates  (run from frontend/, driven by $(BUN))
 # ---------------------------------------------------------------------------
-.PHONY: front-lint front-build front-theme front-test front-install
+.PHONY: front-lint front-quick front-build front-theme front-test front-install
 front-lint:
 	cd frontend && $(BUN) run check
+
+# The same linters without `tsc`, which is over half of what front-lint costs.
+front-quick:
+	cd frontend && $(BUN) run lint
 
 front-build:
 	cd frontend && $(BUN) run build
