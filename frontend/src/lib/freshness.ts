@@ -31,7 +31,7 @@ export function bundleIn(html: string): string | null {
 }
 
 /** The bundle this page is running, as the document names it. */
-export function bundleRunning(doc: Document = document): string | null {
+function bundleRunning(doc: Document = document): string | null {
   const tag = doc.querySelector<HTMLScriptElement>(
     'script[type="module"][src]',
   );

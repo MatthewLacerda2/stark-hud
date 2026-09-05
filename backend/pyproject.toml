@@ -4,7 +4,16 @@ line-length = 100
 
 [tool.ruff.lint]
 # F: pyflakes, E/W: pycodestyle, B: bugbear, I: isort, UP: pyupgrade, ANN: annotations.
-select = ["F", "E", "W", "B", "I", "UP", "ANN"]
+# ERA: commented-out code. RUF: ruff's own, and RUF100 is why it is here — a
+# `noqa` for a rule nobody has enabled suppresses nothing and reads like it does.
+# BLE: bare `except Exception`. SLF: reaching into another object's privates.
+# ARG: arguments nothing uses.
+#
+# PLW0603, S104 and S108 are named on their own rather than as families: this tree has
+# thirteen `noqa` comments explaining exactly these three, and the rest of PL (100
+# magic values in tests) and S (483 asserts, also tests) is noise that would
+# drown them. A rule set that has to be ignored everywhere is not a rule set.
+select = ["F", "E", "W", "B", "I", "UP", "ANN", "ERA", "RUF", "BLE", "SLF", "ARG", "PLW0603", "S104", "S108"]
 # E501 (line length) is owned by the formatter, not the linter.
 # ANN401 forbids typing.Any, which we deliberately use for JWT payloads.
 ignore = ["E501", "ANN401"]
@@ -21,7 +30,9 @@ extend-immutable-calls = [
 
 [tool.ruff.lint.per-file-ignores]
 # Tests do not need return-type annotations on every fixture/test function.
-"tests/**" = ["ANN001", "ANN002", "ANN003", "ANN201", "ANN202", "ANN204", "B008"]
+# A fixture is asked for by name and often only for its side effect, so an
+# unused argument is the normal shape of a test rather than a mistake.
+"tests/**" = ["ANN001", "ANN002", "ANN003", "ANN201", "ANN202", "ANN204", "B008", "ARG001", "ARG002"]
 
 [tool.ruff.format]
 quote-style = "double"

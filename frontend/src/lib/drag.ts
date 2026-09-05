@@ -45,7 +45,7 @@ export const EDGES = ["n", "s", "e", "w", "ne", "nw", "se", "sw"] as const;
  * were for. A magnet leaves most of the travel free and still lands a widget
  * flush when somebody meant it to be flush.
  */
-export const PULL = 0.25;
+const PULL = 0.25;
 
 function clamp(value: number, low: number, high: number): number {
   return Math.min(high, Math.max(low, value));
