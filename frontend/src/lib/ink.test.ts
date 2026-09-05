@@ -6,11 +6,21 @@ describe("inkVars", () => {
     expect(inkVars(null)).toEqual({});
   });
 
-  it("sets what a widget writes in and what the board inherits", () => {
+  it("sets both spellings, because the two ways text is coloured differ", () => {
     expect(inkVars({ color: "var(--color-chart-2)" })).toEqual({
-      "--color-foreground": "var(--color-chart-2)",
+      // What Tailwind's own utilities compile to, `text-foreground` included.
+      "--foreground": "var(--color-chart-2)",
+      "--card-foreground": "var(--color-chart-2)",
+      // What the hand-written `widget-text` utility reads, and unreachable
+      // through the name above it.
       "--color-card-foreground": "var(--color-chart-2)",
     });
+  });
+
+  it("leaves the body's colour alone, which is outside the board anyway", () => {
+    expect(inkVars({ color: "var(--color-chart-2)" })).not.toHaveProperty(
+      "--color-foreground",
+    );
   });
 
   it("leaves the muted colour alone, so a label stays dimmer than a reading", () => {
