@@ -8,8 +8,10 @@ and are enforced by the git hooks in `.githooks`, not by CI — there is none.
 ## Data flow (pages never fetch)
 
 `routes/` → `lib/api/<domain>.ts` → `lib/api/client.ts`. `client.ts` is the
-single place the API base URL and error shape live (there is no auth; streaming is the
-only allowed exception). `lib/schemas/` mirrors the backend Pydantic models.
+single place the API base URL and error shape live (there is no auth). Enforced by
+`no-restricted-globals` over `src/`, with two exemptions: streaming, and
+`lib/freshness.ts`, which asks the server for the page itself rather than for
+board data. `lib/schemas/` mirrors the backend Pydantic models.
 
 ## Design system (all ESLint errors — see `eslint.config.ts`)
 

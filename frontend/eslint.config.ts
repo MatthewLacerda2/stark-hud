@@ -111,6 +111,44 @@ export default tseslint.config(
       "better-tailwindcss/no-unknown-classes": "off",
     },
   },
+  // Pages never fetch.
+  //
+  // `lib/api/client.ts` is the one place the base URL and the error shape live,
+  // and everything else reaches the board through `lib/api/<domain>.ts`. That has
+  // been in `frontend/CLAUDE.md` since the beginning and nothing has ever checked
+  // it — it held because people remembered, which is not the same as it holding.
+  //
+  // Scoped to `src/`, with `lib/api/` exempt because that is where the one real
+  // call belongs. Tests are exempt too: stubbing the global is how you test the
+  // thing that is allowed to use it.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: ["src/lib/api/**", "src/**/*.test.{ts,tsx}"],
+    rules: {
+      "no-restricted-globals": [
+        "error",
+        {
+          name: "fetch",
+          message:
+            "Pages never fetch. Call lib/api/<domain>.ts, which calls lib/api/client.ts — the one place the base URL and error shape live.",
+        },
+        {
+          name: "XMLHttpRequest",
+          message:
+            "Pages never fetch. Call lib/api/<domain>.ts, which calls lib/api/client.ts.",
+        },
+      ],
+      "no-restricted-properties": [
+        "error",
+        {
+          object: "window",
+          property: "fetch",
+          message:
+            "Pages never fetch. Call lib/api/<domain>.ts, which calls lib/api/client.ts.",
+        },
+      ],
+    },
+  },
   // Build-time gates. These run in Node after vite, so the browser globals the
   // rest of this config assumes are the wrong set entirely.
   {
