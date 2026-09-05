@@ -12,11 +12,17 @@
 #   make check    everything, ~45s. What `pre-push` runs, and what has to be
 #                 green before anything leaves this machine.
 #
-# The interpreter finds itself: the local venv when there is one, else whatever
-# python3.12 is on PATH. A hook has no way to be told, and a person should not
-# have to remember a flag to run their own gates.
-PYTHON ?= $(shell test -x $(CURDIR)/backend/.venv/bin/python \
-            && echo $(CURDIR)/backend/.venv/bin/python || echo python3.12)
+# The interpreter finds itself: this tree's venv, else the main checkout's, else
+# whatever python3.12 is on PATH. A hook has no way to be told, and a person
+# should not have to remember a flag to run their own gates.
+#
+# The second place is not a nicety. Work here happens in worktrees, a worktree
+# has no `.venv` of its own, and the hooks are shared across all of them — so
+# without this the first commit from any new worktree is refused by a gate that
+# cannot find ruff. Which is exactly how this line came to be written.
+MAIN := $(shell git rev-parse --path-format=absolute --git-common-dir 2>/dev/null | sed 's|/\.git$$||')
+PYTHON ?= $(shell for p in "$(CURDIR)/backend/.venv/bin/python" "$(MAIN)/backend/.venv/bin/python"; \
+            do test -x "$$p" && echo "$$p" && exit 0; done; echo python3.12)
 BUN    ?= bun
 
 .DEFAULT_GOAL := check
