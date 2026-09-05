@@ -111,6 +111,14 @@ export default tseslint.config(
       "better-tailwindcss/no-unknown-classes": "off",
     },
   },
+  // Build-time gates. These run in Node after vite, so the browser globals the
+  // rest of this config assumes are the wrong set entirely.
+  {
+    files: ["scripts/**"],
+    languageOptions: {
+      globals: { console: "readonly", process: "readonly", URL: "readonly" },
+    },
+  },
   // ESLint rule sources and their tests are Node modules, not DOM/Tailwind code.
   {
     files: ["eslint-rules/**"],

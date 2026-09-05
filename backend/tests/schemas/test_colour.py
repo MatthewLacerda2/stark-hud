@@ -78,8 +78,13 @@ def test_the_tokens_are_the_ones_the_stylesheet_defines():
     rather than trusting the copy, so adding a colour to one and not the other
     fails a gate instead of a widget.
     """
-    css = Path(__file__).parents[3] / "frontend" / "src" / "styles.css"
-    theme = css.read_text(encoding="utf-8").split("@theme inline", 1)[1]
-    defined = set(re.findall(r"^\s*--color-([a-z0-9-]+):", theme, re.M))
+    css = (Path(__file__).parents[3] / "frontend" / "src" / "styles.css").read_text(
+        encoding="utf-8"
+    )
+    # From the block, not the first mention of it: the file explains `@theme` in a
+    # comment above it, and matching the word alone reads the prose instead.
+    theme = css[re.search(r"@theme[^{]*\{", css).start() :]
+    defined = set(re.findall(r"^\s*--color-([a-z0-9-]+):", theme, re.M)) - {"*"}
 
+    assert defined, "found no tokens in styles.css; a gate that reads nothing passes"
     assert defined == set(TOKENS)

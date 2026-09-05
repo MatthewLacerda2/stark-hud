@@ -3,18 +3,28 @@
 /*
  * THE DESIGN SYSTEM.
  *
- * `@theme inline` defines the ONLY tokens allowed in className:
+ * `@theme static inline` defines the ONLY tokens allowed in className:
  *   - a semantic typography scale (each token carries size/line-height/weight)
  *   - a semantic color palette (no raw palette, no hex/rgb literals)
  *
  * Tailwind's default color palette is cleared (`--color-*: initial`) so any
  * raw palette class (e.g. `bg-red-500`) generates NO CSS and is rejected by the
  * `better-tailwindcss/no-unknown-classes` lint rule.
+ *
+ * `static` is load-bearing, not tidiness. Without it Tailwind emits only the
+ * theme variables it can see a class using, and the last build shipped 8 of the
+ * 31 colours here. That is fine for anything written in this repo — a class
+ * Tailwind cannot see is a class nobody wrote — but the board takes colours over
+ * the wire too, and `backend/schemas/colour.py` turns a name into
+ * `var(--color-<name>)` for every one of them. A variable the build dropped
+ * resolves to nothing and the browser paints black, which is how three gauges
+ * came out as dark rings. `make frontend` checks the built stylesheet for all of
+ * them, so this cannot quietly come back.
  */
 
 @variant dark (&:where(.dark, .dark *));
 
-@theme inline {
+@theme static inline {
   /* --- Clear Tailwind's default palette: color is an allowlist. --- */
   --color-*: initial;
 

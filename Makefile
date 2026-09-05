@@ -15,7 +15,7 @@ check: backend agent frontend
 
 backend: back-lint back-build back-test
 agent:   agent-lint
-frontend: front-lint front-build front-test
+frontend: front-lint front-build front-theme front-test
 
 # ---------------------------------------------------------------------------
 # Backend gates  (run from backend/, driven by $(PYTHON))
@@ -62,12 +62,20 @@ agent-lint:
 # ---------------------------------------------------------------------------
 # Frontend gates  (run from frontend/, driven by $(BUN))
 # ---------------------------------------------------------------------------
-.PHONY: front-lint front-build front-test front-install
+.PHONY: front-lint front-build front-theme front-test front-install
 front-lint:
 	cd frontend && $(BUN) run check
 
 front-build:
 	cd frontend && $(BUN) run build
+
+# Reads the built stylesheet, not the source. Tailwind emits only the theme
+# variables it sees a class using, and the board takes colour names over the
+# wire — so a name the backend accepts can be one the build dropped, which the
+# browser resolves to nothing and paints black. Runs after front-build for the
+# obvious reason: there is no artefact to read before it.
+front-theme:
+	cd frontend && $(BUN) run check-theme
 
 front-test:
 	cd frontend && $(BUN) run test

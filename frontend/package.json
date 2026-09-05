@@ -9,7 +9,8 @@
     "check": "tsc --noEmit && eslint . && prettier --check .",
     "fix": "eslint --fix . && prettier --write .",
     "test": "vitest run",
-    "prepare": "husky"
+    "prepare": "husky",
+    "check-theme": "node scripts/check-theme.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "5.102.2",
