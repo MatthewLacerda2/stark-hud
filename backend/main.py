@@ -121,7 +121,10 @@ def create_app() -> FastAPI:
 
     app.state.limiter = limiter
     app.add_middleware(SlowAPIMiddleware)
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
+    # slowapi types its handler to RateLimitExceeded; Starlette's registry wants
+    # one typed to Exception. Both are correct and neither can give way, so this
+    # is a mismatch between two libraries rather than anything to fix here.
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)  # type: ignore[arg-type]
     app.add_exception_handler(BoardFullError, _board_full_handler)
     app.add_exception_handler(SlotTakenError, _slot_taken_handler)
     app.add_exception_handler(KeyTakenError, _key_taken_handler)

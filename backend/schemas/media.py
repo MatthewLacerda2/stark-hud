@@ -180,6 +180,8 @@ class MediaTrack(BaseModel):
             # YouTube's player hands one over.
             self.title = self.title or found
             return self
+        if self.path is None:
+            raise ValueError("a track needs either a path on this machine or a YouTube link")
         if self.kind is None or self.kind == "youtube":
             kind = kind_of(self.path)
             if kind is None:

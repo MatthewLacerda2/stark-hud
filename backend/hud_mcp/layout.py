@@ -1,12 +1,14 @@
 """MCP tools that move, remove, and report on what is already there."""
 
+from typing import cast
+
 from mcp.server.mcpserver import MCPServer
 from pydantic import ValidationError
 
 from core.hub import hub
 from hud_mcp.common import describe
 from repositories import board as repo
-from schemas.board import Arrangement, ItemUpdate
+from schemas.board import Arrangement, Change, ItemUpdate
 from services import arrange as arrange_service
 from services import board as service
 from services.arrange import RepeatedTargetError, UnknownTargetError
@@ -61,7 +63,8 @@ def register(server: MCPServer) -> None:
         to ask.
         """
         try:
-            batch = Arrangement(changes=[dict(c) for c in changes])
+            # Pydantic turns the dicts into Changes on the way in; the cast says so.
+            batch = Arrangement(changes=cast(list[Change], [dict(c) for c in changes]))
             items = arrange_service.rearrange(batch.changes)
         except ValidationError as exc:
             return f"Not rearranged: {exc.error_count()} bad change(s) — {exc.errors()[0]['msg']}"

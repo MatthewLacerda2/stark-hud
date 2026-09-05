@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
 
 from repositories import board as repo
+from schemas.board import ImagePayload, VideoPayload
 from schemas.media import media_type
 from services import board as service
 from services import media as media_service
@@ -49,7 +50,9 @@ async def get_background_media() -> FileResponse:
 async def get_media(item_id: str) -> FileResponse:
     """Stream the file behind an image or video item."""
     item = repo.get(item_id)
-    if item is None or item.payload.kind not in _MEDIA_KINDS:
+    # isinstance rather than the kind set: both say the same thing, and only one
+    # of them tells the type checker that `.path` is there to be read.
+    if item is None or not isinstance(item.payload, ImagePayload | VideoPayload):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No media for that id")
     return _stream(item.payload.path)
 

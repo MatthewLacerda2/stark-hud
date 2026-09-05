@@ -39,8 +39,13 @@ def _is_under_tests(path: Path) -> bool:
     return "tests" in path.parts
 
 
-def _node_line_span(node: ast.AST) -> int:
-    """Number of lines a function spans, excluding decorators."""
+def _node_line_span(node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
+    """Number of lines a function spans, excluding decorators.
+
+    Typed to the two nodes it is ever called with. `ast.AST` was wider than the
+    truth and cost the caller nothing, but it also meant `.lineno` was being read
+    off a base class that does not have it.
+    """
     start = node.lineno  # `def`/`async def` line, after decorators
     end = node.end_lineno or start
     return end - start + 1

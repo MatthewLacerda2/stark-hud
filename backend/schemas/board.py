@@ -16,6 +16,7 @@ from schemas.payloads import (
     ChartAxes,
     ChartKind,
     ChartPayload,
+    ChartThreshold,
     ClockPayload,
     Countdown,
     CountdownPayload,
@@ -31,6 +32,7 @@ from schemas.payloads import (
     NotePayload,
     Payload,
     TextPayload,
+    TextSize,
     VideoPayload,
 )
 
@@ -39,6 +41,7 @@ __all__ = [
     "ChartAxes",
     "ChartKind",
     "ChartPayload",
+    "ChartThreshold",
     "ClockPayload",
     "Countdown",
     "CountdownPayload",
@@ -58,6 +61,7 @@ __all__ = [
     "Playback",
     "PlaybackReport",
     "TextPayload",
+    "TextSize",
     "VideoPayload",
 ]
 

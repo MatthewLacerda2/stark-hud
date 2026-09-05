@@ -10,7 +10,7 @@ from mcp.server.mcpserver import MCPServer
 
 from core.hub import hub
 from repositories import board as repo
-from schemas.board import ItemRead, ItemUpdate, ListEntry
+from schemas.board import ItemRead, ItemUpdate, ListEntry, ListPayload
 from services import board as service
 
 
@@ -22,10 +22,17 @@ def _text(entry: str | ListEntry) -> str:
 def register(server: MCPServer) -> None:
     """Attach the list tools to the server."""
 
-    def _list(item_id: str) -> ItemRead | None:
-        """The item with that id, when it is a list and not something else."""
+    def _list(item_id: str) -> tuple[ItemRead, ListPayload] | None:
+        """The item with that id, when it is a list and not something else.
+
+        The payload comes back beside the item: the check that it *is* a list
+        happens here, and returning only the item throws that away — every
+        caller would then read `.items` off a union of thirteen payload kinds.
+        """
         item = repo.get(item_id)
-        return item if item is not None and item.payload.kind == "list" else None
+        if item is None or not isinstance(item.payload, ListPayload):
+            return None
+        return item, item.payload
 
     async def _write(item: ItemRead, entries: list[str | ListEntry]) -> None:
         """Put these entries in place of the old ones and tell every board."""
@@ -62,9 +69,10 @@ def register(server: MCPServer) -> None:
 
         Find the id with list_items.
         """
-        item = _list(item_id)
-        if item is None:
+        found = _list(item_id)
+        if found is None:
             return f"No list {item_id}. Call list_items to see what is there."
+        item, shown = found
         entry: str | ListEntry = title
         extras = (body, icon, title_color, body_color, icon_color)
         if any(extra is not None for extra in extras):
@@ -79,7 +87,7 @@ def register(server: MCPServer) -> None:
                 )
             except ValueError as exc:
                 return f"Not added: {exc}"
-        entries = [*item.payload.items, entry]
+        entries = [*shown.items, entry]
         await _write(item, entries)
         return f"Added {title!r} to list {item_id} ({len(entries)} entries)"
 
@@ -93,10 +101,11 @@ def register(server: MCPServer) -> None:
         rest are left alone. Getting the text wrong is safe — the answer says
         what the list actually holds.
         """
-        item = _list(item_id)
-        if item is None:
+        holder = _list(item_id)
+        if holder is None:
             return f"No list {item_id}. Call list_items to see what is there."
-        entries = list(item.payload.items)
+        item, shown = holder
+        entries = list(shown.items)
         wanted = title.strip().casefold()
         found = next(
             (i for i, entry in enumerate(entries) if _text(entry).strip().casefold() == wanted),

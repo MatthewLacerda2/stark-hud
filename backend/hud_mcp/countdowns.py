@@ -21,10 +21,19 @@ from schemas.board import Countdown, CountdownPayload, ItemRead, ItemUpdate
 from services import board as service
 
 
-def _stack(item_id: str) -> ItemRead | None:
-    """The item with that id or key, when it is a countdown and not something else."""
+def _stack(item_id: str) -> tuple[ItemRead, CountdownPayload] | None:
+    """The item with that id or key, when it is a countdown and not something else.
+
+    The payload comes back beside the item because the check that it *is* a
+    countdown happens here, and handing back only the item throws that away:
+    every caller would then be reading `.items` off a union of thirteen payload
+    kinds, most of which have no such field. The check was always here — this
+    just stops it being forgotten on the way out.
+    """
     item = repo.get(item_id) or repo.get_by_key(item_id)
-    return item if item is not None and item.payload.kind == "countdown" else None
+    if item is None or not isinstance(item.payload, CountdownPayload):
+        return None
+    return item, item.payload
 
 
 def register(server: MCPServer) -> None:
@@ -88,9 +97,10 @@ def register(server: MCPServer) -> None:
         Without a zone it is read as this machine's local time, which is the one
         the television is standing in.
         """
-        item = _stack(item_id)
-        if item is None:
+        found = _stack(item_id)
+        if found is None:
             return f"No countdown {item_id}. Call list_items to see what is there."
+        item, stack = found
         try:
             entry = Countdown(
                 title=title,
@@ -102,8 +112,8 @@ def register(server: MCPServer) -> None:
             return f"Not added: {exc}"
         if entry.end is not None and entry.end <= entry.start:
             return f"Not added: {title!r} would end at or before it starts."
-        await _write(item, [*item.payload.items, entry])
-        return f"Added {title!r} to {item_id}, which now holds {len(item.payload.items) + 1}"
+        await _write(item, [*stack.items, entry])
+        return f"Added {title!r} to {item_id}, which now holds {len(stack.items) + 1}"
 
     @server.tool()
     async def remove_from_countdown(item_id: str, title: str) -> str:
@@ -112,12 +122,13 @@ def register(server: MCPServer) -> None:
         An entry drops out of the drawing by itself twelve hours after it ends.
         This is for taking one off before that — something cancelled, or moved.
         """
-        item = _stack(item_id)
-        if item is None:
+        found = _stack(item_id)
+        if found is None:
             return f"No countdown {item_id}. Call list_items to see what is there."
-        kept = [entry for entry in item.payload.items if entry.title != title]
-        if len(kept) == len(item.payload.items):
-            held = ", ".join(repr(e.title) for e in item.payload.items) or "nothing"
+        item, stack = found
+        kept = [entry for entry in stack.items if entry.title != title]
+        if len(kept) == len(stack.items):
+            held = ", ".join(repr(e.title) for e in stack.items) or "nothing"
             return f"No {title!r} in {item_id}. It holds {held}."
         await _write(item, kept)
         return f"Removed {title!r} from {item_id}, which now holds {len(kept)}"
