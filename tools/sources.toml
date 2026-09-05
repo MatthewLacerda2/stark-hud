@@ -78,3 +78,20 @@ name = "inbox"
 every = 60
 place = { x = 23, y = 5, w = 9, h = 13 }
 panel = { kind = "inbox" }
+
+# The machine's own announcements, in the inbox rather than in a panel.
+#
+# `notifications = true` is the whole difference: the rows this prints are
+# notifications already shaped, so there is no `panel` and no `place` — the
+# inbox is one widget and it is already on the board.
+#
+# Five minutes, not five seconds. Nothing here changes quickly, the journal
+# query is the most expensive thing this agent runs, and an inbox that fills
+# faster than somebody walks past it is a worse inbox. The agent only posts what
+# was not already true on the previous run, so a disk that stays full says so
+# once rather than every five minutes for a week.
+[[source]]
+name = "alerts"
+command = "python3 {collectors}/alerts.py"
+every = 300
+notifications = true

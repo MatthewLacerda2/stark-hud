@@ -7,7 +7,7 @@ this text, produce these rows — which is why each collector now has a `parse`
 or a `row` beside the part that goes out and gets it.
 """
 
-from tools.collectors import cpu, github_commits, gpu, mem, temps, tmux_sessions
+from tools.collectors import alerts, cpu, github_commits, gpu, mem, temps, tmux_sessions
 
 PROC_STAT = """\
 cpu  100 0 100 800 0 0 0 0 0 0
@@ -115,3 +115,84 @@ def test_a_commit_missing_its_committer_costs_that_line_and_no_more():
 def test_a_search_that_failed_is_not_an_empty_feed():
     """None means the call did not happen; the agent leaves the last good panel up."""
     assert github_commits.entries(None) == []
+
+
+DF = """\
+Filesystem     Type 1024-blocks      Used Available Capacity Mounted on
+/dev/sdb2      ext4   229695416 152000000  66000000      71% /
+/dev/sda1      ext4   977272000 900000000  27000000      97% /mnt/d_drive
+tmpfs          tmpfs    8000000   8000000         0     100% /run/user/1000
+"""
+
+FAILED = """\
+sshd.service loaded failed failed OpenSSH Daemon
+backup.timer loaded failed failed Nightly backup
+"""
+
+JOURNAL = """\
+{"_SYSTEMD_UNIT": "kernel", "MESSAGE": "probe failed"}
+{"_SYSTEMD_UNIT": "kernel", "MESSAGE": "probe failed again"}
+{"SYSLOG_IDENTIFIER": "gdm", "MESSAGE": "no control file"}
+not json at all
+"""
+
+
+def test_a_full_disk_is_announced_and_a_comfortable_one_is_not():
+    """The gauges already say 71%. An inbox is for what somebody should act on."""
+    rows = alerts.full(DF)
+
+    assert [row["title"] for row in rows] == ["/mnt/d_drive is 97% full"]
+    assert rows[0]["level"] == "error"
+
+
+def test_a_tmpfs_at_a_hundred_per_cent_is_not_news():
+    """It is memory wearing a disk's clothes, and it is always like that."""
+    assert not [row for row in alerts.full(DF, limit=99) if "run/user" in row["title"]]
+
+
+def test_a_disk_filling_further_keeps_the_same_key():
+    """Otherwise every extra per cent is a fresh announcement about one fact."""
+    fuller = DF.replace("97%", "98%")
+
+    assert alerts.full(DF)[0]["key"] == alerts.full(fuller)[0]["key"]
+
+
+def test_every_failed_unit_gets_its_own_line():
+    rows = alerts.failed(FAILED, "system")
+
+    assert [row["title"] for row in rows] == [
+        "sshd.service has failed",
+        "backup.timer has failed",
+    ]
+    assert all(row["level"] == "error" for row in rows)
+
+
+def test_a_kernel_that_is_still_installed_is_not_a_reason_to_restart():
+    assert alerts.stale_kernel("6.17.1-arch1", ["6.17.1-arch1"]) == []
+    assert alerts.stale_kernel("", []) == []
+
+
+def test_a_kernel_no_longer_on_disk_asks_for_a_restart():
+    rows = alerts.stale_kernel("6.17.1-arch1", ["6.18.0-arch1"])
+
+    assert rows[0]["key"] == "reboot"
+    assert "6.17.1-arch1" in rows[0]["body"]
+
+
+def test_errors_are_grouped_by_who_logged_them():
+    """Twenty-four identical complaints are one thing to know, not twenty-four."""
+    rows = alerts.noisy(JOURNAL)
+
+    assert rows[0]["title"] == "kernel logged 2 errors"
+    assert rows[0]["body"] == "probe failed again"
+
+
+def test_a_single_error_is_not_pluralised():
+    assert "1 error" in alerts.noisy(JOURNAL)[1]["title"]
+    assert "1 errors" not in alerts.noisy(JOURNAL)[1]["title"]
+
+
+def test_nothing_upgradable_says_nothing():
+    """An empty inbox line is worse than no line: it costs a look and pays nothing."""
+    assert alerts.waiting("") == []
+    assert alerts.waiting("chromium 150.0-1 -> 151.0-1")[0]["key"] == "updates"

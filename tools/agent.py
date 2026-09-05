@@ -67,6 +67,15 @@ class Board:
             print(f"  ! {method} {path}: {exc}", file=sys.stderr)
         return None
 
+    def announce(self, entry: dict) -> None:
+        """Put one line in the board's inbox.
+
+        A different verb from `write` because it is a different thing. A panel is
+        replaced and holds one current value; a notification is an event, and the
+        board keeps every one it is given until it ages out.
+        """
+        self.call("POST", "/notifications", entry)
+
     def write(self, key: str, payload: dict, place: dict) -> None:
         """Create or update the panel called ``key``.
 
@@ -147,6 +156,11 @@ def read_source(source: dict) -> list[Row] | str | None:
 
 
 # ------------------------------------------------------------------ running
+def _mark(row: Row) -> str:
+    """What makes this announcement the same announcement as last time."""
+    return str(row.get("key") or row.get("title", ""))
+
+
 class Source:
     """One declared source, and when it is next due."""
 
@@ -159,6 +173,29 @@ class Source:
         # last N samples so a collector never has to remember anything.
         depth = int(spec.get("history", 0))
         self.history: deque[Row] | None = deque(maxlen=depth) if depth else None
+        # `notifications = true` sends what this source prints to the inbox
+        # instead of into a panel. There is no `panel` on such a source: the rows
+        # are the notifications, already shaped.
+        self.announces = bool(spec.get("notifications", False))
+        # What was true last time this ran. Not what has ever been said: a
+        # condition that clears and comes back is news again, and remembering it
+        # forever would silence the second time a disk filled up.
+        self.said: set[str] = set()
+
+    def news(self, rows: list[Row]) -> list[Row]:
+        """The rows that were not already true last time, ready to post.
+
+        Identity is `key` where there is one, because a title carries the number
+        and the number moves: "3 packages" and "4 packages" are one piece of news
+        told twice, and an inbox that repeats itself is one nobody reads.
+
+        `key` is dropped on the way out. It is this agent's bookkeeping and the
+        board has never heard of it — the notification model forbids fields it
+        does not know, so leaving it on would turn every announcement into a 422.
+        """
+        fresh = [row for row in rows if _mark(row) not in self.said]
+        self.said = {_mark(row) for row in rows}
+        return [{k: v for k, v in row.items() if k != "key"} for row in fresh]
 
     def payload(self, produced: list[Row] | str) -> dict:
         """Fold what the source produced into the declared panel.
@@ -204,6 +241,10 @@ def tick(board: Board, sources: list[Source], now: float) -> None:
         source.due = now + source.every
         produced = read_source(source.spec)
         if produced is None:
+            continue
+        if source.announces:
+            for entry in source.news(produced if isinstance(produced, list) else []):
+                board.announce(entry)
             continue
         board.write(source.name, source.payload(produced), source.spec.get("place", {}))
 
