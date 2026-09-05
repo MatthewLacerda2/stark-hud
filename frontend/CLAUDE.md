@@ -3,7 +3,7 @@
 React 19 + TanStack Router/Query + Tailwind, with a token-based design system
 enforced by ESLint. The root `CLAUDE.md` is the source of truth; this file is
 the frontend-local view. Gates live in the root `Makefile` (`make frontend`)
-and run identically in CI.
+and are enforced by the git hooks in `.githooks`, not by CI — there is none.
 
 ## Data flow (pages never fetch)
 

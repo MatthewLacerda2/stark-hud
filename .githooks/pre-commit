@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#
+# Every linter, before every commit.
+#
+# Fast on purpose. This board is committed to in small steps, and a hook that
+# costs forty seconds is one that gets --no-verify'd within a week — at which
+# point it is worse than no hook at all, because everybody believes it ran.
+#
+# So this is `make gate` and not `make check`: no type check, no build, no
+# tests. The full thing runs on push, which is where it belongs — a bad commit
+# is local and cheap, a bad push is what other machines pull.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+exec make --no-print-directory gate
