@@ -32,5 +32,6 @@ def test_instructions_cover_what_a_session_cannot_guess() -> None:
         "free tier",  # what saying something out loud costs, and who pays
         "decimals",  # that the board is a space, not a set of slots
         "arrange",  # that several widgets move as one, or a swap looks impossible
+        "show_group",  # that the board holds several screens and turns to one
     ):
         assert fact in instructions, f"instructions no longer mention {fact!r}"

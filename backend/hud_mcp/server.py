@@ -74,11 +74,15 @@ The board is kept on disk and comes back after a restart, widgets and
 notifications alike, so what you leave there is what a human finds later.
 
 It holds more than one screenful as groups. A group is a widget that holds
-widgets: group_items makes one and nothing moves, fold_group closes it and its
-widgets come off the board, replaced by one small widget showing the icons of
-what is inside. That is how the board carries the weather and the work at the
-same time and shows one of them. Unfolding puts everything back where it was,
-and is refused if something has taken the room in the meantime.
+widgets, and group_items makes one without moving anything. show_group turns the
+whole board to one: it opens, and every other group goes away — drawing nothing
+and taking no room — so each group can be laid out across the entire board and
+still only one is on the television. A screen that is away is not asleep, its
+widgets go on taking writes by key, so turning back to one is a cut to something
+already current rather than a rebuild. fold_group is the smaller move: the
+widgets come off the board and one small widget showing the icons of what is
+inside takes their place, where they were. Unfolding puts everything back, and
+is refused if something has taken the room in the meantime.
 
 Widgets are written whole: to change a chart or a feed, write it again with
 everything in it. A list somebody is keeping is the exception — add_to_list and

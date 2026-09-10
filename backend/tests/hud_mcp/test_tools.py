@@ -51,6 +51,7 @@ EXPECTED = {
     "set_ink",
     "set_media_mode",
     "set_media_queue",
+    "show_group",
     "set_style",
     "speak",
     "set_description",

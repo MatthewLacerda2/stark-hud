@@ -6,7 +6,7 @@ from mcp.server.mcpserver import MCPServer
 from pydantic import ValidationError
 
 from core.hub import hub
-from hud_mcp.common import describe
+from hud_mcp.common import describe, screens
 from repositories import board as repo
 from schemas.board import Arrangement, Change, ItemUpdate
 from services import arrange as arrange_service
@@ -210,4 +210,8 @@ def register(server: MCPServer) -> None:
             f"Board {size(status.cols, status.rows)}, {status.item_count} items. "
             f"{cells(status.cells_used)}/{cells(status.cells_total)} cells used, "
             f"{cells(status.cells_free)} free. Largest free rectangle: {largest}."
+            # What is counted is what takes room, and a group that is away takes
+            # none. Saying so here is the difference between a board with space
+            # and a board with a screen you have not looked at.
+            f"{screens()}"
         )
