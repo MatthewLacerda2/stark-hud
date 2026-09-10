@@ -20,12 +20,22 @@ name = "cpu"
 command = "python3 {collectors}/cpu.py"
 every = 3
 place = { x = 0, y = 0, w = 12, h = 7 }
-# Bars and nothing else. No title and no axis: the icon at the origin says what
-# this is, the ceiling is already fixed at 100, and a core number under each bar
-# is a thing to read on a widget meant to be understood without reading. The
-# axis stays declared as `none` rather than dropped, because it is still what
-# holds the bars to 100 — hidden, it gives its room back to the marks.
-panel = { kind = "chart", chart = "bar", x_key = "core", series = ["use"], max = 100, axes = "none", colors = ["#ffffffa6"], icon = "cpu" }
+# A shape and nothing else. Eight spokes, one per logical core, and the polygon
+# is the whole reading: a spike is one core pegged, a fat blob is all of them.
+# That is one glance from the sofa where eight bars were eight heights to scan.
+#
+# No title and no spoke labels: the icon at the origin says what this is, and a
+# core number on each spoke is a thing to read on a widget meant to be
+# understood without reading. `axes` is dropped rather than left at `none` — it
+# is a cartesian setting and a radar has no cartesian axes. `max` is what holds
+# the polygon to 100 now, and the grid behind it stays drawn so an idle machine
+# reads as quiet rather than as broken.
+#
+# The rows arrive already in ring order: `collectors/cpu.py` reads the kernel's
+# sibling map and puts the two threads of one physical core side by side. This
+# machine enumerates them 0,4 — opposite spokes — and left alone one busy core
+# would draw as two thin spikes facing each other instead of one lobe.
+panel = { kind = "chart", chart = "radar", x_key = "core", series = ["use"], max = 100, colors = ["#ffffffa6"], icon = "cpu" }
 
 [[source]]
 name = "mem"
