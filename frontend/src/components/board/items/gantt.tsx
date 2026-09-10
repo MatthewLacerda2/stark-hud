@@ -4,7 +4,7 @@ import { Icon } from "@/components/board/icon";
 import { useClock } from "@/hooks/use-clock";
 import { useFitting } from "@/hooks/use-fitting";
 import { carriesAlpha } from "@/lib/colour";
-import { NAMES, label, marks, place, roomy, span, tone } from "@/lib/gantt";
+import { NAMES, marks, place, roomy, span, tone } from "@/lib/gantt";
 import { cn } from "@/lib/utils";
 
 /**
@@ -27,15 +27,17 @@ const WASH = 0.35;
  * Nothing writes to it. The instants arrive once and the browser works out the
  * geometry on every tick, so an evening dictated at 18:00 plays itself out
  * until midnight — including the scale, which is the smallest step covering the
- * next few bars and re-tunes itself as the clock passes each of them. That is
- * also why the span is stated in the corner: width means nothing without the
- * frame it is drawn in, and a scale that changed silently would make the same
- * task look like a different amount of work between two glances.
+ * next few bars and re-tunes itself as the clock passes each of them.
  *
- * Above the bars the block boundaries are written out as times, so the shape
- * can be turned into a plan without counting across from the edge. Only the
- * edges inside the window, only one mark where two blocks meet, and a mark that
- * would collide with its neighbour comes off rather than being shrunk.
+ * Above the bars the block boundaries are written out as times, so the shape can
+ * be turned into a plan without counting across from the edge. Only the edges
+ * inside the window, only one mark where two blocks meet, and a mark that would
+ * collide with its neighbour comes off rather than being shrunk.
+ *
+ * Those times are also what says how wide the frame is, which is why nothing
+ * states the span on its own any more. Width means nothing without the frame it
+ * is drawn in — but a scale that re-tunes itself silently is no longer a trap
+ * once the hours are written on it.
  *
  * The left edge is *now*, so there is no marker for it and nothing behind it is
  * drawn: a bar already running is clipped to that edge, which reads correctly
@@ -71,18 +73,11 @@ export function Gantt({
 
   return (
     <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl widget-surface widget-edge p-5 widget-text">
-      {rows.length > 0 || payload.title ? (
-        <div className="flex shrink-0 items-baseline gap-2">
-          <h3 className="flex min-w-0 flex-1 items-center gap-2 truncate text-node font-semibold tracking-tight">
-            <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />
-            {payload.title}
-          </h3>
-          {rows.length > 0 ? (
-            <span className="shrink-0 text-node-sm opacity-50">
-              {label(window)}
-            </span>
-          ) : null}
-        </div>
+      {payload.title || payload.icon ? (
+        <h3 className="flex shrink-0 items-center gap-2 truncate text-node font-semibold tracking-tight">
+          <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />
+          {payload.title}
+        </h3>
       ) : null}
       {rows.length > 0 ? (
         <div className="flex shrink-0 items-stretch gap-2 text-node-sm">

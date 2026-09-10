@@ -83,8 +83,15 @@ async function show(rows: GanttRow[], cols = 12) {
   };
 }
 
+/** The 24-hour form the axis writes, derived so this holds in any timezone. */
+function at(offset: number): string {
+  const when = new Date(NOW + offset);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${pad(when.getHours())}:${pad(when.getMinutes())}`;
+}
+
 describe("a gantt", () => {
-  it("draws a row per track and states the span it is drawn in", async () => {
+  it("draws a row per track", async () => {
     const { rows, text } = await show([
       { name: "Kitchen", bars: [bar("sauce", -10 * MINUTE, 25 * MINUTE)] },
       { name: "Laundry", bars: [bar("wash", 15 * MINUTE, 45 * MINUTE)] },
@@ -93,9 +100,6 @@ describe("a gantt", () => {
     expect(rows()).toHaveLength(2);
     expect(text()).toContain("Kitchen");
     expect(text()).toContain("Laundry");
-    // Width is the only thing here carrying duration, and it says nothing
-    // without the frame it is drawn in.
-    expect(text()).toContain("1h");
   });
 
   it("says its empty line rather than drawing an axis over nothing", async () => {
@@ -133,10 +137,11 @@ describe("a gantt", () => {
       { name: "Film", bars: [bar("watch", 3 * HOUR, 4 * HOUR)] },
     ]);
 
-    // The row is on screen and the frame is four hours wide; what is missing
-    // is the word inside a bar 6% of the way across it.
+    // The row is on screen and the frame is four hours wide — the film's start
+    // is marked three quarters of the way along it. What is missing is the word
+    // inside a bar 6% of the way across.
     expect(text()).toContain("Kitchen");
-    expect(text()).toContain("4h");
+    expect(text()).toContain(at(3 * HOUR));
     expect(text()).not.toContain("sauce");
   });
 
@@ -160,13 +165,6 @@ describe("a gantt", () => {
 });
 
 describe("the time axis", () => {
-  /** The same 24-hour form the axis writes, derived so any timezone passes. */
-  const at = (offset: number) => {
-    const when = new Date(NOW + offset);
-    const pad = (value: number) => String(value).padStart(2, "0");
-    return `${pad(when.getHours())}:${pad(when.getMinutes())}`;
-  };
-
   it("writes each block's start and end above the bars", async () => {
     const view = await show([
       { name: "Kitchen", bars: [bar("sauce", 10 * MINUTE, 25 * MINUTE)] },
