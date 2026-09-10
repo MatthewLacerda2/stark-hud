@@ -135,20 +135,6 @@ export function place(bar: GanttBar, now: number, window: number): Slot | null {
 }
 
 /**
- * The window's width, said in one short mark: `4h`.
- *
- * Not chrome — chrome is what makes a widget easier to grab or configure, and
- * this is an axis. Width is the only thing here encoding duration and it means
- * nothing without the frame it is drawn in.
- */
-export function label(window: number): string {
-  if (window < HOUR) return `${Math.round(window / MINUTE)}m`;
-  if (window < DAY) return `${Math.round(window / HOUR)}h`;
-  if (window < WEEK) return `${Math.round(window / DAY)}d`;
-  return `${Math.round(window / WEEK)}w`;
-}
-
-/**
  * Whether a bar this wide has room for its own name.
  *
  * It falls out of the zoom rule for free: a tight window has fat bars with

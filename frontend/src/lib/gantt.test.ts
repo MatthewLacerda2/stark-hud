@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from "vitest";
 import type { GanttRow } from "@/lib/schemas/board";
-import { label, marks, place, roomy, span, step, STEPS } from "@/lib/gantt";
+import { marks, place, roomy, span, step, STEPS } from "@/lib/gantt";
 
 const NOW = new Date("2026-09-04T18:00:00Z").getTime();
 const MINUTE = 60_000;
@@ -63,7 +63,6 @@ describe("the window", () => {
     ];
 
     expect(span(far, NOW)).toBe(21 * DAY);
-    expect(label(span(far, NOW))).toBe("3w");
   });
 
   it("keeps doubling past the last rung rather than clipping", () => {
@@ -77,15 +76,6 @@ describe("the window", () => {
     expect(
       span([{ name: "Kitchen", bars: [bar("sauce", -2 * HOUR, -HOUR)] }], NOW),
     ).toBe(5 * MINUTE);
-  });
-});
-
-describe("the span mark", () => {
-  it("says the frame in one short word", () => {
-    expect(label(30 * MINUTE)).toBe("30m");
-    expect(label(4 * HOUR)).toBe("4h");
-    expect(label(3 * DAY)).toBe("3d");
-    expect(label(14 * DAY)).toBe("2w");
   });
 });
 
