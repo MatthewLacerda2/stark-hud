@@ -171,3 +171,67 @@ const SLOTS = 5;
 export function tone(row: number): string {
   return `var(--chart-${(row % SLOTS) + 1})`;
 }
+
+/**
+ * The narrowest two time marks can sit and still both be read, in cells.
+ *
+ * `04:20` at the size these are drawn is about a cell and a half on this
+ * television. Two marks closer than that are one smudge, so the later one comes
+ * off rather than being shrunk — the same trade a bar's name makes, and for the
+ * same reason: there is no font size at which crowding becomes legible.
+ */
+export const MARK_CELLS = 1.8;
+
+/** A time written on the axis, and where along the window it falls. */
+export interface Mark {
+  /** Fraction of the window: 0 at *now*, 1 at its right edge. */
+  at: number;
+  /** `HH:MM`, the 24-hour form the clock beside it is written in. */
+  text: string;
+}
+
+const pad = (value: number) => String(value).padStart(2, "0");
+
+/** A time of day with no date on it: the window is one frame, never two. */
+function clock(at: number): string {
+  const when = new Date(at);
+  return `${pad(when.getHours())}:${pad(when.getMinutes())}`;
+}
+
+/**
+ * The times to write above the bars: where each block starts and ends.
+ *
+ * Only the edges inside the window. A bar already running started before *now*
+ * and one running past the right edge ends after it, and neither instant is on
+ * the screen to be labelled — the same clipping `place` does, asked the other
+ * way round.
+ *
+ * Two blocks that meet share an edge and so share one mark rather than printing
+ * the same time twice. Past that, a mark that would collide with the one before
+ * it is dropped: a crowded axis says less than a sparse one, and the bars
+ * underneath still show where every boundary is.
+ */
+export function marks(
+  rows: GanttRow[],
+  now: number,
+  window: number,
+  cols: number,
+): Mark[] {
+  const edges = new Set<number>();
+  for (const row of rows) {
+    for (const bar of row.bars) {
+      edges.add(new Date(bar.start).getTime());
+      edges.add(finish(bar));
+    }
+  }
+
+  const room = MARK_CELLS / (cols * (1 - NAMES));
+  const kept: Mark[] = [];
+  for (const at of [...edges].sort((a, b) => a - b)) {
+    if (at < now || at > now + window) continue;
+    const mark = { at: (at - now) / window, text: clock(at) };
+    const last = kept[kept.length - 1];
+    if (last === undefined || mark.at - last.at >= room) kept.push(mark);
+  }
+  return kept;
+}

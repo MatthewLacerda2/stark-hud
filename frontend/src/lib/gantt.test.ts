@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from "vitest";
 import type { GanttRow } from "@/lib/schemas/board";
-import { label, place, roomy, span, step, STEPS } from "@/lib/gantt";
+import { label, marks, place, roomy, span, step, STEPS } from "@/lib/gantt";
 
 const NOW = new Date("2026-09-04T18:00:00Z").getTime();
 const MINUTE = 60_000;
@@ -125,5 +125,73 @@ describe("whether a bar can hold its own name", () => {
     // The same share of a widget four cells across is a fifth of the room.
     expect(roomy(0.5, 12)).toBe(true);
     expect(roomy(0.5, 4)).toBe(false);
+  });
+});
+
+describe("the times written above the bars", () => {
+  const one = (from: number, to: number): GanttRow[] => [
+    { name: "Kitchen", bars: [bar("sauce", from, to)] },
+  ];
+
+  it("marks where a block starts and where it ends", () => {
+    const at = marks(one(10 * MINUTE, 25 * MINUTE), NOW, HOUR, 12);
+    expect(at.map((mark) => mark.at)).toEqual([10 / 60, 25 / 60]);
+  });
+
+  it("prints one mark where two blocks meet, not the same time twice", () => {
+    const rows: GanttRow[] = [
+      {
+        name: "Kitchen",
+        bars: [
+          bar("sauce", 10 * MINUTE, 25 * MINUTE),
+          bar("bake", 25 * MINUTE, 45 * MINUTE),
+        ],
+      },
+    ];
+    expect(marks(rows, NOW, HOUR, 12)).toHaveLength(3);
+  });
+
+  it("leaves out an edge that is not on the screen", () => {
+    // Started before now: the instant is behind the left edge, so there is
+    // nothing there to label. Only the end of it is in the window.
+    expect(marks(one(-10 * MINUTE, 25 * MINUTE), NOW, HOUR, 12)).toHaveLength(
+      1,
+    );
+    // Ends past the right edge, the same way round.
+    expect(marks(one(30 * MINUTE, 2 * HOUR), NOW, HOUR, 12)).toHaveLength(1);
+  });
+
+  it("drops a mark that would collide rather than shrinking it", () => {
+    // Two minutes apart in an hour-wide window is 3% of the width; the two
+    // times would be one smudge, so the second comes off.
+    expect(marks(one(10 * MINUTE, 12 * MINUTE), NOW, HOUR, 12)).toHaveLength(1);
+  });
+
+  it("asks the widget how wide it is before deciding they collide", () => {
+    const rows = one(10 * MINUTE, 22 * MINUTE);
+    expect(marks(rows, NOW, HOUR, 16)).toHaveLength(2);
+    expect(marks(rows, NOW, HOUR, 4)).toHaveLength(1);
+  });
+
+  it("writes a time of day, zero-padded, with no date on it", () => {
+    // Built and read in local time, so this is true wherever the suite runs.
+    const six = new Date(2026, 8, 4, 18, 0).getTime();
+    const rows: GanttRow[] = [
+      {
+        name: "Kitchen",
+        bars: [
+          {
+            title: "sauce",
+            start: new Date(2026, 8, 4, 18, 5).toISOString(),
+            end: new Date(2026, 8, 4, 18, 35).toISOString(),
+            color: null,
+          },
+        ],
+      },
+    ];
+    expect(marks(rows, six, HOUR, 12).map((mark) => mark.text)).toEqual([
+      "18:05",
+      "18:35",
+    ]);
   });
 });
