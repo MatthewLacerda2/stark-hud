@@ -34,6 +34,10 @@ _DEFAULT_SIZES: dict[str, tuple[float, float]] = {
     "inbox": (8, 8),
     # Three rows so the date shows by default; squash it to two for time only.
     "clock": (7, 4),
+    # Seven columns because a week is seven days, and one row per week plus the
+    # initials above them. A month spanning six weeks divides the height it is
+    # given rather than asking for more.
+    "calendar": (7, 7),
     # Tall like the inbox: a feed nobody scrolls is only as useful as the number
     # of lines it can show at once.
     "feed": (9, 10),

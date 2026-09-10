@@ -19,6 +19,7 @@ EXPECTED = {
     "add_countdown",
     "add_image",
     "add_inbox",
+    "add_calendar",
     "add_clock",
     "add_feed",
     "add_gantt",

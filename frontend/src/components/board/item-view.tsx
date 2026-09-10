@@ -1,5 +1,6 @@
 import type { Item, Notification } from "@/lib/schemas/board";
 import { Box } from "@/components/board/items/box";
+import { Calendar } from "@/components/board/items/calendar";
 import { Chart } from "@/components/board/items/chart";
 import { Clock } from "@/components/board/items/clock";
 import { Countdown } from "@/components/board/items/countdown";
@@ -54,6 +55,9 @@ export function ItemView({
     case "clock":
       // Its height decides whether the date fits; the payload says nothing.
       return <Clock rows={item.h} />;
+    case "calendar":
+      // Says nothing at all: the month and the day are both the browser's.
+      return <Calendar />;
     case "countdown":
       return <Countdown id={item.id} payload={payload} />;
     case "gantt":
