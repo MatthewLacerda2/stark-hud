@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from schemas.chart import ChartAxes, ChartKind, ChartPayload, ChartThreshold
 from schemas.colour import Colour
+from schemas.gantt import GanttBar, GanttPayload, GanttRow
 from schemas.icon import Icon
 from schemas.media import MediaPayload, MediaTrack
 
@@ -295,14 +296,16 @@ Payload = Annotated[
     | ClockPayload
     | FeedPayload
     | GroupPayload
-    | CountdownPayload,
+    | CountdownPayload
+    | GanttPayload,
     Field(discriminator="kind"),
 ]
 
-# The media widget and the chart each live in their own module — one is a queue,
-# a transport and a report, the other is five kinds, four axis settings and a
-# gauge that is not a series at all — and both are named here because this is
-# where every layer already looks for a payload.
+# The media widget, the chart and the gantt each live in their own module — one
+# is a queue, a transport and a report; the next is five kinds, four axis
+# settings and a gauge that is not a series at all; the third is a payload made
+# of two further models — and all three are named here because this is where
+# every layer already looks for a payload.
 __all__ = [
     "BoxPayload",
     "ChartAxes",
@@ -314,6 +317,9 @@ __all__ = [
     "CountdownPayload",
     "FeedEntry",
     "FeedPayload",
+    "GanttBar",
+    "GanttPayload",
+    "GanttRow",
     "GroupPayload",
     "GroupState",
     "ImagePayload",

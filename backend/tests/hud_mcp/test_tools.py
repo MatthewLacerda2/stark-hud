@@ -21,6 +21,7 @@ EXPECTED = {
     "add_inbox",
     "add_clock",
     "add_feed",
+    "add_gantt",
     "add_list",
     "add_media",
     "add_to_list",
@@ -499,3 +500,31 @@ async def test_slow_work_wakes_the_widget_at_its_own_door(
     await call(server, "set_media_queue", item_id=item_id, tracks=[_album(tmp_path)])
     # Waking first is the whole value; the other order would be replaced in a frame.
     assert listening.events() == ["item.waking", "item.updated"]
+
+
+_EVENING = [
+    {
+        "name": "Kitchen",
+        "bars": [{"title": "sauce", "start": "2026-09-04T18:00", "end": "2026-09-04T18:45"}],
+    },
+    {
+        "name": "Laundry",
+        "bars": [{"title": "wash", "start": "2026-09-04T18:30", "end": "2026-09-04T19:30"}],
+    },
+]
+
+
+async def test_a_whole_evening_is_one_call(server: MCPServer) -> None:
+    """A gantt is dictated in one breath, so it is written in one call."""
+    assert "Added gantt" in await call(server, "add_gantt", rows=_EVENING, title="Tonight")
+    rows = repo.list_items()[0].payload.rows
+    assert [row.name for row in rows] == ["Kitchen", "Laundry"]
+    assert rows[0].bars[0].title == "sauce"
+
+
+async def test_a_bar_that_could_not_be_drawn_is_refused_in_words(server: MCPServer) -> None:
+    """Naming the bar, because a session that mistyped one end cannot see the screen."""
+    bar = {"title": "sauce", "start": "2026-09-04T18:45", "end": "2026-09-04T18:00"}
+    message = await call(server, "add_gantt", rows=[{"name": "Kitchen", "bars": [bar]}])
+    assert "'sauce' would end at or before it starts" in message
+    assert repo.list_items() == []

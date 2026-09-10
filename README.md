@@ -60,6 +60,7 @@ gone. The board stores facts; the browser works out the readings.
 | `text` · `note` | One line of prose; the same on a tinted card. |
 | `chart` | `line`, `bar`, `area`, `pie`, `radial` gauges and `radar` shapes. Axes optional, colour thresholds optional, and its name costs no height. |
 | `countdown` | How long until the next few things. Nothing writes to it; it counts down by itself. |
+| `gantt` | Named rows of bars over the next stretch of time, so two things at once have a shape. Nothing writes to it either; the scale re-tunes itself as the clock passes. |
 | `clock` | The time, with the date under it when there is room. |
 | `inbox` · `feed` | Notifications as a phone's shade; things that happened elsewhere, newest first. |
 | `media` | Audio, video or YouTube, with a queue, loop and maximise. |

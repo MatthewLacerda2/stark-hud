@@ -23,6 +23,7 @@ import type { ChartPayload, ChartThreshold } from "@/lib/schemas/board";
 import { ChartContainer, type ChartConfig } from "@/components/ui/chart";
 import { Card, CardContent } from "@/components/ui/card";
 import { Icon } from "@/components/board/icon";
+import { carriesAlpha } from "@/lib/colour";
 import { cn } from "@/lib/utils";
 
 const SLOTS = 5;
@@ -61,11 +62,6 @@ function crossed(marks: ChartThreshold[], value: number): string | null {
     if (value > mark.at && (hit === null || mark.at > hit.at)) hit = mark;
   }
   return hit?.color ?? null;
-}
-
-/** True when a colour states its own alpha, as `#rgba` or `#rrggbbaa` do. */
-function carriesAlpha(color: string): boolean {
-  return /^#(?:[0-9a-f]{4}|[0-9a-f]{8})$/i.test(color);
 }
 
 /** Map each series onto a colour, the way shadcn's ChartConfig expects. */

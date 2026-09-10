@@ -4,6 +4,7 @@ import { Chart } from "@/components/board/items/chart";
 import { Clock } from "@/components/board/items/clock";
 import { Countdown } from "@/components/board/items/countdown";
 import { Feed } from "@/components/board/items/feed";
+import { Gantt } from "@/components/board/items/gantt";
 import { Group } from "@/components/board/items/group";
 import { Image } from "@/components/board/items/image";
 import { Media } from "@/components/board/items/media";
@@ -55,6 +56,9 @@ export function ItemView({
       return <Clock rows={item.h} />;
     case "countdown":
       return <Countdown id={item.id} payload={payload} />;
+    case "gantt":
+      // Its width decides which bars are wide enough to hold their names.
+      return <Gantt id={item.id} payload={payload} cols={item.w} />;
     case "group":
       // Only ever a folded one: an open group is not drawn at all, because its
       // widgets are on the board being drawn themselves.
