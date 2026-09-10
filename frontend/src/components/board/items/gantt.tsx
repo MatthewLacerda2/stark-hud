@@ -4,7 +4,7 @@ import { Icon } from "@/components/board/icon";
 import { useClock } from "@/hooks/use-clock";
 import { useFitting } from "@/hooks/use-fitting";
 import { carriesAlpha } from "@/lib/colour";
-import { NAMES, label, place, roomy, span, tone } from "@/lib/gantt";
+import { NAMES, label, marks, place, roomy, span, tone } from "@/lib/gantt";
 import { cn } from "@/lib/utils";
 
 /**
@@ -31,6 +31,11 @@ const WASH = 0.35;
  * also why the span is stated in the corner: width means nothing without the
  * frame it is drawn in, and a scale that changed silently would make the same
  * task look like a different amount of work between two glances.
+ *
+ * Above the bars the block boundaries are written out as times, so the shape
+ * can be turned into a plan without counting across from the edge. Only the
+ * edges inside the window, only one mark where two blocks meet, and a mark that
+ * would collide with its neighbour comes off rather than being shrunk.
  *
  * The left edge is *now*, so there is no marker for it and nothing behind it is
  * drawn: a bar already running is clipped to that edge, which reads correctly
@@ -62,6 +67,7 @@ export function Gantt({
     row.bars.some((bar) => new Date(bar.end).getTime() > now),
   );
   const { ref, fits } = useFitting(rows.length);
+  const times = marks(rows, now, window, cols);
 
   return (
     <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl widget-surface widget-edge p-5 widget-text">
@@ -76,6 +82,43 @@ export function Gantt({
               {label(window)}
             </span>
           ) : null}
+        </div>
+      ) : null}
+      {rows.length > 0 ? (
+        <div className="flex shrink-0 items-stretch gap-2 text-node-sm">
+          {/* The same two columns the rows below use, so a time sits over the
+              instant it names rather than over the row names beside it. */}
+          <span
+            className="shrink-0"
+            style={{ width: `${NAMES * 100}%` }}
+            aria-hidden
+          />
+          <div className="relative min-w-0 flex-1">
+            {/* Gives the strip a line to be tall as. The marks are positioned
+                absolutely and would otherwise leave it no height at all. */}
+            <span className="invisible" aria-hidden>
+              0
+            </span>
+            {times.map((mark) => (
+              <span
+                key={`${mark.at}-${mark.text}`}
+                className="absolute top-0 whitespace-nowrap tabular-nums opacity-50"
+                style={{
+                  left: `${mark.at * 100}%`,
+                  // The two on the ends turn inward so they stay inside the
+                  // frame; everything between is centred on its own instant.
+                  transform:
+                    mark.at <= 0
+                      ? "none"
+                      : mark.at >= 1
+                        ? "translateX(-100%)"
+                        : "translateX(-50%)",
+                }}
+              >
+                {mark.text}
+              </span>
+            ))}
+          </div>
         </div>
       ) : null}
       {rows.length > 0 ? (

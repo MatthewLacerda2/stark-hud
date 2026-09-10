@@ -158,3 +158,35 @@ describe("a gantt", () => {
     expect(Number(fill.style.opacity)).toBeLessThan(1);
   });
 });
+
+describe("the time axis", () => {
+  /** The same 24-hour form the axis writes, derived so any timezone passes. */
+  const at = (offset: number) => {
+    const when = new Date(NOW + offset);
+    const pad = (value: number) => String(value).padStart(2, "0");
+    return `${pad(when.getHours())}:${pad(when.getMinutes())}`;
+  };
+
+  it("writes each block's start and end above the bars", async () => {
+    const view = await show([
+      { name: "Kitchen", bars: [bar("sauce", 10 * MINUTE, 25 * MINUTE)] },
+    ]);
+    expect(view.text()).toContain(at(10 * MINUTE));
+    expect(view.text()).toContain(at(25 * MINUTE));
+  });
+
+  it("writes no time for an edge behind the left edge", async () => {
+    const view = await show([
+      { name: "Kitchen", bars: [bar("sauce", -10 * MINUTE, 25 * MINUTE)] },
+    ]);
+    expect(view.text()).not.toContain(at(-10 * MINUTE));
+    expect(view.text()).toContain(at(25 * MINUTE));
+  });
+
+  it("says nothing at all when there is nothing coming up", async () => {
+    const view = await show([
+      { name: "Kitchen", bars: [bar("done", -2 * HOUR, -1 * HOUR)] },
+    ]);
+    expect(view.text()).not.toMatch(/\d\d:\d\d/);
+  });
+});
