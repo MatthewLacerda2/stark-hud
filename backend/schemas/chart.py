@@ -1,10 +1,11 @@
 """What a chart shows.
 
 Its own module for the reason the media widget has one: this is not one more
-block of fields. A chart is five kinds, four axis settings, thresholds that turn
-a mark when a value passes them, and a radial that is not a series at all but a
-gauge — and the description of that vocabulary is most of what anyone reads
-before drawing one. `hud_mcp/charts.py` is the tool that matches it.
+block of fields. A chart is six kinds, four axis settings, thresholds that turn
+a mark when a value passes them, and two polar ones — a radial that is a gauge
+rather than a series, and a radar that is a shape rather than a reading. The
+description of that vocabulary is most of what anyone reads before drawing one.
+`hud_mcp/charts.py` is the tool that matches it.
 """
 
 from typing import Literal
@@ -14,7 +15,7 @@ from pydantic import BaseModel, ConfigDict
 from schemas.colour import Colour
 from schemas.icon import Icon
 
-ChartKind = Literal["line", "bar", "pie", "area", "radial"]
+ChartKind = Literal["line", "bar", "pie", "area", "radial", "radar"]
 
 ChartAxes = Literal["both", "x", "y", "none"]
 
@@ -52,6 +53,15 @@ class ChartPayload(BaseModel):
     ``unit`` does nothing on a radial: there is no longer a bare number for it
     to sit against, and whatever wrote ``data[0][x_key]`` already spelled the
     reading out the way it wants it read.
+
+    A ``radar`` is the other polar one, and it is a shape rather than a reading.
+    One row per spoke and one series, drawn as a polygon inside a grid that stays
+    visible — so a machine at idle is a small polygon in a reticle rather than an
+    empty widget. It answers "how much, and is it one of them or all of them" in
+    a glance, which is what a screen across a room can be asked. The rows go
+    round the ring in the order they arrive, so whoever sends them decides which
+    spoke sits next to which; ``max`` is the ceiling the polygon is drawn
+    against, and without one the widest value fills the grid.
     """
 
     # Set here rather than inherited: this module cannot import the base in
@@ -77,12 +87,14 @@ class ChartPayload(BaseModel):
     icon: Icon | None = None
     # A ceiling for the value axis. Left out, the axis fits the data, which is
     # right for a count and wrong for a percentage: 21% would draw nearly full.
-    # A radial always has one, defaulting to 100.
+    # A radar reads it too — it is what holds the polygon to a fixed ring. A
+    # radial always has one, defaulting to 100.
     max: float | None = None
     # What the numbers are counted in. A radial ignores it — see the note above
     # — and it is the only chart that ever drew it, so nothing draws it today.
     # Kept because it is a published field and a caller may still be sending it.
     unit: str | None = None
+    # Cartesian only. A pie, a radial and a radar have no axes to draw.
     axes: ChartAxes = "both"
     # A gauge's ring behind the value. Left alone it is white kept see-through,
     # which is what a ring on a dark video wants; it is a field because finding
