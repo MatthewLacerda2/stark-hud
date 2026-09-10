@@ -36,7 +36,18 @@ logger = logging.getLogger(__name__)
 # allow — so it is said out loud in the log rather than left to be noticed from
 # the sofa. Groups replaced pages and are ordinary widgets, so they need nothing
 # here.
-FORMAT = 2
+#
+# 3 gave a group three states, so `open: true` became `state: "open"`. A
+# format-2 board is not migrated and does not need to be: a payload refuses keys
+# it does not know, so every group in it fails validation, and `_salvage` drops
+# those widgets with a warning each and keeps the rest of the file. What that
+# costs is the groups themselves and nothing else — their members come back
+# loose on the board, possibly overlapping. Almost everything here rebuilds
+# itself: `tools/agent.py` rewrites the panels it feeds, positions included,
+# within a tick of coming up, and a screen worth having is worth saying again.
+# What is not acceptable is a board that will not start, which is why this is a
+# drop and not a refusal.
+FORMAT = 3
 
 _dirty = False
 
@@ -102,6 +113,18 @@ def write(state: HudFile) -> bool:
     return True
 
 
+def _reattached(items: list[ItemRead]) -> list[ItemRead]:
+    """The same widgets, with membership of a group that is no longer here dropped.
+
+    A widget whose group this build could not read is loose on the board rather
+    than gone with it, which is the rule the repository already keeps about
+    losing a container. Left pointing at a group that is not there it would read,
+    everywhere a session looks, as a widget that is somewhere it is not.
+    """
+    here = {i.id for i in items}
+    return [i if i.parent_id in here else i.model_copy(update={"parent_id": None}) for i in items]
+
+
 def _salvage(document: dict) -> HudFile:
     """Build a board from a file, skipping the parts this build cannot read.
 
@@ -126,6 +149,8 @@ def _salvage(document: dict) -> HudFile:
         except ValidationError:
             kind = (entry or {}).get("payload", {}).get("kind", "?")
             logger.warning("dropping a %s widget this build cannot read", kind)
+
+    kept = _reattached(kept)
 
     notes: list[Notification] = []
     for entry in document.get("notifications") or []:

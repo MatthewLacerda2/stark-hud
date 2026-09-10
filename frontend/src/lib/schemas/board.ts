@@ -244,18 +244,28 @@ export interface CountdownPayload {
 }
 
 /**
+ * What a group is doing with the room it holds. One field, three values: a group
+ * that is both open and not showing is not a board anybody can draw.
+ */
+export type GroupState = "open" | "folded" | "away";
+
+/**
  * A widget that holds widgets. Membership is `parent_id` on the widgets.
  *
  * Open, it draws nothing and takes up nothing: its widgets are on the board
- * where they always were. Closed, they come off the board and it draws in their
+ * where they always were. Folded, they come off the board and it draws in their
  * place — the icons of what is inside, stacked like sleeves on a shelf, three
  * visible and a fourth behind them, blurred. It looks the same holding five or
  * twenty, because what it says is what kind of things are in here and that there
  * are several.
+ *
+ * Away, the widgets come off and nothing is drawn at all: a screen that is not
+ * showing. That is what lets several full-board groups exist at once, and the
+ * board cut from one to the next.
  */
 export interface GroupPayload {
   kind: "group";
-  open: boolean;
+  state: GroupState;
 }
 
 /** One notification. They live in an inbox, not on the grid. */

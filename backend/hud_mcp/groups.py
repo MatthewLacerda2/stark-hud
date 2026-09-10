@@ -1,8 +1,9 @@
-"""MCP tools for groups: making one, folding it, and putting things in it.
+"""MCP tools for groups: making one, folding it, turning the board to it.
 
-Folding is asked for by name, like everything else on this board. Nothing
-appears on the television to make a group grabbable — the room has no pointer,
-and a handle drawn for one would be a handle nobody there can use.
+A group is asked for by name, like everything else on this board. Nothing
+appears on the television to make one grabbable or to switch between them — the
+room has no pointer, and a handle drawn for one would be a handle nobody there
+can use.
 """
 
 from mcp.server.mcpserver import MCPServer
@@ -48,8 +49,9 @@ def register(server: MCPServer) -> None:
         replaced by one small widget showing the icons of what is inside.
 
         This is how a board holds more than one subject. Group the weather
-        widgets, group the work ones, and fold whichever is not wanted — rather
-        than clearing the board and building the other one from nothing.
+        widgets, group the work ones, and turn the board from one to the other
+        with `show_group` — rather than clearing the board and building the
+        other one from nothing.
 
         A group holds widgets, never other groups.
         """
@@ -92,11 +94,55 @@ def register(server: MCPServer) -> None:
         return group if isinstance(group, str) else await _refold(group, False)
 
     @server.tool()
+    async def show_group(group_id: str = "") -> str:
+        """Turn the board to one group: it opens, and every other group goes away.
+
+        This is how the board carries a screen per subject — flight mode and
+        battle mode, a screen per project, a screen for a guest — and shows one
+        of them. A group that is away draws nothing and takes no room, so every
+        screen can be laid out across the whole board and they still all fit.
+
+        One call, because it could not be several: each screen's layout wants
+        the room the showing one is using, so opening the next before the
+        current one has left is refused every time. Like `arrange`, this is
+        judged on the arrangement it produces.
+
+        What comes back is instant and current. The widgets on a screen that is
+        not showing keep taking writes by key the whole time it is away, so the
+        board cuts to a screen that is already up to date, and nothing is
+        re-fetched or rebuilt.
+
+        Pass no id to show none of them, leaving the board with whatever is in
+        no group at all. Folding is the other thing a group does: `fold_group`
+        leaves a shelf of icons where its widgets were, which is a group put
+        down on this screen rather than a screen of its own.
+        """
+        group = _found(group_id) if group_id else None
+        if isinstance(group, str):
+            return group
+        try:
+            board = groups.show(group)
+        except (NotAGroupError, NoRoomError) as exc:
+            return str(exc)
+        # One event carrying the whole board, so the television cuts from one
+        # screen to the next instead of dealing it out a widget at a time.
+        await hub.broadcast("board.arranged", {"items": [i.model_dump(mode="json") for i in board]})
+        drawn = len(groups.on_board(board))
+        if group is None:
+            return f"Showing no group. {drawn} widgets on the board."
+        gone = len(groups.away(board))
+        return (
+            f"Showing {describe(repo.get(group.id) or group)}. "
+            f"{drawn} widgets on the board, {gone} group{'' if gone == 1 else 's'} away."
+        )
+
+    @server.tool()
     async def add_to_group(group_id: str, item_ids: list[str]) -> str:
         """Put more widgets into a group that already exists.
 
-        The group has to be open: moving a widget into a folded one would take
-        it off the board with nothing having made way for that.
+        The group has to be open: moving a widget into one that is folded or
+        away would take it off the board with nothing having made way for that,
+        and nobody in the room would see it happen.
         """
         group = _found(group_id)
         if isinstance(group, str):

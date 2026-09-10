@@ -6,7 +6,7 @@
  * placed anywhere, which is the worst of both.
  */
 import { describe, expect, it } from "vitest";
-import type { Item, Payload } from "@/lib/schemas/board";
+import type { GroupState, Item, Payload } from "@/lib/schemas/board";
 import { held, isGroup, onBoard } from "@/lib/groups";
 
 function item(
@@ -36,22 +36,42 @@ function item(
 }
 
 const note: Payload = { kind: "note", text: "x", color: null };
-const group = (open: boolean): Payload => ({ kind: "group", open });
+const group = (state: GroupState): Payload => ({ kind: "group", state });
 
 describe("what is actually on the board", () => {
   it("draws an open group's widgets and not the group", () => {
-    const board = [item("g", group(true)), item("a", note, "g")];
+    const board = [item("g", group("open")), item("a", note, "g")];
     expect(onBoard(board).map((i) => i.id)).toEqual(["a"]);
   });
 
-  it("draws a closed group and not its widgets", () => {
-    const board = [item("g", group(false)), item("a", note, "g")];
+  it("draws a folded group and not its widgets", () => {
+    const board = [item("g", group("folded")), item("a", note, "g")];
     expect(onBoard(board).map((i) => i.id)).toEqual(["g"]);
+  });
+
+  it("draws neither a group that is away nor anything inside it", () => {
+    // A screen that is not showing. The one widget here that exists, is folded
+    // inside nothing, and is still not on the television.
+    const board = [item("g", group("away")), item("a", note, "g")];
+    expect(onBoard(board)).toEqual([]);
+  });
+
+  it("shows one screen at a time and everything outside them", () => {
+    // The switch, as the television sees it: two full-board groups, one open
+    // and one away, and the widgets that are in neither stay where they are.
+    const board = [
+      item("g", group("open")),
+      item("a", note, "g"),
+      item("h", group("away")),
+      item("b", note, "h"),
+      item("c", note),
+    ];
+    expect(onBoard(board).map((i) => i.id)).toEqual(["a", "c"]);
   });
 
   it("leaves everything outside a group alone", () => {
     const board = [
-      item("g", group(false)),
+      item("g", group("folded")),
       item("a", note, "g"),
       item("b", note),
     ];
@@ -59,7 +79,7 @@ describe("what is actually on the board", () => {
   });
 
   it("knows a group when it sees one, and what it is holding", () => {
-    const g = item("g", group(false));
+    const g = item("g", group("folded"));
     const board = [g, item("a", note, "g"), item("b", note)];
     expect(isGroup(g)).toBe(true);
     expect(held(g, board).map((i) => i.id)).toEqual(["a"]);

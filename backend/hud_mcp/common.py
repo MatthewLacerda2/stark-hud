@@ -49,22 +49,49 @@ def describe(item: ItemRead) -> str:
     return f"{line} — {item.description}" if item.description else line
 
 
+# How each state of a group reads on the one line a session gets back. Away is
+# the one that most needs saying: it draws nothing, so a board of twenty widgets
+# showing six is a screen rather than a fault, and nothing else on this line
+# would tell anybody that.
+_STATES = {"open": "group", "folded": "folded group", "away": "group that is away"}
+
+
 def _grouping(item: ItemRead) -> str:
     """Whether this widget holds others, or is held — and so whether it is drawn.
 
-    A folded widget is not on the board and a session looking at this line has
-    no other way to know that: it would otherwise read as a widget that is there
-    and simply cannot be seen.
+    A widget that is off the board has no other way of saying so here: it would
+    otherwise read as a widget that is there and simply cannot be seen.
     """
     if item.payload.kind == "group":
         held = len(groups.members(item))
-        return f" — a {'group' if item.payload.open else 'folded group'} of {held} widgets"
+        return f" — a {_STATES[item.payload.state]} of {held} widgets"
     if item.parent_id is None:
         return ""
     parent = repo.get(item.parent_id)
-    if parent is not None and parent.payload.kind == "group" and not parent.payload.open:
+    if parent is None or parent.payload.kind != "group" or parent.payload.state == "open":
+        return f" [in group {item.parent_id}]"
+    if parent.payload.state == "folded":
         return f" [folded away inside {item.parent_id}]"
-    return f" [in group {item.parent_id}]"
+    return f" [off the board with {item.parent_id}, which is away]"
+
+
+def screens() -> str:
+    """The groups that are away, as a sentence, or nothing at all when none is.
+
+    board_status counts what takes room, and a group that is away takes none —
+    so a board carrying four screens and showing one reports the room of the
+    one. That is true, and it reads as three screens having vanished unless the
+    report says where they went and what to call them.
+    """
+    hidden = groups.away(repo.list_items())
+    if not hidden:
+        return ""
+    named = ", ".join(f"{i.id} ({len(groups.members(i))} widgets)" for i in hidden)
+    plural = "group is" if len(hidden) == 1 else "groups are"
+    return (
+        f" {len(hidden)} {plural} away and taking no room: {named}. "
+        f"show_group turns the board to one of them."
+    )
 
 
 async def add(
