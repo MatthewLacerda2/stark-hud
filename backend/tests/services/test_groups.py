@@ -32,7 +32,7 @@ def test_an_open_group_takes_up_no_room():
     note = _note(0, 0)
     group = _group(note)
 
-    assert group.payload.open
+    assert group.payload.state == "open"
     assert [i.id for i in groups.on_board(repo.list_items())] == [note.id]
     assert service.status().item_count == 1
 
@@ -111,3 +111,68 @@ def test_removing_a_group_gives_its_widgets_back():
     assert repo.get(group.id) is None
     assert repo.get(note.id).parent_id is None
     assert [i.id for i in groups.on_board(repo.list_items())] == [note.id]
+
+
+def test_a_group_that_is_away_occupies_nothing():
+    """A screen that is not showing: no widgets, no shelf, no room taken."""
+    note = _note(0, 0, 8, 6)
+    group = _group(note)
+    groups.show(None)
+
+    assert repo.get(group.id).payload.state == "away"
+    assert groups.on_board(repo.list_items()) == []
+    assert service.status().item_count == 0
+    assert service.status().cells_used == 0
+
+    # And the room its widgets are holding is somebody else's now.
+    squatter = _note(0, 0, 8, 6)
+    assert [i.id for i in groups.on_board(repo.list_items())] == [squatter.id]
+
+
+def test_showing_swaps_one_full_board_for_another():
+    """The whole reason this is one call: each screen wants the room the other has."""
+    first = _group(_note(0, 0, 32, 18))
+    groups.show(None)
+    second = _group(_note(0, 0, 32, 18))
+
+    # One at a time is not slow, it is impossible: the room is still the other's.
+    with pytest.raises(NoRoomError):
+        groups.unfold(repo.get(first.id))
+
+    groups.show(repo.get(first.id))
+    assert [i.parent_id for i in groups.on_board(repo.list_items())] == [first.id]
+    assert repo.get(second.id).payload.state == "away"
+
+
+def test_showing_a_group_puts_a_folded_one_away_too():
+    """One screen at a time, whatever the others were doing a moment ago."""
+    shelf = groups.fold(_group(_note(0, 0)))
+    other = _group(_note(10, 4))
+    groups.show(repo.get(other.id))
+
+    assert repo.get(shelf.id).payload.state == "away"
+    assert [i.id for i in groups.away(repo.list_items())] == [shelf.id]
+
+
+def test_a_widget_on_a_screen_that_is_not_showing_is_still_writable():
+    """Away is weightless, not asleep — which is what makes a switch back a cut."""
+    note = _note(0, 0)
+    group = _group(note)
+    groups.show(None)
+
+    written = service.update(repo.get(note.id), ItemUpdate(payload=NotePayload(text="current")))
+
+    assert written.payload.text == "current"
+    assert groups.on_board(repo.list_items()) == []
+    assert repo.get(group.id).payload.state == "away"
+
+
+def test_a_group_that_is_away_will_not_take_a_widget():
+    """Membership changes while a group is open, which is when the room can see it."""
+    group = _group(_note(0, 0))
+    groups.show(None)
+    loose = _note(10, 4)
+
+    with pytest.raises(NoRoomError) as excinfo:
+        groups.gather(repo.get(group.id), [loose])
+    assert "away" in str(excinfo.value)

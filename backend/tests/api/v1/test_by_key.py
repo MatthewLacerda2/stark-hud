@@ -7,6 +7,11 @@ nothing could claim, and every later write collided with them and was dropped.
 
 from httpx import AsyncClient
 
+from repositories import board as repo
+from schemas.board import GroupPayload, ItemCreate
+from services import board as service
+from services import groups
+
 KEY = "/api/v1/board/items/by-key/cpu"
 
 
@@ -105,3 +110,26 @@ async def test_the_panel_path_is_still_an_upsert(client: AsyncClient) -> None:
     second = await client.put(KEY, json=chart(90))
     assert second.status_code == 200
     assert second.json()["id"] == first["id"]
+
+
+async def test_a_panel_on_a_screen_that_is_not_showing_still_takes_writes(
+    client: AsyncClient,
+) -> None:
+    """A group that is away is weightless, not asleep.
+
+    This is what makes turning back to a screen a cut rather than a rebuild: the
+    agent goes on writing the panels nobody is looking at, so what comes back is
+    already current. Nothing here gives a writer a way to be told to stop, and
+    that is deliberate — it costs nothing to keep writing.
+    """
+    panel = (await client.put(KEY, json=chart(10))).json()
+    group = service.create(ItemCreate(payload=GroupPayload()))
+    groups.gather(group, [repo.get(panel["id"])])
+    groups.show(None)
+
+    written = (await client.put(KEY, json=chart(90))).json()
+
+    assert written["id"] == panel["id"]
+    assert written["payload"]["data"][0]["use"] == 90
+    # And it is still not on the board: writing to it did not bring it back.
+    assert groups.on_board(repo.list_items()) == []

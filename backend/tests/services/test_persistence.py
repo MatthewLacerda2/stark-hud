@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from repositories import board, notifications, store
-from schemas.board import Ink, NotePayload
+from schemas.board import GroupPayload, Ink, NotePayload
 from schemas.notifications import NotificationCreate
 from services import persistence
 
@@ -142,3 +142,33 @@ def test_a_file_with_two_widgets_holding_one_key_loads_with_one():
 
     assert [i.key for i in kept] == ["cpu", None]
     assert [i.payload.text for i in kept] == ["a", "b"]
+
+
+def test_a_format_2_board_loses_its_groups_and_comes_up_anyway(tmp_path, monkeypatch):
+    """An old file is degraded, never fatal.
+
+    A group used to say ``open: true`` and now says ``state``, and a payload
+    refuses keys it does not know — so every group in a format-2 file fails
+    validation and is dropped, one warning each. That is the trade this build
+    took: what is lost is the screens, which can be built again, and what is not
+    lost is the board coming up at all. A widget whose group went with it is
+    loose rather than gone, the same as when a group is removed.
+    """
+    target = _point_at(tmp_path, monkeypatch)
+    group = board.add(GroupPayload(), 0, 0, 4, 3, None, False)
+    board.add(NotePayload(text="hello"), 0, 0, 4, 2, group.id, False)
+    assert persistence.save()
+
+    old = json.loads(target.read_text(encoding="utf-8"))
+    old["hud"] = 2
+    for entry in old["items"]:
+        if entry["payload"]["kind"] == "group":
+            entry["payload"] = {"kind": "group", "open": True}
+    target.write_text(json.dumps(old), encoding="utf-8")
+
+    board.clear()
+    persistence.restore()
+
+    kept = board.list_items()
+    assert [i.payload.kind for i in kept] == ["note"]
+    assert kept[0].parent_id is None

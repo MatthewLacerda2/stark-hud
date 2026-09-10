@@ -226,23 +226,42 @@ class CountdownPayload(_Payload):
     empty: str | None = None
 
 
+# What a group is doing with the room it holds. One field with three values
+# rather than a flag beside a flag: a group that is both open and not showing is
+# not a board anybody can draw, and two booleans would name it.
+GroupState = Literal["open", "folded", "away"]
+
+
 class GroupPayload(_Payload):
     """A widget that holds widgets.
 
     Membership is ``parent_id`` on the widgets themselves, so a group is an edge
     rather than a place: nothing moves into it and nothing is laid out inside it.
 
-    It has two states, and they trade room with each other. **Open**, the group
-    occupies nothing and its widgets sit on the board exactly where they always
-    did. **Closed**, the widgets come off the board and the group takes their
-    place, drawn as the icons of what is inside stacked like sleeves on a shelf
-    — three visible and a fourth behind them, blurred, whether it holds five or
-    twenty. What that says is what kind of things are in here and that there are
-    several, which is all anybody across a room can use.
+    It has three states, and the first two trade room with each other.
 
-    A closed group is a fold. A group is also what a page was trying to be, and
-    the reason pages are gone: a page was an integer with no name and no way to
-    be empty, and this is a widget you can point at.
+    **Open**, the group occupies nothing and its widgets sit on the board
+    exactly where they always did.
+
+    **Folded**, the widgets come off the board and the group takes their place,
+    drawn as the icons of what is inside stacked like sleeves on a shelf — three
+    visible and a fourth behind them, blurred, whether it holds five or twenty.
+    What that says is what kind of things are in here and that there are several,
+    which is all anybody across a room can use.
+
+    **Away**, the widgets come off the board and nothing is drawn at all. That is
+    a screen which is not showing: it keeps a full board's worth of layout and
+    occupies none of it, which is the only way several full-board groups can
+    exist at once. A fold cannot do that job — its shelf wants a free 4x3 where
+    its widgets were, which on a full-board group is exactly where the showing
+    group is.
+
+    Away is not asleep. The widgets inside still take writes by ``key``, so the
+    screen you turn back to is current rather than rebuilt.
+
+    A group is also what a page was trying to be, and the reason pages are gone:
+    a page was an integer with no name and no way to be empty, and this is a
+    widget you can point at.
 
     Nesting stops here: a group holds widgets, never other groups. Not because a
     tree is hard to build but because a tree is hard to hold in your head, and no
@@ -250,7 +269,7 @@ class GroupPayload(_Payload):
     """
 
     kind: Literal["group"] = "group"
-    open: bool = True
+    state: GroupState = "open"
 
 
 class ClockPayload(_Payload):
@@ -296,6 +315,7 @@ __all__ = [
     "FeedEntry",
     "FeedPayload",
     "GroupPayload",
+    "GroupState",
     "ImagePayload",
     "InboxPayload",
     "ListEntry",
