@@ -43,6 +43,10 @@ gone. The board stores facts; the browser works out the readings.
   Folded — 3 widgets inside
   Board 32x18, 8 items. 296/576 cells used, 279 free.
 
+› show me the work screen
+  Showing group 4c1f90ab77e2 — a group of 6 widgets. 6 widgets on the
+  board, 2 groups away.
+
 › put the cpu chart where the feed is
   Not rearranged: chart f6dc572ce69f at (19,0) and feed 4271fcbd35a6
   at (19,0) would be in the same place
@@ -60,7 +64,7 @@ gone. The board stores facts; the browser works out the readings.
 | `inbox` · `feed` | Notifications as a phone's shade; things that happened elsewhere, newest first. |
 | `media` | Audio, video or YouTube, with a queue, loop and maximise. |
 | `image` · `video` | A local file, served by id — a path never reaches a URL. |
-| `group` | A widget that holds widgets. Closed, they come off the board and it draws in their place: that is how one board carries more than one subject. |
+| `group` | A widget that holds widgets, in one of three states. Open, they are on the board. Folded, they come off and it draws a shelf of icons in their place. Away, they come off and nothing is drawn: a screen the board is not showing, which is how one board carries several full-board subjects and cuts between them. |
 | `box` | A frame drawn on the board. Decoration, and nothing else. |
 
 Every widget carries its own colour, text scale, background and opacity, sits at

@@ -127,7 +127,7 @@ export function BoardGrid({
   cols,
   rows,
 }: {
-  /** The widgets on the board: what `onBoard` left after the folded ones. */
+  /** The widgets on the board: what `onBoard` left of everything there is. */
   items: Item[];
   /** Everything that exists, folded widgets included — what a group draws from. */
   everything: Item[];

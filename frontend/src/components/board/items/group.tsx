@@ -8,8 +8,9 @@ const FACING = 3;
 /**
  * A folded group: the icons of what is inside, stacked like sleeves on a shelf.
  *
- * An open group draws nothing at all — its widgets are on the board — so this
- * component is only ever the closed one.
+ * Only a folded group is ever drawn. An open one draws nothing because its
+ * widgets are on the board; one that is away draws nothing because it is a
+ * screen the board is not showing.
  *
  * Three are shown and a fourth sits behind them, blurred, however many there
  * really are. That is deliberate: a count is a number to read, and this is a
