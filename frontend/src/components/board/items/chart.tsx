@@ -3,6 +3,10 @@ import {
   Area,
   AreaChart,
   PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
   RadialBar,
   RadialBarChart,
   Bar,
@@ -76,6 +80,16 @@ function toConfig(series: string[], colors: string[]): ChartConfig {
 // room and compete with the mark sitting inside the ring. Every widget here sits
 // on the same dark video, so there is nothing for this to vary with.
 const UNFILLED = "#ffffff40";
+
+// How much of the widget's ink the radar's grid keeps. It is a reticle, not a
+// mark: always there, never competing with the polygon inside it. `currentColor`
+// is what carries the ink itself, so a board recoloured with `set_ink` takes the
+// grid with it instead of leaving a white cage behind.
+const GRID_INK = 0.3;
+
+// The polygon gets the whole plot, less enough room for its own stroke not to be
+// clipped when a value is at the ceiling.
+const POLAR_FILL = { top: 0, right: 0, bottom: 0, left: 0 };
 
 // The middle of the ring is a circle, and what goes in it has to fit a square
 // inside that circle — 72% of the shorter side across, so about half of it on a
@@ -272,14 +286,63 @@ function Body({ payload }: { payload: ChartPayload }) {
     );
   }
 
-  // Radial never reaches here — the card renders <Gauge/> for it — but the map
-  // has to be total for the type to narrow.
+  if (payload.chart === "radar") {
+    // One series. Every axis is the same unit against the same ceiling, so
+    // nothing has to be compared across spokes and the shape is the whole
+    // reading: a spike is one of them, a fat blob is all of them. A second
+    // polygon over the first would be two shapes to disentangle instead.
+    const color = `var(--color-${series[0]})`;
+    return (
+      <RadarChart data={data} margin={POLAR_FILL} outerRadius="92%">
+        {/* Drawn, unlike the cartesian grid below. At idle every core is at 2%
+            and the polygon is a speck in the middle — with nothing behind it the
+            widget reads as broken rather than as quiet. Rings and spokes give it
+            something to be small inside. */}
+        <PolarGrid stroke="currentColor" strokeOpacity={GRID_INK} />
+        {/* Declared for what it decides rather than for what it draws: it is
+            what puts the spokes where they are, and every visible part of it
+            comes off. No labels — a number on each spoke is a thing to read on a
+            widget meant to be understood without reading. No axis line, because
+            the grid above already closed that ring and a second one on top of it
+            is the same ring drawn twice. No tick marks, which are eight little
+            spurs sticking out of the reticle to point at labels that are not
+            there. */}
+        <PolarAngleAxis
+          dataKey={xKey}
+          tick={false}
+          tickLine={false}
+          axisLine={false}
+        />
+        {/* The ceiling, and the reason a percentage does not draw as if it were
+            the largest thing that happened to arrive. */}
+        <PolarRadiusAxis
+          domain={ceiling == null ? undefined : [0, ceiling]}
+          tick={false}
+          axisLine={false}
+        />
+        {/* Animated, unlike a line or an area. Those carry history and would
+            morph the whole shape when the window slides; a radar's spokes stay
+            put, so tweening the radius is the polygon breathing between one
+            sample and the next — which is what it is here to show. */}
+        <Radar
+          dataKey={series[0]}
+          stroke={color}
+          fill={color}
+          fillOpacity={carriesAlpha(pick(colors, 0)) ? 1 : 0.25}
+        />
+      </RadarChart>
+    );
+  }
+
+  // Neither polar chart reaches here — the pie returned above and the card
+  // renders <Gauge/> for a radial — but the map has to be total to narrow.
   const Cartesian = {
     line: LineChart,
     bar: BarChart,
     area: AreaChart,
     pie: LineChart,
     radial: LineChart,
+    radar: LineChart,
   }[payload.chart];
   return (
     <Cartesian data={data} margin={{ left: 4, right: 12, top: 8 }}>

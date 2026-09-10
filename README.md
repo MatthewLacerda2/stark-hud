@@ -58,7 +58,7 @@ gone. The board stores facts; the browser works out the readings.
 | --- | --- |
 | `list` | A heading and entries: icon, title, description, each colourable. The general case — most of the others are it with fewer parts. |
 | `text` · `note` | One line of prose; the same on a tinted card. |
-| `chart` | `line`, `bar`, `area`, `pie`, and `radial` gauges. Axes optional, colour thresholds optional, and its name costs no height. |
+| `chart` | `line`, `bar`, `area`, `pie`, `radial` gauges and `radar` shapes. Axes optional, colour thresholds optional, and its name costs no height. |
 | `countdown` | How long until the next few things. Nothing writes to it; it counts down by itself. |
 | `clock` | The time, with the date under it when there is room. |
 | `inbox` · `feed` | Notifications as a phone's shade; things that happened elsewhere, newest first. |

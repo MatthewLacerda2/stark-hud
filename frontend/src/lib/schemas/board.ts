@@ -5,8 +5,8 @@
  * one field and TypeScript narrows the rest.
  */
 
-export type ChartKind = "line" | "bar" | "pie" | "area" | "radial";
-/** Which axes a cartesian chart draws. A pie and a radial have neither. */
+export type ChartKind = "line" | "bar" | "pie" | "area" | "radial" | "radar";
+/** Which axes a cartesian chart draws. The polar kinds have neither. */
 export type ChartAxes = "both" | "x" | "y" | "none";
 export type NotifyLevel = "info" | "success" | "warn" | "error";
 
@@ -175,7 +175,7 @@ export interface ChartPayload {
   max: number | null;
   /** What the numbers are counted in. Nothing draws it since the gauge stopped. */
   unit: string | null;
-  /** Which axes to draw. Ignored by pie and radial, which have none. */
+  /** Which axes to draw. Ignored by the polar kinds, which have none. */
   axes: ChartAxes;
   /** A gauge's ring behind the value. Null takes the default. Gauges only. */
   unfilled: string | null;

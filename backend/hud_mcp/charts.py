@@ -1,18 +1,30 @@
 """The MCP tool for charts.
 
 Its own module rather than one more tool in ``content.py``: a chart is the one
-widget on this board with a vocabulary of its own — five kinds, four axis
-settings, thresholds, and a radial that is not a series at all but a gauge — and
-the description of that vocabulary is most of what a session reads before it
-draws one.
+widget on this board with a vocabulary of its own — six kinds, four axis
+settings, thresholds, and two polar ones that are not series at all: a radial
+that is a gauge and a radar that is a shape — and the description of that
+vocabulary is most of what a session reads before it draws one.
 """
 
-from typing import cast
+from typing import cast, get_args
 
 from mcp.server.mcpserver import MCPServer
 
 from hud_mcp.common import add
 from schemas.board import ChartAxes, ChartKind, ChartPayload, ChartThreshold
+
+# Read off the Literals rather than written out again. The list of kinds used to
+# live here as well as in `schemas/chart.py`, so adding one meant remembering to
+# edit two places — and a rule kept by memory is the kind that quietly stops
+# being kept. Now there is one list and this reads it.
+KINDS: tuple[str, ...] = get_args(ChartKind)
+AXES: tuple[str, ...] = get_args(ChartAxes)
+
+
+def _one_of(options: tuple[str, ...]) -> str:
+    """The options as a sentence lists them: "line, bar, pie, area or radial"."""
+    return f"{', '.join(options[:-1])} or {options[-1]}"
 
 
 def register(server: MCPServer) -> None:
@@ -41,8 +53,9 @@ def register(server: MCPServer) -> None:
         """Draw a chart from data you supply inline.
 
         The board never fetches or polls: send the numbers. `chart` is line, bar,
-        pie, area or radial. `x_key` names the field on the x axis and `series`
-        names the fields to plot. To update a chart, remove it and add it again.
+        pie, area, radial or radar. `x_key` names the field on the x axis and
+        `series` names the fields to plot. To update a chart, remove it and add
+        it again.
 
         `axes` says which axes a line, bar or area chart draws: both (the
         default), x, y or none. Leave it out unless the numbers read on their
@@ -88,6 +101,17 @@ def register(server: MCPServer) -> None:
         does nothing on a radial, because there is no bare number for it to sit
         against.
 
+        A radar is the other polar one, and it is a shape rather than a reading:
+        one row per spoke, one series, drawn as a polygon inside a grid that
+        stays visible so an idle machine is a small polygon in a reticle rather
+        than an empty widget. Pass `max` — it is the ring the polygon is drawn
+        against, and without one the largest value fills it whatever it is. Send
+        the rows in the order you want them to go round; neighbouring spokes are
+        what a viewer reads as one lobe, so put things that belong together next
+        to each other. `axes` means nothing here, and neither does a second
+        series: two polygons over one another are two shapes to disentangle,
+        which is the opposite of what this chart is for.
+
         Every other chart says what it is in its top-left corner: `icon` at the
         top and `title` stacked under it, anchored there — a longer title grows
         downward over the plot rather than pushing it anywhere, so neither of
@@ -102,10 +126,10 @@ def register(server: MCPServer) -> None:
         loads or runs is dropped. Paint it with `currentColor` and it takes the
         widget's colour.
         """
-        if chart not in {"line", "bar", "pie", "area", "radial"}:
-            return f"Not added: chart must be line, bar, pie, area or radial (got {chart!r})"
-        if axes not in {"both", "x", "y", "none"}:
-            return f"Not added: axes must be both, x, y or none (got {axes!r})"
+        if chart not in KINDS:
+            return f"Not added: chart must be {_one_of(KINDS)} (got {chart!r})"
+        if axes not in AXES:
+            return f"Not added: axes must be {_one_of(AXES)} (got {axes!r})"
         # A typo in an icon or a colour comes back as the sentence the validator
         # wrote, rather than as a stack trace on the caller's side.
         try:

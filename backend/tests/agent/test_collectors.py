@@ -41,6 +41,20 @@ def test_a_window_with_nothing_in_it_reads_as_idle():
     assert cpu.busy({"cpu0": (100, 80)}, {"cpu0": (100, 80)}) == [{"core": "0", "use": 0.0}]
 
 
+def test_cpu_puts_the_threads_of_one_core_side_by_side():
+    """This machine enumerates them 0,4 — opposite spokes, so one core would
+    draw as two spikes on opposite sides of the ring instead of one lobe."""
+    split = {str(n): f"{n % 4},{n % 4 + 4}" for n in range(8)}
+    rows = [{"core": str(n), "use": 0.0} for n in range(8)]
+    assert [row["core"] for row in cpu.paired(rows, split)] == list("04152637")
+
+
+def test_cpu_leaves_the_order_alone_when_there_is_no_topology_to_read():
+    """A container publishes no sibling map, and kernel order is the fallback."""
+    rows = [{"core": str(n), "use": 0.0} for n in range(4)]
+    assert cpu.paired(rows, {}) == rows
+
+
 def test_memory_counts_the_cache_as_available():
     """Free memory on Linux is not memory you can have; available is."""
     row = mem.row(mem.parse(MEMINFO))
