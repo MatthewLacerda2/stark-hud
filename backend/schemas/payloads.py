@@ -283,6 +283,17 @@ class ClockPayload(_Payload):
     kind: Literal["clock"] = "clock"
 
 
+class CalendarPayload(_Payload):
+    """This month, with today in a box.
+
+    Nothing is ever written to it, for the reason nothing is written to the
+    clock: the browser already knows what day it is, and a calendar fed over the
+    socket would be wrong at midnight and stale by the morning.
+    """
+
+    kind: Literal["calendar"] = "calendar"
+
+
 Payload = Annotated[
     NotePayload
     | TextPayload
@@ -294,6 +305,7 @@ Payload = Annotated[
     | ChartPayload
     | InboxPayload
     | ClockPayload
+    | CalendarPayload
     | FeedPayload
     | GroupPayload
     | CountdownPayload

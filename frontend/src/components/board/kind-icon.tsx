@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  CalendarDays,
   Clock,
   Disc3,
   FileImage,
@@ -39,6 +40,7 @@ const GLYPH: Record<
   chart: BarChart3,
   inbox: Inbox,
   clock: Clock,
+  calendar: CalendarDays,
   countdown: Timer,
   gantt: GanttChartSquare,
   feed: Rss,

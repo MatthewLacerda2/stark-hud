@@ -13,6 +13,7 @@ from schemas.media import MEDIA_ACTIONS, MediaAction, Playback, PlaybackReport
 from schemas.notifications import Notification
 from schemas.payloads import (
     BoxPayload,
+    CalendarPayload,
     ChartAxes,
     ChartKind,
     ChartPayload,
@@ -43,6 +44,7 @@ from schemas.payloads import (
 __all__ = [
     "MEDIA_ACTIONS",
     "BoxPayload",
+    "CalendarPayload",
     "ChartAxes",
     "ChartKind",
     "ChartPayload",

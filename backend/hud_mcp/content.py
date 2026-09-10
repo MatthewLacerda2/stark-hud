@@ -14,6 +14,7 @@ from mcp.server.mcpserver import MCPServer
 from hud_mcp.common import add
 from schemas.board import (
     BoxPayload,
+    CalendarPayload,
     ClockPayload,
     FeedEntry,
     FeedPayload,
@@ -259,3 +260,23 @@ def register(server: MCPServer) -> None:
         the date as well.
         """
         return await add(ClockPayload(), x, y, w, h, description=description)
+
+    @server.tool()
+    async def add_calendar(
+        x: int | None = None,
+        y: int | None = None,
+        w: int | None = None,
+        h: int | None = None,
+        description: str | None = None,
+    ) -> str:
+        """Put a calendar on the board: this month, with today in a box.
+
+        Takes no content and is never updated — the browser keeps its own date,
+        so it is right tomorrow with nothing written to it. Weeks start on
+        Sunday and the columns are the initials of the days in whatever language
+        the board is set to. There is no month name: whoever is looking already
+        knows what month it is, and the band it would need costs real height.
+
+        Roughly square suits it, since that is what a seven-by-six grid is.
+        """
+        return await add(CalendarPayload(), x, y, w, h, description=description)

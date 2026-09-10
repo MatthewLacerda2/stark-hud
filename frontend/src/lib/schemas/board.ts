@@ -216,6 +216,11 @@ export interface ClockPayload {
   kind: "clock";
 }
 
+/** Nothing is written to a calendar either: the browser knows what day it is. */
+export interface CalendarPayload {
+  kind: "calendar";
+}
+
 /** One thing that is going to happen, is happening, or just did. */
 export interface Countdown {
   title: string;
@@ -328,6 +333,7 @@ export type Payload =
   | ChartPayload
   | InboxPayload
   | ClockPayload
+  | CalendarPayload
   | FeedPayload
   | GroupPayload
   | CountdownPayload
