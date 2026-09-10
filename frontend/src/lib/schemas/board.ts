@@ -243,6 +243,41 @@ export interface CountdownPayload {
   empty: string | null;
 }
 
+/** One stretch of time on a gantt row, with a name on it. */
+export interface GanttBar {
+  title: string;
+  /** ISO 8601. Both ends are required: width is what carries duration here. */
+  start: string;
+  end: string;
+  /** Null takes the row's colour. One stating its own alpha is not washed twice. */
+  color: string | null;
+}
+
+/** A named track and the bars on it. Bars in one row may overlap. */
+export interface GanttRow {
+  name: string;
+  bars: GanttBar[];
+}
+
+/**
+ * The next stretch of time, as named rows of bars.
+ *
+ * Nothing is ever written to this after it is set, for the reason a countdown
+ * is not: it carries the instants and the browser reads them against its own
+ * clock, so an evening dictated at 18:00 plays itself out until midnight with
+ * nothing further written to it. The window is not here either — it is the
+ * smallest step covering the next few bars, and it re-tunes itself as the clock
+ * passes each of them. See `lib/gantt.ts` for the ladder and the geometry.
+ */
+export interface GanttPayload {
+  kind: "gantt";
+  title: string | null;
+  /** Drawn beside the heading. */
+  icon: IconRef | null;
+  rows: GanttRow[];
+  empty: string | null;
+}
+
 /**
  * A widget that holds widgets. Membership is `parent_id` on the widgets.
  *
@@ -285,7 +320,8 @@ export type Payload =
   | ClockPayload
   | FeedPayload
   | GroupPayload
-  | CountdownPayload;
+  | CountdownPayload
+  | GanttPayload;
 
 export type ItemKind = Payload["kind"];
 

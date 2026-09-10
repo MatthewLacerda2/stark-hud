@@ -24,6 +24,9 @@
     "empty": "Sem notificações",
     "justNow": "agora"
   },
+  "gantt": {
+    "empty": "Nada por vir"
+  },
   "countdown": {
     "empty": "Nada por vir"
   }

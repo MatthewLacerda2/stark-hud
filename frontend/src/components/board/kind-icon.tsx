@@ -4,6 +4,7 @@ import {
   Disc3,
   FileImage,
   Film,
+  GanttChartSquare,
   Inbox,
   List,
   Rss,
@@ -39,6 +40,7 @@ const GLYPH: Record<
   inbox: Inbox,
   clock: Clock,
   countdown: Timer,
+  gantt: GanttChartSquare,
   feed: Rss,
   // A group never holds a group, so this is only ever the fallback a folded
   // group draws for itself when it is holding nothing at all.

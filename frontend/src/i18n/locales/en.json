@@ -24,6 +24,9 @@
     "empty": "No notifications",
     "justNow": "now"
   },
+  "gantt": {
+    "empty": "Nothing coming up"
+  },
   "countdown": {
     "empty": "Nothing coming up"
   }
