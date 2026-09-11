@@ -92,11 +92,16 @@ def register(server: MCPServer) -> None:
         Give it room. A wireframe read from a sofa wants 6 by 6 or more; below
         about 4 by 4 the lines converge and it stops being a shape.
 
-        Work rough first. Block the model out, put it on the board, look at
-        what the television actually shows, then refine the file and call
-        `reload_mesh` — the widget re-reads it in place, keeping its id, its
-        size, its description and its colours. Do not remove and re-add it to
-        see a change; that costs all of those on every pass.
+        Block it out, put it up, and then make it good. A model built in one
+        pass is a model nobody sees until it is finished, and this board is how
+        the work gets looked at: the user reads the television, not the code.
+        So get the rough shape on the screen early — the silhouette and the
+        named parts — and refine it against what the TV actually shows, because
+        how a model reads at six by six from a sofa is settled up there rather
+        than in a viewport. Each pass is the file, then `reload_mesh`: the
+        widget re-reads it in place and keeps its id, its place, its size, its
+        description and its colours. Removing and re-adding it to see a change
+        costs all of those, every pass.
 
         This is the one widget that removes itself when its file goes missing,
         rather than showing a placeholder. If the model is on a drive that is not
