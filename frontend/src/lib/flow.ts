@@ -1,3 +1,4 @@
+import { layer } from "@/lib/flow-ranks";
 import type {
   FlowLink,
   FlowNode,
@@ -38,14 +39,29 @@ export interface Point {
 }
 
 /**
- * How much of its slot a box takes along the line, when nothing said where it
+ * How much of its slot a box takes along the flow, when nothing said where it
  * sits. The rest is the gap the arrow is drawn in, so this is also how long
- * every arrow in a fallback layout is.
+ * every arrow between two neighbouring ranks is.
  */
 export const LINE_FILL = 0.68;
 
-/** How much of the widget's short side a box takes across the line. */
+/**
+ * How much of the widget a box takes across the flow, shared out between the
+ * boxes of the widest rank. One rank of one box takes this much of the short
+ * side; a rank of three takes a third of it each.
+ */
 export const LINE_CROSS = 0.46;
+
+/**
+ * How far out of the diagram the way back bows, as a share of the room left
+ * between the boxes and the widget's edge.
+ *
+ * A share rather than a fixed distance because the room is all there is: a flow
+ * is clipped and never scrolled, so a bow that left the widget would simply be
+ * cut off. Eight tenths of it puts the arrow clearly outside the column of boxes
+ * with the last fifth still to spare.
+ */
+export const LOOP_REACH = 0.8;
 
 /**
  * The shortest arrow worth putting any word on, in cells.
@@ -80,29 +96,72 @@ export const LABEL_CELLS_PER_CHAR = 0.2;
 export const BOW = 0.5;
 
 /**
+ * Which way a flow runs.
+ *
+ * Along the widget's longer side, so a diagram never reads downwards in a widget
+ * that is wide. **Inferred from the widget, not named in the payload** — the
+ * same call the board already makes about placement: omit `x` and `y` and the
+ * placer chooses. A `direction` field would be one more thing for a session that
+ * cannot see the television to get wrong, and a flow in a 6x3 widget that
+ * insisted on running downwards is a flow nobody can read.
+ */
+export type Axis = "x" | "y";
+
+/** Where every box in a flow landed, and what the reading knows about it. */
+export interface Layout {
+  /** Where each box sits, by node id. */
+  boxes: Map<string, Box>;
+  /**
+   * How far down the graph each node sits. Empty when the nodes said where they
+   * sit: nothing was layered then, and nothing about such a flow is
+   * second-guessed.
+   */
+  ranks: Map<string, number>;
+  /** Which way this flow runs. */
+  along: Axis;
+}
+
+/**
  * Where every box in this flow sits.
  *
- * Either they all said — in which case this is what they said, unchanged — or
- * none did, and they are drawn in one evenly spaced line along the widget's
- * longer side. The backend refuses the mixture, so there is no third case.
+ * Three readings, in the order they are asked:
  *
- * The fallback is deliberately dumb: one line, uniform boxes, evenly spaced.
- * It is enough that `add_flow` with nothing but steps and arrows produces
- * something worth looking at, and it is the seam a ranked layout plugs into —
- * everything downstream of here reads boxes and knows nothing about how they
- * were chosen.
+ * 1. **Every node said.** Then this is what they said, unchanged — no ranks, no
+ *    rerouting, nothing. The backend refuses the mixture, so one node answering
+ *    settles it for all of them.
+ * 2. **Nothing leads to anything.** There is no graph to rank, so the boxes take
+ *    one evenly spaced line along the widget's longer side.
+ * 3. **Otherwise, ranks.** Longest-path layering: a node sits one past the
+ *    deepest of its sources, and a node nothing leads to starts at zero. Every
+ *    node in a rank sits the same distance along the flow, spread evenly across
+ *    it. That is the shape a flowchart already has in everyone's head, it is
+ *    deterministic, and unlike a force simulation it produces a picture whose
+ *    shape means something from a sofa.
+ *
+ * Nothing computed here is ever stored: `board.hud` holds what was said, the
+ * same division `GanttPayload` makes about its own window. Re-tuning this later
+ * does not mean rewriting every board that was ever written.
  */
-export function boxes(
-  nodes: FlowNode[],
+export function layout(
+  payload: FlowPayload,
   cols: number,
   rows: number,
-): Map<string, Box> {
-  const placed = new Map<string, Box>();
-  const along = cols >= rows ? "x" : "y";
-  nodes.forEach((node, at) => {
-    placed.set(node.id, said(node) ?? inLine(at, nodes.length, along));
-  });
-  return placed;
+): Layout {
+  const along: Axis = cols >= rows ? "x" : "y";
+  const nodes = payload.nodes;
+  const given = nodes.map(said);
+  if (given.every((box) => box !== null))
+    return {
+      boxes: new Map(
+        nodes.map((node, at): [string, Box] => [node.id, given[at]!]),
+      ),
+      ranks: new Map(),
+      along,
+    };
+  if (payload.links.length === 0)
+    return { boxes: inLine(nodes, along), ranks: new Map(), along };
+  const ranks = layer(payload);
+  return { boxes: spread(nodes, ranks, along), ranks, along };
 }
 
 /** The box a node named, or null when it named none. */
@@ -112,15 +171,66 @@ function said(node: FlowNode): Box | null {
   return { x: node.x, y: node.y, w: node.w, h: node.h };
 }
 
-/** One box's slot in an evenly spaced line of `count` along the long side. */
-function inLine(at: number, count: number, along: "x" | "y"): Box {
-  const slot = 1 / count;
+/** Boxes in one evenly spaced line along the widget's longer side. */
+function inLine(nodes: FlowNode[], along: Axis): Map<string, Box> {
+  const slot = 1 / nodes.length;
   const length = slot * LINE_FILL;
-  const near = slot * at + (slot - length) / 2;
   const across = (1 - LINE_CROSS) / 2;
-  return along === "x"
-    ? { x: near, y: across, w: length, h: LINE_CROSS }
-    : { x: across, y: near, w: LINE_CROSS, h: length };
+  return new Map(
+    nodes.map((node, at): [string, Box] => {
+      const near = slot * at + (slot - length) / 2;
+      return [
+        node.id,
+        along === "x"
+          ? { x: near, y: across, w: length, h: LINE_CROSS }
+          : { x: across, y: near, w: LINE_CROSS, h: length },
+      ];
+    }),
+  );
+}
+
+/**
+ * Boxes in ranks: each rank the same distance along the flow, its nodes spread
+ * evenly across it.
+ *
+ * **One size for every box in the flow**, from the rank counts and nothing else
+ * — not from how long each word is, which draws a row of differently sized boxes
+ * whose differences mean nothing. The deepest rank decides the length along the
+ * flow; the widest decides the width across it.
+ *
+ * Nothing can overlap, and not by luck: a rank's boxes are strictly shorter than
+ * their own rank's slot along the flow, and every box is strictly narrower than
+ * its own place across it, because both `LINE_FILL` and `LINE_CROSS` are below
+ * one and the widest rank sets the width for all of them.
+ */
+function spread(
+  nodes: FlowNode[],
+  rank: Map<string, number>,
+  along: Axis,
+): Map<string, Box> {
+  // Ranks run 0, 1, 2... with no gaps: a node at rank r above zero has a source
+  // at r - 1, by construction.
+  const deep = Math.max(...rank.values()) + 1;
+  const files: FlowNode[][] = Array.from({ length: deep }, () => []);
+  for (const node of nodes) files[rank.get(node.id) ?? 0].push(node);
+  const broad = Math.max(...files.map((file) => file.length));
+  const long = LINE_FILL / deep;
+  const wide = LINE_CROSS / broad;
+  const placed = new Map<string, Box>();
+  files.forEach((file, at) => {
+    const near = at / deep + (1 / deep - long) / 2;
+    const slot = 1 / file.length;
+    file.forEach((node, seat) => {
+      const across = slot * seat + (slot - wide) / 2;
+      placed.set(
+        node.id,
+        along === "x"
+          ? { x: near, y: across, w: long, h: wide }
+          : { x: across, y: near, w: wide, h: long },
+      );
+    });
+  });
+  return placed;
 }
 
 /**
@@ -296,18 +406,75 @@ export function midpoint(run: Route): Point {
   };
 }
 
+/**
+ * Whether this link is the way back: it arrives in a rank no deeper than the one
+ * it leaves, which only a link the layering had to cut can do.
+ *
+ * Never true of a flow that placed its own boxes — such a flow has no ranks and
+ * is drawn exactly as it was written — and never true of a link that named its
+ * own sides, which is an author saying where the arrow goes.
+ */
+function returns(link: FlowLink, laid: Layout): boolean {
+  if (link.source_side !== null || link.target_side !== null) return false;
+  const leaves = laid.ranks.get(link.source);
+  const arrives = laid.ranks.get(link.target);
+  return leaves !== undefined && arrives !== undefined && arrives <= leaves;
+}
+
+/**
+ * The way back: out of the side of one box, around the outside of the diagram,
+ * and in at the side of the other.
+ *
+ * Left to `route`, a back-link between two neighbouring ranks picks the same
+ * pair of facing sides the forward arrow picked — the same two anchors, the same
+ * corridor, one line laid exactly over the other. On a television that does not
+ * read as a loop, it reads as a single arrow with a head at each end, which is a
+ * different statement altogether. So the way back leaves the *cross* face
+ * instead and bows out past it: one arrow travelling back up the outside of the
+ * diagram, which is what a loop looks like when a person draws one.
+ *
+ * Which face is the cross face falls out of the flow's direction, and both
+ * answers keep the arrow clear of a title: a flow running rightwards loops
+ * beneath itself, one running downwards loops to its right.
+ */
+function aside(from: Box, to: Box, along: Axis): Route {
+  const side: FlowSide = along === "x" ? "bottom" : "right";
+  const out: Point = along === "x" ? { x: 0, y: 1 } : { x: 1, y: 0 };
+  const home: Point = along === "x" ? { x: 0, y: -1 } : { x: -1, y: 0 };
+  const start = anchor(from, side);
+  const end = anchor(to, side);
+  // How far out it bows: a share of the room left between the outermost of its
+  // two ends and the widget's edge, so the channel clears the boxes without ever
+  // leaving the widget — which is clipped, not scrolled.
+  const edge =
+    along === "x" ? Math.max(start.y, end.y) : Math.max(start.x, end.x);
+  const reach = (1 - edge) * LOOP_REACH;
+  const control: [Point, Point] = [
+    { x: start.x + out.x * reach, y: start.y + out.y * reach },
+    { x: end.x + out.x * reach, y: end.y + out.y * reach },
+  ];
+  // Both control points sit out on the same side, so the line leaves outwards
+  // and arrives pointing back inwards at the far box's matching face. Those two
+  // directions are exactly the normal and its reverse; there is nothing to
+  // measure.
+  return { start, end, control, atEnd: home, atStart: out };
+}
+
 /** Every arrow in a flow, already routed, with the ones that lead nowhere gone. */
 export function arrows(
   payload: FlowPayload,
-  placed: Map<string, Box>,
+  laid: Layout,
 ): { link: FlowLink; run: Route }[] {
   return payload.links.flatMap((link) => {
-    const from = placed.get(link.source);
-    const to = placed.get(link.target);
+    const from = laid.boxes.get(link.source);
+    const to = laid.boxes.get(link.target);
     // The backend refuses a link naming a node that is not there, so this is
     // only ever a board file written by hand. Dropping the arrow is better than
     // drawing it from nowhere.
     if (!from || !to) return [];
-    return [{ link, run: route(from, to, link) }];
+    const run = returns(link, laid)
+      ? aside(from, to, laid.along)
+      : route(from, to, link);
+    return [{ link, run }];
   });
 }

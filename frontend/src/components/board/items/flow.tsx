@@ -4,7 +4,7 @@ import { Icon } from "@/components/board/icon";
 import { useContainerSize } from "@/hooks/use-container-size";
 import { carriesAlpha } from "@/lib/colour";
 import type { Box, Point, Route } from "@/lib/flow";
-import { arrows, boxes, cells, midpoint, roomy } from "@/lib/flow";
+import { arrows, cells, layout, midpoint, roomy } from "@/lib/flow";
 
 /**
  * How solid a box's interior is when its colour did not say.
@@ -76,7 +76,7 @@ export function Flow({
   // circular. A viewBox of 0..1 with `preserveAspectRatio: none` would distort
   // both, which is the classic bug in this feature.
   const { ref, width, height } = useContainerSize();
-  const placed = boxes(payload.nodes, cols, rows);
+  const laid = layout(payload, cols, rows);
   const stroke = Math.max(MIN_STROKE, Math.min(width, height) * STROKE);
 
   return (
@@ -91,7 +91,7 @@ export function Flow({
         <Node
           key={node.id}
           node={node}
-          box={placed.get(node.id)}
+          box={laid.boxes.get(node.id)}
           width={width}
           height={height}
           stroke={stroke}
@@ -107,7 +107,7 @@ export function Flow({
           viewBox={`0 0 ${width} ${height}`}
           aria-hidden
         >
-          {arrows(payload, placed).map(({ link, run }) => (
+          {arrows(payload, laid).map(({ link, run }) => (
             <Arrow
               // A pair is unique — the backend refuses two arrows between the
               // same two boxes — and the separator is a byte no id can hold,
