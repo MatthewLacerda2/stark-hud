@@ -22,6 +22,7 @@ EXPECTED = {
     "add_calendar",
     "add_clock",
     "add_feed",
+    "add_flow",
     "add_gantt",
     "add_list",
     "add_media",
@@ -574,4 +575,33 @@ async def test_a_bar_that_could_not_be_drawn_is_refused_in_words(server: MCPServ
     bar = {"title": "sauce", "start": "2026-09-04T18:45", "end": "2026-09-04T18:00"}
     message = await call(server, "add_gantt", rows=[{"name": "Kitchen", "bars": [bar]}])
     assert "'sauce' would end at or before it starts" in message
+    assert repo.list_items() == []
+
+
+_PIPELINE = [
+    {"id": "build", "text": "Build"},
+    {"id": "test", "text": "Test"},
+    {"id": "ship", "text": "Ship"},
+]
+
+
+async def test_a_whole_diagram_is_one_call(server: MCPServer) -> None:
+    """A flow is dictated in one breath, so it is written in one call."""
+    links = [
+        {"source": "build", "target": "test"},
+        {"source": "test", "target": "ship", "label": "green"},
+    ]
+    assert "Added flow" in await call(server, "add_flow", nodes=_PIPELINE, links=links)
+    payload = repo.list_items()[0].payload
+    assert [node.id for node in payload.nodes] == ["build", "test", "ship"]
+    assert payload.links[1].label == "green"
+
+
+async def test_an_arrow_to_a_box_that_is_not_there_is_refused_in_words(
+    server: MCPServer,
+) -> None:
+    """Naming the end that was wrong, because the session cannot see the screen."""
+    links = [{"source": "build", "target": "deploy"}]
+    message = await call(server, "add_flow", nodes=_PIPELINE, links=links)
+    assert "target is 'deploy'" in message
     assert repo.list_items() == []

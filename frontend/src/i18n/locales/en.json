@@ -32,5 +32,8 @@
   },
   "mesh": {
     "wontDraw": "Cannot draw that model"
+  },
+  "flow": {
+    "empty": "Nothing to draw"
   }
 }

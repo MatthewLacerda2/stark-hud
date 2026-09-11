@@ -14,6 +14,7 @@ import {
   StickyNote,
   Timer,
   Type,
+  Workflow,
 } from "lucide-react";
 import type { ComponentType, CSSProperties } from "react";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,7 @@ const GLYPH: Record<
   calendar: CalendarDays,
   countdown: Timer,
   gantt: GanttChartSquare,
+  flow: Workflow,
   feed: Rss,
   // A group never holds a group, so this is only ever the fallback a folded
   // group draws for itself when it is holding nothing at all.

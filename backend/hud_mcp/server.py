@@ -14,6 +14,7 @@ from hud_mcp import (
     charts,
     content,
     countdowns,
+    flows,
     gantts,
     groups,
     ink,
@@ -127,6 +128,7 @@ def build_server() -> MCPServer:
     charts.register(server)
     countdowns.register(server)
     gantts.register(server)
+    flows.register(server)
     layout.register(server)
     groups.register(server)
     background.register(server)
