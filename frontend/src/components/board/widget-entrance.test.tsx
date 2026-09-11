@@ -139,6 +139,54 @@ describe("a widget arriving on the board", () => {
     expect(widget.className).not.toContain("widget-flying");
   });
 
+  it("does not change its mind when the board fills in around it", async () => {
+    // A widget flying in from the west, and then — inside the 700ms it takes —
+    // four more widgets landing in every corridor it might have used. An
+    // arrival is a fact about the moment it arrived: recomputed here, this one
+    // would have no corridor left, and the class flipping from a flight to a
+    // growth restarts the animation from nothing halfway across the board.
+    const flyer = note("a", { x: 2, y: 5, w: 4, h: 4 });
+    const { show, frame } = await board([flyer]);
+    const widget = frame("a");
+    const classes = widget.className;
+    const style = widget.style.cssText;
+
+    expect(classes).toContain("widget-flying-in");
+    await show([
+      flyer,
+      note("west", { x: 0, y: 6, w: 2, h: 2 }),
+      note("east", { x: 10, y: 6, w: 2, h: 2 }),
+      note("north", { x: 3, y: 1, w: 2, h: 2 }),
+      note("south", { x: 3, y: 11, w: 2, h: 2 }),
+    ]);
+
+    expect(frame("a")).toBe(widget);
+    expect(widget.className).toBe(classes);
+    expect(widget.style.cssText).toBe(style);
+    // And the widgets that have just turned up are still asked, so this is one
+    // answer kept rather than the question stopping being asked.
+    expect(frame("west").style.getPropertyValue("--fly-x")).toBe("-100.00%");
+  });
+
+  it("leaves by a corridor clear of the board as it stands then", async () => {
+    // It arrived from the west with nothing in the way. By the time it goes,
+    // something is sitting in that corridor, so it goes out over the top —
+    // which is only right if a departure is worked out when it departs.
+    const going = note("a", { x: 2, y: 5, w: 4, h: 4 });
+    const blocker = note("west", { x: 0, y: 6, w: 2, h: 2 });
+    const { show, frame } = await board([going]);
+    expect(frame("a").style.getPropertyValue("--fly-x")).toBe("-150.00%");
+
+    await show([going, blocker]);
+    await show([blocker]);
+    const ghost = frame("a");
+
+    expect(ghost.className).toContain("widget-flying-out");
+    expect(ghost.style.getPropertyValue("--fly-x")).toBe("0.00%");
+    // Nine rows to the top, over a widget four rows tall.
+    expect(ghost.style.getPropertyValue("--fly-y")).toBe("-225.00%");
+  });
+
   it("does not change under a panel that is rewritten", async () => {
     const { show, frame } = await board([
       note("panel", { x: 2, y: 5, w: 4, h: 4 }, "cold"),

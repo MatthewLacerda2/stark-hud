@@ -6,10 +6,11 @@ import { WidgetControls } from "@/components/board/widget-controls";
 import { WidgetWake } from "@/components/board/widget-wake";
 import { Vhs } from "@/components/board/vhs";
 import { useContainerSize } from "@/hooks/use-container-size";
+import { useEntrance } from "@/hooks/use-entrance";
 import { useLeaving } from "@/hooks/use-leaving";
 import { useWidgetDrag } from "@/hooks/use-widget-drag";
 import { EDGES, type Rect } from "@/lib/drag";
-import { entrance, entranceClass, entranceVars } from "@/lib/entrance";
+import { entranceClass, entranceVars } from "@/lib/entrance";
 import { held } from "@/lib/groups";
 import { drawn, maximisedIn } from "@/lib/maximised";
 import { cn } from "@/lib/utils";
@@ -182,6 +183,8 @@ export function BoardGrid({
   // board hears about it, so what has just gone is held for as long as it takes
   // to be seen going.
   const { drawn: onScreen, leaving, forget } = useLeaving(items);
+  // Which way each widget came in: decided once, when it first appeared.
+  const flightOf = useEntrance(items, onScreen, cols, rows);
 
   return (
     <div className="relative size-full">
@@ -193,14 +196,7 @@ export function BoardGrid({
         {onScreen.map((item) => {
           const rect = placed(item.id, rectOf(item));
           const going = leaving(item.id);
-          // Which way it came in, or goes out: the nearest clear corridor to an
-          // edge of the screen. Measured against the board without it, which on
-          // the way out is the board it is leaving behind.
-          const flight = entrance(
-            rect,
-            items.filter((other) => other.id !== item.id),
-            { cols, rows },
-          );
+          const flight = flightOf(item, rect, going);
           return (
             <div
               key={item.id}
