@@ -14,9 +14,15 @@ from mcp.server.mcpserver import MCPServer
 
 from core.hub import hub
 from hud_mcp.common import add, find
-from schemas.board import ItemRead, ItemUpdate, MeshPayload
+from schemas.board import ItemRead, ItemUpdate, MeshPayload, MeshWave
 from services import board as service
 from services.board import SlotTakenError
+
+# What a wave runs through when it is switched on without a ramp being named.
+# White through blue to red, and back round through red to white: the colours a
+# heads-up display has always used for "cold, working, hot", on a board whose
+# own palette supplies the last two.
+DEFAULT_RAMP = ("white", "info", "destructive")
 
 
 def register(server: MCPServer) -> None:
@@ -28,6 +34,21 @@ def register(server: MCPServer) -> None:
         if item is None or not isinstance(item.payload, MeshPayload):
             return None
         return item, item.payload
+
+    async def _write(item: ItemRead, payload: MeshPayload, said: str) -> str:
+        """Validate the new payload, store it, and tell every board."""
+        try:
+            # Validated rather than trusted: model_copy does not run the field
+            # bounds, so a spin of 400 would sit in the payload and reach the
+            # browser as a model turning too fast to be a model.
+            checked = MeshPayload.model_validate(payload.model_dump())
+            updated = service.update(item, ItemUpdate(payload=checked))
+        except ValueError as exc:
+            return f"Not set: {exc}"
+        except SlotTakenError as exc:
+            return f"Not set: {exc}"
+        await hub.broadcast("item.updated", updated.model_dump(mode="json"))
+        return f"Set {said} on {item.id}"
 
     @server.tool()
     async def add_mesh(
@@ -103,17 +124,84 @@ def register(server: MCPServer) -> None:
         given = {name: value for name, value in asked.items() if value is not None}
         if not given:
             return "Nothing to set: pass at least one of spin, tilt or explode"
-        try:
-            payload = model.model_copy(update=given)
-            # Validated rather than trusted: model_copy does not run the field
-            # bounds, so a spin of 400 would sit in the payload and reach the
-            # browser as a model turning too fast to be a model.
-            payload = MeshPayload.model_validate(payload.model_dump())
-            updated = service.update(item, ItemUpdate(payload=payload))
-        except ValueError as exc:
-            return f"Not set: {exc}"
-        except SlotTakenError as exc:
-            return f"Not set: {exc}"
-        await hub.broadcast("item.updated", updated.model_dump(mode="json"))
         said = ", ".join(f"{name}={value:g}" for name, value in given.items())
-        return f"Set {said} on {item.id}"
+        return await _write(item, model.model_copy(update=given), said)
+
+    @server.tool()
+    async def color_mesh(
+        target: str,
+        colors: dict | None = None,
+        wave: str | None = None,
+        wave_colors: list[str] | None = None,
+        wave_seconds: float | None = None,
+        wave_spread: float | None = None,
+    ) -> str:
+        """Colour a model's parts, and set a colour running through it.
+
+        A wireframe is lines, so colour is most of what it has to say with. Two
+        ways to use it, and they compose.
+
+        `colors` paints named parts and keeps them that way. The keys are the
+        part names inside the file — list_items does not show them, but the
+        names come from whatever wrote the model, and a generated one names its
+        parts after what they are. A key may be a glob:
+
+            colors={"encoder_*": "chart-2", "refine_block": "accent"}
+
+        Longest matching pattern wins, so a name always beats a wildcard. It is
+        written whole, like a chart: pass the full set each time, and pass an
+        empty one to go back to the widget's own colour.
+
+        `wave` sets a colour travelling through the model, over and over, which
+        is the thing that makes the widget read as switched on rather than
+        printed. "stack" runs it bottom to top — on a model built as a pipeline
+        that is the data going through it. "loop" runs it around the upright
+        axis instead, lighting parts in the order they sit around the circle
+        and leaving anything standing on the axis at the widget's own colour.
+        "off" removes it.
+
+        `wave_colors` is the ramp, in order, and it wraps — the last leads back
+        to the first. `wave_seconds` is how long one pass takes; slow is right,
+        for the same reason the spin is slow. `wave_spread` is how much of the
+        ramp the model holds at once: at 1 the two ends of the object are a
+        full cycle apart, and above 1 the ramp repeats so the wave has more than
+        one crest.
+
+        A part named in `colors` keeps its colour and does not take the wave.
+        That is how to pin the parts that mean something and let the rest
+        breathe.
+        """
+        found = _mesh(target)
+        if found is None:
+            return f"No mesh widget {target!r}. Call list_items to see what is there."
+        item, model = found
+        update: dict[str, object] = {}
+        said = []
+
+        if colors is not None:
+            update["colors"] = colors or None
+            said.append(f"{len(colors)} part colours" if colors else "no part colours")
+
+        if wave == "off":
+            update["wave"] = None
+            said.append("wave off")
+        elif wave is not None or wave_colors or wave_seconds or wave_spread:
+            # Built on whatever is already there, so turning the speed up does
+            # not also silently discard the ramp somebody chose.
+            base = model.wave.model_dump() if model.wave else {"colors": list(DEFAULT_RAMP)}
+            asked = {
+                "mode": wave,
+                "colors": wave_colors,
+                "seconds": wave_seconds,
+                "spread": wave_spread,
+            }
+            base.update({k: v for k, v in asked.items() if v is not None})
+            try:
+                update["wave"] = MeshWave.model_validate(base)
+            except ValueError as exc:
+                return f"Not set: {exc}"
+            said.append(f"{base['mode']} wave" if wave else "wave adjusted")
+
+        if not update:
+            return "Nothing to set: pass colors, or one of wave / wave_colors / wave_seconds"
+        return await _write(item, model.model_copy(update=update), ", ".join(said))

@@ -37,6 +37,7 @@ EXPECTED = {
     "clear_background",
     "clear_board",
     "clear_ink",
+    "color_mesh",
     "control_media",
     "dismiss_notification",
     "fold_group",

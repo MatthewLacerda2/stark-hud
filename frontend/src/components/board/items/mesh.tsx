@@ -3,7 +3,17 @@ import { useTranslation } from "react-i18next";
 import type { MeshPayload, Wireframe } from "@/lib/schemas/board";
 import { ApiError } from "@/lib/api/client";
 import { getWireframe } from "@/lib/api/mesh";
-import { BANDS, bandAt, bandFade, camera, layout, project } from "@/lib/mesh";
+import {
+  BANDS,
+  bandAt,
+  bandFade,
+  camera,
+  colourFor,
+  layout,
+  phases,
+  project,
+  rampAt,
+} from "@/lib/mesh";
 
 /** How wide the halo pass is drawn, against the bright pass over it. */
 const HALO_WIDTH = 3.5;
@@ -107,6 +117,40 @@ function reasonOf(error: unknown): string | null {
   return error.message;
 }
 
+/** A colour as the numbers needed to mix it: red, green, blue, 0-255. */
+type Ink = [number, number, number];
+
+/**
+ * Turn anything the board calls a colour into numbers, by asking the browser.
+ *
+ * The board's palette arrives as `var(--color-accent)`, which is not a colour
+ * until something resolves it against the stylesheet — and the value it
+ * resolves to follows the theme, which is the whole point of using a token
+ * rather than a hex. So the resolving is handed to the one thing that already
+ * knows: set the colour on a real element inside the widget and read back what
+ * the browser computed.
+ *
+ * Falls back to the widget's own ink for anything unresolvable, because a
+ * wireframe that silently draws in nothing is a widget that looks broken.
+ */
+function inkOf(probe: HTMLElement, value: string, fallback: Ink): Ink {
+  probe.style.color = "";
+  probe.style.color = value;
+  const computed = getComputedStyle(probe).color;
+  const found = /rgba?\(([^)]+)\)/.exec(computed);
+  if (!found) return fallback;
+  const parts = found[1].split(/[,\s/]+/).map(Number);
+  return parts.length >= 3 && parts.slice(0, 3).every((n) => !Number.isNaN(n))
+    ? [parts[0], parts[1], parts[2]]
+    : fallback;
+}
+
+/** Two inks blended, as something canvas will take as a stroke. */
+function mixed(from: Ink, to: Ink, mix: number): string {
+  const at = (i: number) => Math.round(from[i] + (to[i] - from[i]) * mix);
+  return `rgb(${at(0)} ${at(1)} ${at(2)})`;
+}
+
 /**
  * Draw the model, and keep drawing it. Returns the teardown.
  *
@@ -123,8 +167,25 @@ function spin(
   const context = element.getContext("2d");
   if (!context) return () => {};
 
-  const { moved, reach } = layout(wire.parts, payload.explode);
-  const ink = getComputedStyle(element).color;
+  const { moved, bounds } = layout(wire.parts, payload.explode, payload.tilt);
+  const base = inkOf(element, "", [255, 255, 255]);
+  const ink = `rgb(${base[0]} ${base[1]} ${base[2]})`;
+
+  // What colour each part is pinned to, worked out once. A part named in
+  // `colors` keeps that colour and sits out the wave; everything else takes the
+  // wave, and anything the wave skips falls back to the widget's own ink.
+  // Resolved here and not per frame: the answer cannot change until the payload
+  // does, and resolving a token means a getComputedStyle, which is a layout
+  // read no frame should be doing.
+  const pinned = wire.parts.map((part) => {
+    const rule = colourFor(part.name, payload.colors);
+    if (rule === null) return null;
+    const [r, g, b] = inkOf(element, rule, base);
+    return `rgb(${r} ${g} ${b})`;
+  });
+  const wave = payload.wave;
+  const ramp = wave ? wave.colors.map((c) => inkOf(element, c, base)) : [];
+  const phase = wave ? phases(wire.parts, wave.mode) : [];
   // One scratch array per part, reused every frame. The alternative is
   // allocating a few hundred objects sixty times a second, which is a garbage
   // collector pause on a television every few seconds.
@@ -155,11 +216,24 @@ function spin(
     frame = requestAnimationFrame(draw);
     if (width <= 0 || height <= 0) return;
     const angle = ((now - started) / 1000) * payload.spin * Math.PI * 2;
-    const cam = camera(angle, payload.tilt, width, height, reach);
+    const cam = camera(angle, payload.tilt, width, height, bounds);
 
     context.clearRect(0, 0, width, height);
     context.lineCap = "round";
-    context.strokeStyle = ink;
+
+    // Where the wave has got to. Subtracting the part's own position is what
+    // makes it travel: at any instant the model holds the whole ramp spread
+    // along it, and a moment later that gradient has moved along by a little.
+    const turn = wave ? (now - started) / 1000 / wave.seconds : 0;
+    const colours = wire.parts.map((_, at) => {
+      if (pinned[at]) return pinned[at] as string;
+      if (!wave || phase[at] === null) return ink;
+      const { from, to, mix } = rampAt(
+        ramp.length,
+        turn - (phase[at] as number) * wave.spread,
+      );
+      return mixed(ramp[from], ramp[to], mix);
+    });
 
     // Every point, once, into the scratch arrays: x and y in pixels and the
     // depth it landed at. Both passes below read these, so a point is never
@@ -180,11 +254,24 @@ function spin(
       }
     });
 
-    // Built fresh rather than kept: a Path2D cannot be emptied, and the points
-    // in it are last frame's.
-    const bands = Array.from({ length: BANDS }, () => new Path2D());
+    // Grouped by colour and then by depth, because both are things the canvas
+    // has to be told once per group rather than once per line. Parts sharing a
+    // colour share their paths, so a model in one colour is still the six
+    // strokes it always was, and one whose every part differs is six per
+    // colour — against one per edge, which on five thousand edges is the
+    // difference between a widget that costs nothing and the most expensive
+    // thing on the board.
+    //
+    // Built fresh every frame rather than kept: a Path2D cannot be emptied, and
+    // the points in one are last frame's.
+    const groups = new Map<string, Path2D[]>();
     wire.parts.forEach((part, at) => {
       const out = screen[at];
+      let bands = groups.get(colours[at]);
+      if (!bands) {
+        bands = Array.from({ length: BANDS }, () => new Path2D());
+        groups.set(colours[at], bands);
+      }
       for (let i = 0; i < part.edges.length; i += 2) {
         const a = part.edges[i] * 3;
         const b = part.edges[i + 1] * 3;
@@ -198,15 +285,19 @@ function spin(
       }
     });
 
-    // Far bands first, so the near side of the model is laid over the far side
-    // rather than under it.
+    // The halo under everything first, then the bright lines over all of it —
+    // rather than halo-and-line per colour, which would let one part's halo lie
+    // on top of another part's lines and dim them.
     const pixel = Math.max(1, Math.min(width, height) / 320);
     for (const wide of [true, false]) {
       context.lineWidth = pixel * (wide ? HALO_WIDTH : 1);
-      bands.forEach((path, band) => {
-        context.globalAlpha = bandFade(band) * (wide ? HALO_ALPHA : 1);
-        context.stroke(path);
-      });
+      for (const [colour, bands] of groups) {
+        context.strokeStyle = colour;
+        bands.forEach((path, band) => {
+          context.globalAlpha = bandFade(band) * (wide ? HALO_ALPHA : 1);
+          context.stroke(path);
+        });
+      }
     }
     context.globalAlpha = 1;
   };
