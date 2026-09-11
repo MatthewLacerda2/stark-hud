@@ -91,15 +91,25 @@ def register(server: MCPServer) -> None:
         series a colour of its own — that is what those charts are for — so they
         ignore the field completely rather than half-honouring it.
 
-        A radial is a gauge: it reads the first row of `data` only and draws it
-        as an arc of a ring whose ceiling is `max`, so always pass `max`. The
-        ring is the message — it says the proportion from across the room — and
-        the middle of it is who the gauge is: `icon` and `title` side by side,
-        with `data[0][x_key]` under them for when a number is genuinely wanted,
-        the way "3.7 of 15.6 GB" is. Keep `title` to about six characters; a
-        longer one is not refused, it just runs out of ring to sit in. `unit`
-        does nothing on a radial, because there is no bare number for it to sit
-        against.
+        A radial is a gauge: each row of `data` is a ring, drawn as an arc of a
+        circle whose ceiling is `max`, so always pass `max`. The ring is the
+        message — it says the proportion from across the room.
+
+        Up to three rings, concentric and touching, first row outermost. Use
+        that instead of three gauges when three readings belong together: the
+        board is finite and never scrolls, and three percentages used to cost
+        half its width. Each ring takes its own colour from `colors` and its own
+        `thresholds`, so one can turn while the others stay white. A fourth row
+        is refused — that is a second widget.
+
+        The middle of the rings is who the gauge is: `icon` and `title` side by
+        side, with `data[0][x_key]` under them for when a number is genuinely
+        wanted, the way "3.7 of 15.6 GB" is. With more than one ring that
+        spelled-out reading is not drawn, so write a `title` that names the set
+        rather than a reading — "Machine" rather than "RAM". Keep it to about
+        six characters; a longer one is not refused, it just runs out of ring to
+        sit in. `unit` does nothing on a radial, because there is no bare number
+        for it to sit against.
 
         A radar is the other polar one, and it is a shape rather than a reading:
         one row per spoke, one series, drawn as a polygon inside a grid that
