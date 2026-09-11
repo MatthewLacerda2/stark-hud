@@ -402,3 +402,127 @@ describe("the part of a gauge's ring that is not filled", () => {
     expect(track?.style.fill).toBeTruthy();
   });
 });
+
+describe("a gauge with more than one row", () => {
+  const RINGS: ChartPayload = {
+    ...GAUGE,
+    title: "Machine",
+    colors: ["#ff0000", "#00ff00", "#0000ff"],
+    data: [
+      { day: "RAM", hits: 30 },
+      { day: "GPU", hits: 60 },
+      { day: "VRAM", hits: 90 },
+    ],
+  };
+
+  /** Every ring drawn, outermost first, as [radius, colour]. */
+  function rings(host: HTMLElement): [number, string | null][] {
+    return [...host.querySelectorAll(".recharts-radial-bar-sector")]
+      .map((bar): [number, string | null] => [
+        outerRadius(bar),
+        bar.getAttribute("fill"),
+      ])
+      .sort((a, b) => b[0] - a[0]);
+  }
+
+  it("draws one ring per row", async () => {
+    expect(rings(await render(RINGS))).toHaveLength(3);
+    expect(
+      rings(await render({ ...RINGS, data: RINGS.data.slice(0, 2) })),
+    ).toHaveLength(2);
+  });
+
+  it("puts the first row on the outside", async () => {
+    // The order they arrived in, which leaves it with whoever sent the data —
+    // sorting by value would make a ring change places when a number moves.
+    // Recharts lays its rows out from the middle outwards, so this is only true
+    // because the component hands them over reversed.
+    const [outer, middle, inner] = rings(await render(RINGS));
+    expect(outer[1]).toBe("#ff0000");
+    expect(middle[1]).toBe("#00ff00");
+    expect(inner[1]).toBe("#0000ff");
+  });
+
+  it("lets the rings touch, so they are not a bullseye", async () => {
+    const [outer, middle, inner] = rings(await render(RINGS));
+    // Even bands with nothing between them: each step down is the same size,
+    // which is what `barCategoryGap={0}` buys once there is more than one bar.
+    expect(outer[0] - middle[0]).toBeCloseTo(middle[0] - inner[0], 1);
+  });
+
+  it("still reaches the edge of the widget", async () => {
+    const [outer] = rings(await render(RINGS));
+    expect(outer[0]).toBeGreaterThan(SIZE.height / 2 - 1);
+  });
+
+  it("turns one ring at its threshold and leaves the others", async () => {
+    // The case sources.toml already describes: memory at 77 is a warning while
+    // the card beside it is fine. Read per ring, not once for the widget.
+    const host = await render({
+      ...RINGS,
+      thresholds: [{ at: 80, color: ALARM }],
+    });
+    const [outer, middle, inner] = rings(host);
+    expect(outer[1]).toBe("#ff0000");
+    expect(middle[1]).toBe("#00ff00");
+    expect(inner[1]).toBe(ALARM);
+  });
+
+  it("stops spelling the reading out, and keeps the identity", async () => {
+    // Three sentences do not fit in a hole that shrank to make room for the
+    // rings, and each ring already carries its own proportion.
+    const host = await render(RINGS);
+    expect(host.textContent).toContain("Machine");
+    expect(host.textContent).not.toContain("RAM");
+    expect(host.textContent).not.toContain("VRAM");
+  });
+
+  it("gives the rings room by taking it from the middle", async () => {
+    const one = await render(GAUGE);
+    const three = await render(RINGS);
+    const hole = (host: HTMLElement) =>
+      [...host.querySelectorAll("div")].find((d) =>
+        d.className.includes("cqmin"),
+      )?.className ?? "";
+
+    // Both ends move together: three rings in the single ring's band would be a
+    // hairline, and widening the band without shrinking the hole is not
+    // possible in a circle.
+    expect(hole(one)).toContain("size-[50cqmin]");
+    expect(hole(three)).toContain("size-[32cqmin]");
+  });
+});
+
+describe("a gauge with one row", () => {
+  it("is drawn exactly as it was before rings existed", async () => {
+    // The requirement this whole change is fenced by: the gauge learning to be
+    // three must not redesign the one. Measured rather than asserted by eye —
+    // the ring's inner and outer edge, and the hole it leaves.
+    const host = await render(GAUGE);
+    const bar = host.querySelector(".recharts-radial-bar-background-sector");
+    const arcs = [
+      ...(bar?.getAttribute("d") ?? "").matchAll(/A\s*([\d.]+),/g),
+    ].map((a) => Number(a[1]));
+
+    // Measured, not derived: recharts does not compute its inner edge as a
+    // flat 72% of the outer one, so a number worked out on paper is off by a
+    // third of a pixel and would fail for the wrong reason.
+    expect(Math.max(...arcs)).toBeCloseTo(179.6, 1);
+    expect(Math.min(...arcs)).toBeCloseTo(129.6, 1);
+    expect(
+      [...host.querySelectorAll("div")].find((d) =>
+        d.className.includes("cqmin"),
+      )?.className,
+    ).toContain("size-[50cqmin]");
+  });
+
+  it("keeps a single ring out of the per-ring machinery entirely", async () => {
+    // No Cell is rendered for one ring: `fill` on the bar is already its
+    // colour, and adding one would change what today's gauge puts in the DOM
+    // for nothing.
+    const host = await render(GAUGE);
+    expect(host.querySelectorAll(".recharts-radial-bar-sector")).toHaveLength(
+      1,
+    );
+  });
+});
