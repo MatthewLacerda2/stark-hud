@@ -45,7 +45,7 @@ export function layer(payload: FlowPayload): Map<string, number> {
 /**
  * Every link that leads forwards, by source. The ones that close a cycle are
  * left out — a retry loop is an ordinary flow and must neither hang the layering
- * nor vanish from the drawing, so it is cut here and drawn like any other.
+ * nor vanish from the drawing, so it is cut here and drawn by `aside`.
  *
  * **Depth-first, from the nodes in the order the payload lists them, following
  * each node's outgoing links in the order the payload lists them.** A link that

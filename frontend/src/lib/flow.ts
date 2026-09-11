@@ -53,6 +53,17 @@ export const LINE_FILL = 0.68;
 export const LINE_CROSS = 0.46;
 
 /**
+ * How far out of the diagram the way back bows, as a share of the room left
+ * between the boxes and the widget's edge.
+ *
+ * A share rather than a fixed distance because the room is all there is: a flow
+ * is clipped and never scrolled, so a bow that left the widget would simply be
+ * cut off. Eight tenths of it puts the arrow clearly outside the column of boxes
+ * with the last fifth still to spare.
+ */
+export const LOOP_REACH = 0.8;
+
+/**
  * The shortest arrow worth putting any word on, in cells.
  *
  * A cell is roughly 60px on the television this is read from, so one and a half
@@ -395,6 +406,60 @@ export function midpoint(run: Route): Point {
   };
 }
 
+/**
+ * Whether this link is the way back: it arrives in a rank no deeper than the one
+ * it leaves, which only a link the layering had to cut can do.
+ *
+ * Never true of a flow that placed its own boxes — such a flow has no ranks and
+ * is drawn exactly as it was written — and never true of a link that named its
+ * own sides, which is an author saying where the arrow goes.
+ */
+function returns(link: FlowLink, laid: Layout): boolean {
+  if (link.source_side !== null || link.target_side !== null) return false;
+  const leaves = laid.ranks.get(link.source);
+  const arrives = laid.ranks.get(link.target);
+  return leaves !== undefined && arrives !== undefined && arrives <= leaves;
+}
+
+/**
+ * The way back: out of the side of one box, around the outside of the diagram,
+ * and in at the side of the other.
+ *
+ * Left to `route`, a back-link between two neighbouring ranks picks the same
+ * pair of facing sides the forward arrow picked — the same two anchors, the same
+ * corridor, one line laid exactly over the other. On a television that does not
+ * read as a loop, it reads as a single arrow with a head at each end, which is a
+ * different statement altogether. So the way back leaves the *cross* face
+ * instead and bows out past it: one arrow travelling back up the outside of the
+ * diagram, which is what a loop looks like when a person draws one.
+ *
+ * Which face is the cross face falls out of the flow's direction, and both
+ * answers keep the arrow clear of a title: a flow running rightwards loops
+ * beneath itself, one running downwards loops to its right.
+ */
+function aside(from: Box, to: Box, along: Axis): Route {
+  const side: FlowSide = along === "x" ? "bottom" : "right";
+  const out: Point = along === "x" ? { x: 0, y: 1 } : { x: 1, y: 0 };
+  const home: Point = along === "x" ? { x: 0, y: -1 } : { x: -1, y: 0 };
+  const start = anchor(from, side);
+  const end = anchor(to, side);
+  // How far out it bows: a share of the room left between the outermost of its
+  // two ends and the widget's edge, so the channel clears the boxes without ever
+  // leaving the widget — which is clipped, not scrolled.
+  const edge =
+    along === "x" ? Math.max(start.y, end.y) : Math.max(start.x, end.x);
+  const reach = (1 - edge) * LOOP_REACH;
+  const control: [Point, Point] = [
+    { x: start.x + out.x * reach, y: start.y + out.y * reach },
+    { x: end.x + out.x * reach, y: end.y + out.y * reach },
+  ];
+  // Both control points sit out on the same side, so the line leaves outwards
+  // and arrives pointing back inwards at the far box's matching face. Those two
+  // directions are exactly the normal and its reverse; there is nothing to
+  // measure.
+  return { start, end, control, atEnd: home, atStart: out };
+}
+
 /** Every arrow in a flow, already routed, with the ones that lead nowhere gone. */
 export function arrows(
   payload: FlowPayload,
@@ -407,6 +472,9 @@ export function arrows(
     // only ever a board file written by hand. Dropping the arrow is better than
     // drawing it from nowhere.
     if (!from || !to) return [];
-    return [{ link, run: route(from, to, link) }];
+    const run = returns(link, laid)
+      ? aside(from, to, laid.along)
+      : route(from, to, link);
+    return [{ link, run }];
   });
 }

@@ -8,7 +8,7 @@
  */
 import { describe, expect, it } from "vitest";
 import type { FlowLink, FlowNode, FlowPayload } from "@/lib/schemas/board";
-import type { Box, Point } from "@/lib/flow";
+import type { Box, Point, Route } from "@/lib/flow";
 import {
   anchor,
   arrows,
@@ -64,6 +64,53 @@ function link(
  */
 function near(at: Point) {
   return { x: Math.round(at.x * 1e4) / 1e4, y: Math.round(at.y * 1e4) / 1e4 };
+}
+
+/** The one arrow between these two, which is all a flow ever draws. */
+function only(
+  drawn: { link: FlowLink; run: Route }[],
+  source: string,
+  target: string,
+): Route {
+  return drawn.find(
+    (arrow) => arrow.link.source === source && arrow.link.target === target,
+  )!.run;
+}
+
+/** Where an arrow is, a given fraction of the way along it. */
+function walk(run: Route, t: number): Point {
+  if (run.control === null)
+    return {
+      x: run.start.x + (run.end.x - run.start.x) * t,
+      y: run.start.y + (run.end.y - run.start.y) * t,
+    };
+  const [a, b] = run.control;
+  const u = 1 - t;
+  const cubic = (p: number, q: number, r: number, s: number) =>
+    u * u * u * p + 3 * u * u * t * q + 3 * u * t * t * r + t * t * t * s;
+  return {
+    x: cubic(run.start.x, a.x, b.x, run.end.x),
+    y: cubic(run.start.y, a.y, b.y, run.end.y),
+  };
+}
+
+/** An arrow, as points along it. Enough of them to find its nearest approach. */
+function sample(run: Route): Point[] {
+  return Array.from({ length: 65 }, (_, step) => walk(run, step / 64));
+}
+
+/**
+ * The nearest two arrows ever come to each other, in cells — which is what
+ * decides whether they read as two arrows from a sofa, rather than the distance
+ * between their ends.
+ */
+function apart(a: Route, b: Route, cols: number, rows: number): number {
+  const closest = Math.min(
+    ...sample(a).flatMap((one) =>
+      sample(b).map((other) => cells(one, other, cols, rows)),
+    ),
+  );
+  return Math.round(closest * 1e4) / 1e4;
 }
 
 const WIDE = { cols: 12, rows: 4 };
@@ -251,6 +298,84 @@ describe("ranks", () => {
     expect(again.boxes).toEqual(once.boxes);
     expect(again.ranks).toEqual(once.ranks);
     expect(arrows(payload, again)).toEqual(arrows(payload, once));
+  });
+});
+
+describe("the way back", () => {
+  it("does not draw the loop down the corridor the forward arrow uses", () => {
+    // What the television showed: in a tall widget the back-link took the same
+    // two anchors as the arrow it returns along, and the two read as one
+    // double-headed arrow rather than as a loop.
+    const payload = flow(PIPELINE, RETRY);
+    const drawn = arrows(payload, layout(payload, TALL.cols, TALL.rows));
+    const forward = only(drawn, "build", "test");
+    const back = only(drawn, "test", "build");
+
+    expect(near(back.start)).not.toEqual(near(forward.end));
+    // Nearly a cell and a half apart at their closest, which on this television
+    // is some 80px — two arrows, not one arrow with two heads.
+    expect(apart(forward, back, TALL.cols, TALL.rows)).toBeCloseTo(1.3736, 4);
+  });
+
+  it("bows out past the side of the diagram, and stays in the widget", () => {
+    const payload = flow(PIPELINE, RETRY);
+    const laid = layout(payload, TALL.cols, TALL.rows);
+    const back = only(arrows(payload, laid), "test", "build");
+    const edge = laid.boxes.get("test")!;
+
+    // Out of the right face, back in at the right face, and every point of it
+    // clear of the boxes and inside the widget.
+    expect(back.start.x).toBe(edge.x + edge.w);
+    expect(back.end.x).toBe(edge.x + edge.w);
+    expect(back.atEnd).toEqual({ x: -1, y: 0 });
+    for (const point of sample(back)) {
+      expect(point.x).toBeGreaterThanOrEqual(edge.x + edge.w);
+      expect(point.x).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it("loops beneath a flow that runs rightwards, where no title is", () => {
+    const payload = flow(PIPELINE, RETRY);
+    const laid = layout(payload, WIDE.cols, WIDE.rows);
+    const back = only(arrows(payload, laid), "test", "build");
+    const edge = laid.boxes.get("test")!;
+
+    expect(back.start.y).toBe(edge.y + edge.h);
+    expect(back.atEnd).toEqual({ x: 0, y: -1 });
+  });
+
+  it("leaves a flow that placed its own boxes exactly as it was written", () => {
+    // The whole of this issue is about flows that said nothing. One that said
+    // where its boxes sit is drawn there, and its arrows are routed the way #77
+    // routed them — including a back-link laid over its own forward arrow,
+    // which in a placed flow is the author's own drawing.
+    const nodes = [
+      node("a", { x: 0.1, y: 0.2, w: 0.3, h: 0.4 }),
+      node("b", { x: 0.6, y: 0.2, w: 0.3, h: 0.4 }),
+    ];
+    const links = [link("a", "b"), link("b", "a")];
+    const laid = where(nodes, links);
+
+    expect(laid.boxes.get("a")).toEqual({ x: 0.1, y: 0.2, w: 0.3, h: 0.4 });
+    expect(laid.boxes.get("b")).toEqual({ x: 0.6, y: 0.2, w: 0.3, h: 0.4 });
+    expect(laid.ranks.size).toBe(0);
+    const [there, back] = arrows(flow(nodes, links), laid);
+    expect(near(there.run.start)).toEqual({ x: 0.4, y: 0.4 });
+    expect(near(there.run.end)).toEqual({ x: 0.6, y: 0.4 });
+    expect(near(back.run.start)).toEqual({ x: 0.6, y: 0.4 });
+    expect(near(back.run.end)).toEqual({ x: 0.4, y: 0.4 });
+    expect(back.run.control).toBeNull();
+  });
+
+  it("leaves a back-link that named its own sides where it said", () => {
+    const payload = flow(PIPELINE, [
+      ...RETRY.slice(0, 3),
+      link("test", "build", { source_side: "left", target_side: "left" }),
+    ]);
+    const laid = layout(payload, TALL.cols, TALL.rows);
+    const back = only(arrows(payload, laid), "test", "build");
+
+    expect(back.start.x).toBe(laid.boxes.get("test")!.x);
   });
 });
 
