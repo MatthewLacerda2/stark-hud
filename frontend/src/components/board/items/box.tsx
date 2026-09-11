@@ -10,7 +10,7 @@ export function Box({
 }) {
   return (
     <div
-      className="flex size-full flex-col rounded-xl border-2 border-border p-4"
+      className="flex size-full flex-col rounded-xl border-2 border-border p-[3.5cqmin]"
       style={{
         backgroundColor: payload.fill ?? undefined,
         borderColor: payload.stroke ?? undefined,

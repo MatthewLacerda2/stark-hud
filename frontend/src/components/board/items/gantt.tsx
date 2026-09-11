@@ -72,7 +72,7 @@ export function Gantt({
   const times = marks(rows, now, window, cols);
 
   return (
-    <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl widget-surface widget-edge p-5 widget-text">
+    <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl widget-surface widget-edge p-[4cqmin] widget-text">
       {payload.title || payload.icon ? (
         <h3 className="flex shrink-0 items-center gap-2 truncate text-node font-semibold tracking-tight">
           <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />
@@ -122,7 +122,7 @@ export function Gantt({
             <li
               key={row.name}
               className={cn(
-                "flex items-stretch gap-2 py-1 text-node-sm",
+                "flex items-stretch gap-2 py-[0.75cqmin] text-node-sm",
                 // Measured but not drawn — see `useFitting` for why this is
                 // visibility and never display.
                 i >= fits && "invisible",
@@ -178,7 +178,7 @@ function Bar({
 
   return (
     <div
-      className="absolute inset-y-0 flex items-center overflow-hidden rounded-sm px-2"
+      className="absolute inset-y-0 flex items-center overflow-hidden rounded-sm px-[1.5cqmin]"
       style={{ left: `${slot.offset * 100}%`, width: `${slot.width * 100}%` }}
     >
       {/* The colour is its own layer so that turning it down does not take the
