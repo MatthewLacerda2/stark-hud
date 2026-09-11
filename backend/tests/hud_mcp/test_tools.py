@@ -46,6 +46,7 @@ EXPECTED = {
     "list_notifications",
     "move_item",
     "notify",
+    "reload_mesh",
     "remove_from_countdown",
     "remove_from_group",
     "remove_from_list",

@@ -147,6 +147,7 @@ async function grid(): Promise<{
           everything={board(maximised)}
           notifications={[]}
           wakes={{}}
+          reloads={{}}
           tape={NO_TAPE}
           bloom={NO_BLOOM}
           cols={32}

@@ -92,6 +92,12 @@ def register(server: MCPServer) -> None:
         Give it room. A wireframe read from a sofa wants 6 by 6 or more; below
         about 4 by 4 the lines converge and it stops being a shape.
 
+        Work rough first. Block the model out, put it on the board, look at
+        what the television actually shows, then refine the file and call
+        `reload_mesh` — the widget re-reads it in place, keeping its id, its
+        size, its description and its colours. Do not remove and re-add it to
+        see a change; that costs all of those on every pass.
+
         This is the one widget that removes itself when its file goes missing,
         rather than showing a placeholder. If the model is on a drive that is not
         always mounted, expect the widget to be gone after a reboot — a line in
@@ -126,6 +132,37 @@ def register(server: MCPServer) -> None:
             return "Nothing to set: pass at least one of spin, tilt or explode"
         said = ", ".join(f"{name}={value:g}" for name, value in given.items())
         return await _write(item, model.model_copy(update=given), said)
+
+    @server.tool()
+    async def reload_mesh(target: str) -> str:
+        """Re-read a model's file, keeping everything else about the widget.
+
+        For the loop `add_mesh` describes: block a model out, put it on the
+        board, look at the television, refine the file, say this. The widget
+        reads its geometry once when it appears and never again, so a better
+        version written over the same path is invisible until something asks —
+        and nothing on screen says the model up there is not the model on disk.
+
+        This is the something. The widget keeps its id, its place, its size, its
+        description and any colours `color_mesh` gave it; only the geometry is
+        read again. Removing and adding the widget also works and costs all of
+        those on every pass, which is what this exists to stop.
+
+        Nothing is cached on this side — the wireframe is rebuilt from the file
+        for whoever asks — so this is a nudge to the browsers looking, not an
+        invalidation. A board nobody has open does its re-reading when somebody
+        opens it.
+        """
+        found = _mesh(target)
+        if found is None:
+            return f"No mesh widget {target!r}. Call list_items to see what is there."
+        item, model = found
+        # Not an item update: nothing about the widget changed. Sending one
+        # would rewrite the board file and make every *other* client redraw a
+        # widget whose payload is identical — see `item.waking` for the same
+        # shape, a signal that is not board state.
+        await hub.broadcast("mesh.reloaded", {"id": item.id})
+        return f"Told {item.id} to read {model.path} again"
 
     @server.tool()
     async def color_mesh(

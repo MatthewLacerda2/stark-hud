@@ -39,18 +39,42 @@ const HALO_ALPHA = 0.22;
  * passes of the same lines, one wide and faint and one tight and bright, is the
  * same effect for the price of one extra stroke per depth band.
  */
-export function Mesh({ id, payload }: { id: string; payload: MeshPayload }) {
+export function Mesh({
+  id,
+  payload,
+  reload,
+}: {
+  id: string;
+  payload: MeshPayload;
+  /**
+   * How many times this widget has been told its file was written again.
+   *
+   * The geometry is fetched once and the path does not change, so without this
+   * a model refined on disk stays the old model on screen — silently, which is
+   * the worst of it: nothing up there says the shape being drawn is not the
+   * shape in the file. Folding the count into the fetch key is the whole of the
+   * fix; a different number is a different question.
+   */
+  reload: number;
+}) {
   const { t } = useTranslation();
   const canvas = useRef<HTMLCanvasElement>(null);
   const [got, setGot] = useState<Fetched | null>(null);
 
-  // Which model this widget is showing, as one string. The result carries the
-  // same string, so what was fetched for a previous model is recognised as
-  // stale while it is being rendered rather than cleared by an effect — the
-  // answer the countdown gives to state that has to follow what was just
-  // worked out. The path is in the key because a widget that ever learns to
-  // change it should refetch rather than go on drawing the model it had.
-  const asked = `${id}\u0000${payload.path}`;
+  // Which model this widget is showing, and which telling of it, as one
+  // string. The result carries the same string, so what was fetched for a
+  // previous model is recognised as stale while it is being rendered rather
+  // than cleared by an effect — the answer the countdown gives to state that
+  // has to follow what was just worked out.
+  //
+  // The path is in the key because a widget that ever learns to change it
+  // should refetch rather than go on drawing the model it had. `reload` is in
+  // it because the path staying the same is exactly the case that was broken:
+  // the file underneath it moved and nothing asked again. Note what is NOT in
+  // it — the widget's position, size, colours or description. Those change
+  // often and a downloaded model is a hundred thousand vertices, so a drag must
+  // not drag the geometry back over the wire with it.
+  const asked = `${id}\u0000${payload.path}\u0000${reload}`;
   const found = got?.asked === asked ? got : null;
 
   useEffect(() => {
