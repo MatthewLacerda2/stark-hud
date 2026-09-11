@@ -4,11 +4,11 @@ import type { ItemKind } from "@/lib/schemas/board";
 /**
  * How much of the tape look to draw, part by part.
  *
- * A dashboard in a film is never a clean render. There is a grain over it, the
- * lines of a tube through it, and the colour separates a little at the edges of
- * the letters. None of that carries information — it is what makes information
- * look *displayed* rather than pasted on, and it is the reason a HUD in a film
- * reads as a thing in a room.
+ * A dashboard in a film is never a clean render. There is dirt on the glass in
+ * front of it, the lines of a tube through it, and the colour separates a
+ * little at the edges of the letters. None of that carries information — it is
+ * what makes information look *displayed* rather than pasted on, and it is the
+ * reason a HUD in a film reads as a thing in a room.
  *
  * Every part is a number from 0 to 1, where 1 is the strongest each one goes
  * before it stops being a look and starts being damage. None of them moves: a
@@ -21,8 +21,13 @@ import type { ItemKind } from "@/lib/schemas/board";
 export type Tape = {
   /** The lines of the tube, drawn across everything. */
   scanlines: number;
-  /** Moving grain. The part that reads as tape rather than as a screen. */
-  grain: number;
+  /**
+   * Dirt on the glass in front of the readout. Blotchy rather than even: most
+   * of the surface is clean and what there is collects in patches, the way it
+   * does on a screen nobody wipes. It replaced an even grain, which said the
+   * tape was worn rather than that the glass was dirty.
+   */
+  dirt: number;
   /** Corners going dark, the way a lens does. */
   vignette: number;
   /** Colour separating at the edges of text. */
@@ -32,7 +37,7 @@ export type Tape = {
 /** No look at all: the board exactly as it was before any of this existed. */
 export const NO_TAPE: Tape = {
   scanlines: 0,
-  grain: 0,
+  dirt: 0,
   vignette: 0,
   fringe: 0,
 };
@@ -40,7 +45,7 @@ export const NO_TAPE: Tape = {
 /** Every part at full. What `?vhs=1` — and no query string at all — means. */
 const FULL: Tape = {
   scanlines: 1,
-  grain: 1,
+  dirt: 1,
   vignette: 1,
   fringe: 1,
 };
@@ -56,7 +61,7 @@ function amount(raw: string | null, fallback: number): number {
  * Read the look out of a query string.
  *
  * `?vhs=0.4` turns the whole thing down, `?vhs=0` turns it off, and any part
- * can be named on its own — `?grain=0&fringe=0.3` — to see what that one is
+ * can be named on its own — `?dirt=0&fringe=0.3` — to see what that one is
  * doing. A named part is still scaled by `vhs`, so turning the master to zero
  * really does mean off.
  *
@@ -78,7 +83,7 @@ export function tapeFrom(search: string): Tape {
 export function tapeVars(tape: Tape): CSSProperties {
   return {
     "--vhs-scanlines": tape.scanlines,
-    "--vhs-grain": tape.grain,
+    "--vhs-dirt": tape.dirt,
     "--vhs-vignette": tape.vignette,
     "--vhs-fringe": tape.fringe,
   } as CSSProperties;

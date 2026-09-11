@@ -60,7 +60,7 @@ const DIRT =
  * pointing at one is ten widgets and one definition.
  */
 export function VhsFilter({ tape }: { tape: Tape }) {
-  if (tape.grain <= 0 && tape.scanlines <= 0) return null;
+  if (tape.dirt <= 0 && tape.scanlines <= 0) return null;
   // The ceilings, again — the amount of each that is a texture rather than a
   // fault. They are the filter's own because alpha inside a filter and opacity
   // on a layer are not the same quantity.
@@ -70,7 +70,7 @@ export function VhsFilter({ tape }: { tape: Tape }) {
   // them. Over the whole surface that is 0.012 of ink against the grain's
   // 0.080, while inside a clump it is 0.081 and peaks at 0.30 — fainter
   // overall, and stronger where it actually is, which is what a patch is.
-  const dirt = tape.grain * 0.55;
+  const dirt = tape.dirt * 0.55;
   const scanlines = tape.scanlines * 0.24;
 
   return (

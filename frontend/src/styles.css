@@ -624,15 +624,16 @@
 /* --------------------------------------------------------------------------
    The tape look.
 
-   A readout in a film is never a clean render. There is grain over it, the
-   lines of a tube through it, the corners fall away, and the colour separates a
-   little at the edges of the letters. None of it carries information — it is
-   what makes information look *displayed* rather than pasted on.
+   A readout in a film is never a clean render. There is dirt on the glass in
+   front of it, the lines of a tube through it, the corners fall away, and the
+   colour separates a little at the edges of the letters. None of it carries
+   information — it is what makes information look *displayed* rather than
+   pasted on.
 
    Every part is driven by a `--vhs-*` variable between 0 and 1, set on the
    board from `lib/vhs.ts`. Each layer multiplies that by its own ceiling, so 1
    means the most of that part that is still a look rather than damage, and the
-   number in the URL never has to know what "a lot of grain" is in pixels.
+   number in the URL never has to know what "a lot of dirt" is in pixels.
 
    The ceilings here are the second set. The first were judged on a still, and
    on the television they read as a fault in the panel rather than a texture
@@ -653,11 +654,13 @@
 /* What the tape happens to: whatever the widget drew.
 
    `filter` rather than a layer over the top. A layer covers a rectangle, and
-   most widgets here are mostly empty rectangle — so grain and scanlines over
-   one fall on the room showing through it rather than on the board. The filter
+   most widgets here are mostly empty rectangle — so dirt and scanlines over one
+   fall on the room showing through it rather than on the board. The filter
    composites its texture into `SourceAlpha`, which is the shape of what the
    widget actually painted: the letters, the rings, the icons, and the panel to
-   the exact extent the panel is there.
+   the exact extent the panel is there. That last part is why the dirt reads as
+   dirt: a widget's only real area is its panel, so the patches land there and
+   a widget with no panel has no glass to be dirty.
 
    Pictures never get it — see `holographic`. A film is somebody else's picture,
    and a filter over moving video would re-run every frame besides. */
@@ -680,7 +683,7 @@
   filter: url(#bloom) url(#vhs-tape);
 }
 
-/* The corners falling away. Last of the four, so it darkens the grain and the
+/* The corners falling away. Last of the four, so it darkens the dirt and the
    scanlines too rather than sitting under them. */
 @utility vhs-vignette {
   position: absolute;
