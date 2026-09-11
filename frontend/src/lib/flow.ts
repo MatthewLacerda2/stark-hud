@@ -119,6 +119,18 @@ export interface Layout {
   ranks: Map<string, number>;
   /** Which way this flow runs. */
   along: Axis;
+  /**
+   * How many board cells the widget spans, kept from the call that laid this
+   * out.
+   *
+   * An arrow needs them: `x` is a fraction of the width and `y` a fraction of
+   * the height, so the two are not comparable until each is multiplied by its
+   * own extent. Carried here rather than passed again beside the layout,
+   * because a layout drawn against a different widget than it was laid out in
+   * is not a thing that should be expressible.
+   */
+  cols: number;
+  rows: number;
 }
 
 /**
@@ -157,11 +169,13 @@ export function layout(
       ),
       ranks: new Map(),
       along,
+      cols,
+      rows,
     };
   if (payload.links.length === 0)
-    return { boxes: inLine(nodes, along), ranks: new Map(), along };
+    return { boxes: inLine(nodes, along), ranks: new Map(), along, cols, rows };
   const ranks = layer(payload);
-  return { boxes: spread(nodes, ranks, along), ranks, along };
+  return { boxes: spread(nodes, ranks, along), ranks, along, cols, rows };
 }
 
 /** The box a node named, or null when it named none. */
@@ -260,18 +274,33 @@ export function anchor(box: Box, side: FlowSide): Point {
 /**
  * The pair of sides two boxes face each other across, when the link named none.
  *
- * Whichever axis their middles are further apart on, because that is the axis
- * the eye reads the relationship along — the same rule scorsese infers an S's
- * bow axis from, kept the same here so the two never disagree about which way
- * an arrow is going.
+ * Whichever axis their middles are further apart on **as they are drawn**,
+ * because that is the axis the eye reads the relationship along — the same rule
+ * scorsese infers an S's bow axis from, kept the same here so the two never
+ * disagree about which way an arrow is going.
+ *
+ * "As they are drawn" is the whole of it, and is why the widget's size has to
+ * come in. `x` is a fraction of the width and `y` a fraction of the height, so
+ * the two are fractions of different things and comparing them as they stand
+ * asks whether 0.3 of one length beats 0.25 of another — a question with no
+ * answer. In a tall widget that reads every vertical gap as smaller than it is,
+ * so a box directly above another was joined side to side, and the arrow came
+ * out of a face nothing was on and grazed past the box it was pointing at.
+ * Multiplying each by its own extent puts them in board cells first, which is
+ * the same conversion `cells()` makes for the length of a run.
  *
  * This is the deliberate divergence from scorsese, which makes the author
  * choose. There an attached clip moves over time, so an arrow that picked its
  * own side would rearrange itself between two renders. Nothing in a flow moves.
  */
-export function facing(from: Box, to: Box): [FlowSide, FlowSide] {
-  const dx = to.x + to.w / 2 - (from.x + from.w / 2);
-  const dy = to.y + to.h / 2 - (from.y + from.h / 2);
+export function facing(
+  from: Box,
+  to: Box,
+  cols: number,
+  rows: number,
+): [FlowSide, FlowSide] {
+  const dx = (to.x + to.w / 2 - (from.x + from.w / 2)) * cols;
+  const dy = (to.y + to.h / 2 - (from.y + from.h / 2)) * rows;
   if (Math.abs(dx) >= Math.abs(dy))
     return dx >= 0 ? ["right", "left"] : ["left", "right"];
   return dy >= 0 ? ["bottom", "top"] : ["top", "bottom"];
@@ -319,8 +348,14 @@ function normal(side: FlowSide): Point | null {
  * A `center` end has no side to leave along, so it leaves along the run — an S
  * into the middle of a box is a straight line, honestly.
  */
-export function route(from: Box, to: Box, link: FlowLink): Route {
-  const [a, b] = sides(from, to, link);
+export function route(
+  from: Box,
+  to: Box,
+  link: FlowLink,
+  cols: number,
+  rows: number,
+): Route {
+  const [a, b] = sides(from, to, link, cols, rows);
   const start = anchor(from, a);
   const end = anchor(to, b);
   const straight = unit(end.x - start.x, end.y - start.y) ?? { x: 1, y: 0 };
@@ -348,8 +383,14 @@ export function route(from: Box, to: Box, link: FlowLink): Route {
 }
 
 /** The two sides this link meets: what it named, else the facing pair. */
-function sides(from: Box, to: Box, link: FlowLink): [FlowSide, FlowSide] {
-  const picked = facing(from, to);
+function sides(
+  from: Box,
+  to: Box,
+  link: FlowLink,
+  cols: number,
+  rows: number,
+): [FlowSide, FlowSide] {
+  const picked = facing(from, to, cols, rows);
   return [link.source_side ?? picked[0], link.target_side ?? picked[1]];
 }
 
@@ -474,7 +515,7 @@ export function arrows(
     if (!from || !to) return [];
     const run = returns(link, laid)
       ? aside(from, to, laid.along)
-      : route(from, to, link);
+      : route(from, to, link, laid.cols, laid.rows);
     return [{ link, run }];
   });
 }

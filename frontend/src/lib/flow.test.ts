@@ -7,8 +7,29 @@
  * cannot be checked here is how any of it looks — that is a television.
  */
 import { describe, expect, it } from "vitest";
-import type { FlowLink, FlowNode, FlowPayload } from "@/lib/schemas/board";
-import type { Box, Point, Route } from "@/lib/flow";
+import {
+  apart,
+  BELOW,
+  DIAMOND,
+  flow,
+  LEFT,
+  link,
+  near,
+  node,
+  only,
+  overlaps,
+  PIPELINE,
+  RETRY,
+  RIGHT,
+  SPLIT_JOIN,
+  SPLIT_JOIN_LINKS,
+  SPLITS,
+  SQUARE,
+  TALL,
+  sample,
+  where,
+  WIDE,
+} from "@/lib/flow.fixtures";
 import {
   anchor,
   arrows,
@@ -21,127 +42,6 @@ import {
   roomy,
   route,
 } from "@/lib/flow";
-
-function node(id: string, box?: Partial<FlowNode>): FlowNode {
-  return {
-    id,
-    text: id,
-    shape: "rectangle",
-    radius: 0.18,
-    color: null,
-    x: null,
-    y: null,
-    w: null,
-    h: null,
-    ...box,
-  };
-}
-
-function link(
-  source: string,
-  target: string,
-  over?: Partial<FlowLink>,
-): FlowLink {
-  return {
-    source,
-    target,
-    source_side: null,
-    target_side: null,
-    label: null,
-    curve: "straight",
-    heads: "end",
-    color: null,
-    ...over,
-  };
-}
-
-/**
- * A point, to the nearest ten-thousandth of the widget.
- *
- * These fractions are sums of tenths, so `0.7 + 0.1` is `0.7999999999999999`
- * and an exact comparison would be testing IEEE 754 rather than the geometry.
- * Four places is far finer than a pixel on any television.
- */
-function near(at: Point) {
-  return { x: Math.round(at.x * 1e4) / 1e4, y: Math.round(at.y * 1e4) / 1e4 };
-}
-
-/** The one arrow between these two, which is all a flow ever draws. */
-function only(
-  drawn: { link: FlowLink; run: Route }[],
-  source: string,
-  target: string,
-): Route {
-  return drawn.find(
-    (arrow) => arrow.link.source === source && arrow.link.target === target,
-  )!.run;
-}
-
-/** Where an arrow is, a given fraction of the way along it. */
-function walk(run: Route, t: number): Point {
-  if (run.control === null)
-    return {
-      x: run.start.x + (run.end.x - run.start.x) * t,
-      y: run.start.y + (run.end.y - run.start.y) * t,
-    };
-  const [a, b] = run.control;
-  const u = 1 - t;
-  const cubic = (p: number, q: number, r: number, s: number) =>
-    u * u * u * p + 3 * u * u * t * q + 3 * u * t * t * r + t * t * t * s;
-  return {
-    x: cubic(run.start.x, a.x, b.x, run.end.x),
-    y: cubic(run.start.y, a.y, b.y, run.end.y),
-  };
-}
-
-/** An arrow, as points along it. Enough of them to find its nearest approach. */
-function sample(run: Route): Point[] {
-  return Array.from({ length: 65 }, (_, step) => walk(run, step / 64));
-}
-
-/**
- * The nearest two arrows ever come to each other, in cells — which is what
- * decides whether they read as two arrows from a sofa, rather than the distance
- * between their ends.
- */
-function apart(a: Route, b: Route, cols: number, rows: number): number {
-  const closest = Math.min(
-    ...sample(a).flatMap((one) =>
-      sample(b).map((other) => cells(one, other, cols, rows)),
-    ),
-  );
-  return Math.round(closest * 1e4) / 1e4;
-}
-
-const WIDE = { cols: 12, rows: 4 };
-const TALL = { cols: 4, rows: 12 };
-
-function flow(nodes: FlowNode[], links: FlowLink[] = []): FlowPayload {
-  return { kind: "flow", title: null, icon: null, nodes, links };
-}
-
-/** A flow laid out in a widget of the given shape. */
-function where(nodes: FlowNode[], links: FlowLink[] = [], size = WIDE) {
-  return layout(flow(nodes, links), size.cols, size.rows);
-}
-
-/** Whether two boxes share any area at all. */
-function touching(a: Box, b: Box): boolean {
-  return (
-    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
-  );
-}
-
-/** Every pair of boxes that overlaps. Named, so a failure says which two. */
-function overlaps(placed: Map<string, Box>): string[] {
-  const all = [...placed];
-  return all.flatMap(([name, box], at) =>
-    all
-      .slice(at + 1)
-      .filter(([, other]) => touching(box, other))
-      .map(([other]) => `${name}/${other}`),
-  );
-}
 
 describe("where the boxes land", () => {
   it("puts a node exactly where it said it sits", () => {
@@ -191,24 +91,6 @@ describe("where the boxes land", () => {
     }
   });
 });
-
-/** One box, then two beside each other, then one where they join. */
-const DIAMOND = ["start", "left", "right", "join"].map((id) => node(id));
-const SPLITS = [
-  link("start", "left"),
-  link("start", "right"),
-  link("left", "join"),
-  link("right", "join"),
-];
-
-/** clone, build, test, ship — and a red test that sends you back to build. */
-const PIPELINE = ["clone", "build", "test", "ship"].map((id) => node(id));
-const RETRY = [
-  link("clone", "build"),
-  link("build", "test"),
-  link("test", "ship"),
-  link("test", "build", { label: "red", curve: "s" }),
-];
 
 describe("ranks", () => {
   it("puts a node one rank past the deepest thing leading into it", () => {
@@ -379,31 +261,75 @@ describe("the way back", () => {
   });
 });
 
-const LEFT = { x: 0.1, y: 0.4, w: 0.2, h: 0.2 };
-const RIGHT = { x: 0.7, y: 0.4, w: 0.2, h: 0.2 };
-const BELOW = { x: 0.1, y: 0.7, w: 0.2, h: 0.2 };
-
 describe("where an arrow meets a box", () => {
   it("meets the side it was told to, whatever the other box is doing", () => {
     const run = route(
       LEFT,
       RIGHT,
       link("a", "b", { source_side: "top", target_side: "bottom" }),
+      SQUARE.cols,
+      SQUARE.rows,
     );
 
     expect(near(run.start)).toEqual({ x: 0.2, y: 0.4 });
     expect(near(run.end)).toEqual({ x: 0.8, y: 0.6 });
   });
 
+  it("reads a branch in a tall widget as going down, not sideways", () => {
+    // Measured off the television, and the numbers are why this case and not a
+    // tidier one. In a 5.98x9.6 widget this graph puts `build` a quarter of the
+    // widget above `test` and a quarter of it to the right — so as bare
+    // fractions the two gaps tie, and a tie went sideways. Drawn, they do not
+    // tie at all: a quarter of the width is 1.5 cells and a quarter of the
+    // height is 2.4. The arrow left a face nothing was on and grazed down past
+    // the box it was pointing at.
+    const payload = flow(SPLIT_JOIN, SPLIT_JOIN_LINKS);
+    const laid = layout(payload, 5.98, 9.6);
+    const down = only(arrows(payload, laid), "build", "test");
+    const build = laid.boxes.get("build")!;
+    const test = laid.boxes.get("test")!;
+
+    // Out of the bottom of one and into the top of the other, which is what
+    // "these two face each other" means when one is above the other.
+    expect(down.start.y).toBeCloseTo(build.y + build.h, 6);
+    expect(down.end.y).toBeCloseTo(test.y, 6);
+  });
+
+  it("still reads the same branch as going sideways in a wide widget", () => {
+    // The same graph turned on its side runs across, so the same two boxes now
+    // face each other left to right. The rule is the geometry as drawn, not a
+    // preference for one axis.
+    const payload = flow(SPLIT_JOIN, SPLIT_JOIN_LINKS);
+    const laid = layout(payload, 9.6, 5.98);
+    const across = only(arrows(payload, laid), "build", "test");
+    const build = laid.boxes.get("build")!;
+    const test = laid.boxes.get("test")!;
+
+    expect(across.start.x).toBeCloseTo(build.x + build.w, 6);
+    expect(across.end.x).toBeCloseTo(test.x, 6);
+  });
+
   it("picks the pair of facing sides when it was told neither", () => {
-    expect(facing(LEFT, RIGHT)).toEqual(["right", "left"]);
-    expect(facing(RIGHT, LEFT)).toEqual(["left", "right"]);
-    expect(facing(LEFT, BELOW)).toEqual(["bottom", "top"]);
-    expect(facing(BELOW, LEFT)).toEqual(["top", "bottom"]);
+    expect(facing(LEFT, RIGHT, SQUARE.cols, SQUARE.rows)).toEqual([
+      "right",
+      "left",
+    ]);
+    expect(facing(RIGHT, LEFT, SQUARE.cols, SQUARE.rows)).toEqual([
+      "left",
+      "right",
+    ]);
+    expect(facing(LEFT, BELOW, SQUARE.cols, SQUARE.rows)).toEqual([
+      "bottom",
+      "top",
+    ]);
+    expect(facing(BELOW, LEFT, SQUARE.cols, SQUARE.rows)).toEqual([
+      "top",
+      "bottom",
+    ]);
   });
 
   it("routes a straight arrow between those facing sides", () => {
-    const run = route(LEFT, RIGHT, link("a", "b"));
+    const run = route(LEFT, RIGHT, link("a", "b"), SQUARE.cols, SQUARE.rows);
 
     expect(near(run.start)).toEqual({ x: 0.3, y: 0.5 });
     expect(near(run.end)).toEqual({ x: 0.7, y: 0.5 });
@@ -421,7 +347,13 @@ describe("where an arrow meets a box", () => {
 
 describe("the S", () => {
   it("leaves and arrives along the sides it meets, not along the run", () => {
-    const run = route(LEFT, RIGHT, link("a", "b", { curve: "s" }));
+    const run = route(
+      LEFT,
+      RIGHT,
+      link("a", "b", { curve: "s" }),
+      SQUARE.cols,
+      SQUARE.rows,
+    );
 
     expect(run.control).not.toBeNull();
     // Both control points sit level with their own end, which is what makes the
@@ -443,6 +375,8 @@ describe("the S", () => {
         source_side: "right",
         target_side: "right",
       }),
+      SQUARE.cols,
+      SQUARE.rows,
     );
 
     expect(run.control![0].x).toBeGreaterThan(run.start.x);
@@ -458,6 +392,8 @@ describe("the S", () => {
         source_side: "right",
         target_side: "right",
       }),
+      SQUARE.cols,
+      SQUARE.rows,
     );
 
     // Arriving from the right, so the head points left — which the straight
@@ -467,7 +403,9 @@ describe("the S", () => {
   });
 
   it("puts a label halfway along the curve, not halfway between the ends", () => {
-    const straight = midpoint(route(LEFT, RIGHT, link("a", "b")));
+    const straight = midpoint(
+      route(LEFT, RIGHT, link("a", "b"), SQUARE.cols, SQUARE.rows),
+    );
     expect(near(straight)).toEqual({ x: 0.5, y: 0.5 });
 
     const bowed = midpoint(
@@ -479,6 +417,8 @@ describe("the S", () => {
           source_side: "right",
           target_side: "right",
         }),
+        SQUARE.cols,
+        SQUARE.rows,
       ),
     );
     expect(bowed.x).toBeGreaterThan(
