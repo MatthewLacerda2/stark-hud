@@ -109,9 +109,9 @@ const MAX_RINGS = 3;
 // Tailwind reads these as whole strings. A size built by interpolation is a
 // class the build never sees and the browser resolves to nothing.
 const BANDS = [
-  { inner: "72%", hole: "size-[50cqmin]" },
-  { inner: "58%", hole: "size-[40cqmin]" },
-  { inner: "46%", hole: "size-[32cqmin]" },
+  { inner: "72%", hole: "size-[50cqmin]", small: false },
+  { inner: "60%", hole: "size-[42cqmin]", small: true },
+  { inner: "50%", hole: "size-[35cqmin]", small: true },
 ];
 
 // `cqmin` needs a container sized in both axes, which the widget's own
@@ -235,7 +235,15 @@ function Gauge({ id, payload }: { id: string; payload: ChartPayload }) {
                 "flex w-full min-w-0 items-center gap-[0.3em] widget-text",
                 // Alone in the ring, the word takes the room the icon would
                 // have had. Beside one it is sized to sit next to something.
-                payload.icon ? "text-gauge-label" : "text-gauge-label-alone",
+                //
+                // And with rings inside rings it takes the smaller size either
+                // way, because the hole shrank to make room for them and the
+                // type did not: "Machine" in the three-ring hole came out as
+                // "Ma…", which names nothing. Measured on the board at 5 by 5,
+                // which is the size these actually get used at.
+                payload.icon || band.small
+                  ? "text-gauge-label"
+                  : "text-gauge-label-alone",
                 paired ? "justify-start" : "justify-center",
               )}
             >

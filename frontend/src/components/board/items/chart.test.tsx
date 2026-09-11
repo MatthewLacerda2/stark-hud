@@ -468,6 +468,18 @@ describe("a gauge with more than one row", () => {
     expect(inner[1]).toBe(ALARM);
   });
 
+  it("shrinks the label with the hole, so a name is still a name", async () => {
+    // "Machine" in the first version of the three-ring hole came out as "Ma…",
+    // because the hole shrank to make room for the rings and the type did not.
+    const label = (host: HTMLElement) =>
+      [...host.querySelectorAll("span")].find((s) =>
+        s.className.includes("text-gauge-label"),
+      )?.className ?? "";
+
+    expect(label(await render(GAUGE))).toContain("text-gauge-label-alone");
+    expect(label(await render(RINGS))).not.toContain("text-gauge-label-alone");
+  });
+
   it("stops spelling the reading out, and keeps the identity", async () => {
     // Three sentences do not fit in a hole that shrank to make room for the
     // rings, and each ring already carries its own proportion.
@@ -489,7 +501,7 @@ describe("a gauge with more than one row", () => {
     // hairline, and widening the band without shrinking the hole is not
     // possible in a circle.
     expect(hole(one)).toContain("size-[50cqmin]");
-    expect(hole(three)).toContain("size-[32cqmin]");
+    expect(hole(three)).toContain("size-[35cqmin]");
   });
 });
 
