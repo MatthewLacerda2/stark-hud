@@ -9,6 +9,7 @@ import { Gantt } from "@/components/board/items/gantt";
 import { Group } from "@/components/board/items/group";
 import { Image } from "@/components/board/items/image";
 import { Media } from "@/components/board/items/media";
+import { Mesh } from "@/components/board/items/mesh";
 import { Video } from "@/components/board/items/video";
 import { Inbox } from "@/components/board/items/inbox";
 import { List } from "@/components/board/items/list";
@@ -46,6 +47,10 @@ export function ItemView({
       return (
         <Media id={item.id} payload={payload} cols={item.w} rows={item.h} />
       );
+    case "mesh":
+      // Draws itself from its own clock and needs nothing from the board: the
+      // geometry is fetched by id and the spin comes from the browser.
+      return <Mesh id={item.id} payload={payload} />;
     case "chart":
       return <Chart id={item.id} payload={payload} />;
     case "inbox":

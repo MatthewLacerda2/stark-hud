@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from schemas.colour import Colour
 from schemas.media import MEDIA_ACTIONS, MediaAction, Playback, PlaybackReport
+from schemas.mesh import MeshPart, Wireframe
 from schemas.notifications import Notification
 from schemas.payloads import (
     BoxPayload,
@@ -34,6 +35,7 @@ from schemas.payloads import (
     ListPayload,
     MediaPayload,
     MediaTrack,
+    MeshPayload,
     NotePayload,
     Payload,
     TextPayload,
@@ -66,6 +68,8 @@ __all__ = [
     "MediaAction",
     "MediaPayload",
     "MediaTrack",
+    "MeshPart",
+    "MeshPayload",
     "NotePayload",
     "Payload",
     "Playback",
@@ -73,6 +77,7 @@ __all__ = [
     "TextPayload",
     "TextSize",
     "VideoPayload",
+    "Wireframe",
 ]
 
 

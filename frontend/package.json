@@ -11,7 +11,8 @@
     "test": "vitest run",
     "check-theme": "node scripts/check-theme.mjs",
     "lint": "eslint . && prettier --check .",
-    "dead": "knip --no-progress"
+    "dead": "knip --no-progress",
+    "preview-mesh": "bun scripts/preview-mesh.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "5.102.2",

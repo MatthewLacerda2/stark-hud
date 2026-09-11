@@ -34,5 +34,8 @@
   },
   "countdown": {
     "empty": "Nada próximo"
+  },
+  "mesh": {
+    "wontDraw": "No se puede dibujar ese modelo"
   }
 }

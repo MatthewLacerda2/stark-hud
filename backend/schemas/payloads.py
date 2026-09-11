@@ -16,6 +16,7 @@ from schemas.colour import Colour
 from schemas.gantt import GanttBar, GanttPayload, GanttRow
 from schemas.icon import Icon
 from schemas.media import MediaPayload, MediaTrack
+from schemas.mesh import MeshPayload
 
 
 class _Payload(BaseModel):
@@ -302,6 +303,7 @@ Payload = Annotated[
     | ImagePayload
     | VideoPayload
     | MediaPayload
+    | MeshPayload
     | ChartPayload
     | InboxPayload
     | ClockPayload
@@ -340,6 +342,7 @@ __all__ = [
     "ListPayload",
     "MediaPayload",
     "MediaTrack",
+    "MeshPayload",
     "NotePayload",
     "Payload",
     "TextPayload",
