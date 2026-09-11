@@ -526,6 +526,48 @@ async def test_a_whole_evening_is_one_call(server: MCPServer) -> None:
     assert rows[0].bars[0].title == "sauce"
 
 
+async def test_a_countdown_whose_ends_disagree_about_timezone_is_refused(
+    server: MCPServer,
+) -> None:
+    """It used to raise TypeError past the guard rather than answer in words.
+
+    `add_to_countdown` built the entry inside a try and then compared its two
+    ends one line after the except closed, so an aware start against a naive end
+    escaped uncaught — a crash, for a typo in one of two fields.
+    """
+    said = await call(server, "add_countdown", title="Tonight")
+    item_id = said.split("countdown ")[1].split(" ")[0]
+    message = await call(
+        server,
+        "add_to_countdown",
+        item_id=item_id,
+        title="sauce",
+        start="2026-09-10T18:00:00",
+        end="2026-09-10T18:45:00Z",
+    )
+    assert "Not added" in message
+    assert "names a timezone on one end and not the other" in message
+    assert repo.get(item_id).payload.items == []
+
+
+async def test_a_countdown_entry_ending_before_it_starts_is_refused(
+    server: MCPServer,
+) -> None:
+    """The refusal that already worked, kept working once the rule moved."""
+    said = await call(server, "add_countdown", title="Tonight")
+    item_id = said.split("countdown ")[1].split(" ")[0]
+    message = await call(
+        server,
+        "add_to_countdown",
+        item_id=item_id,
+        title="sauce",
+        start="2026-09-10T18:45",
+        end="2026-09-10T18:00",
+    )
+    assert "would end at or before it starts" in message
+    assert repo.get(item_id).payload.items == []
+
+
 async def test_a_bar_that_could_not_be_drawn_is_refused_in_words(server: MCPServer) -> None:
     """Naming the bar, because a session that mistyped one end cannot see the screen."""
     bar = {"title": "sauce", "start": "2026-09-04T18:45", "end": "2026-09-04T18:00"}

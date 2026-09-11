@@ -17,6 +17,7 @@ from pydantic import BaseModel, ConfigDict, model_validator
 
 from schemas.colour import Colour
 from schemas.icon import Icon
+from schemas.spans import refuse_bad_span
 
 
 class GanttBar(BaseModel):
@@ -41,16 +42,15 @@ class GanttBar(BaseModel):
 
     @model_validator(mode="after")
     def _has_width(self) -> "GanttBar":
-        """Refuse a bar that could not be drawn, in a sentence naming which one."""
-        # Both aware or both naive, or the comparison below raises TypeError and
-        # the caller gets a 500 for what is a typo in one of two fields.
-        if (self.start.tzinfo is None) != (self.end.tzinfo is None):
-            raise ValueError(
-                f"{self.title!r} names a timezone on one end and not the other; "
-                f"give both or neither"
-            )
-        if self.end <= self.start:
-            raise ValueError(f"{self.title!r} would end at or before it starts")
+        """Refuse a bar that could not be drawn, in a sentence naming which one.
+
+        The rule itself is shared with the countdown — see ``schemas.spans``.
+        Both widgets hold a pair of instants a caller filled in separately, both
+        break the same two ways, and the sentence they answer with is the whole
+        product: a second copy would drift into a second wording for one
+        mistake.
+        """
+        refuse_bad_span(self.title, self.start, self.end)
         return self
 
 
