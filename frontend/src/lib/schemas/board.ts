@@ -97,6 +97,26 @@ export interface MeshPayload {
   tilt: number;
   /** 0 assembled, 1 a full model-width of separation between the parts. */
   explode: number;
+  /**
+   * A colour per part, keyed by its name in the file. Keys may be globs, and
+   * the longest matching pattern wins. A part named here keeps this colour and
+   * does not take the wave.
+   */
+  colors: Record<string, string> | null;
+  /** A colour running through the model, over and over, or null for none. */
+  wave: MeshWave | null;
+}
+
+/** A colour travelling through a model: which way, how fast, and through what. */
+export interface MeshWave {
+  /** Up the model bottom to top, or around its upright axis. */
+  mode: "stack" | "loop";
+  /** How long one full pass takes. */
+  seconds: number;
+  /** The ramp, in order. It wraps: the last colour leads back to the first. */
+  colors: string[];
+  /** How much of the ramp the model holds at once. Above 1 the ramp repeats. */
+  spread: number;
 }
 
 /** One named object out of the file: points, and the lines between them. */

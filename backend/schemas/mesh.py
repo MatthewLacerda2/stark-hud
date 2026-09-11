@@ -17,6 +17,55 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from schemas.colour import Colour
+
+# Which way a colour wave travels through a model.
+#
+#   "stack" runs it up the object, bottom to top. On anything built as a
+#   pipeline that is the data going through: embedding, then the blocks, then
+#   the head. It lights every part, because every part has a height.
+#
+#   "loop" runs it around the upright axis instead, so parts light in the order
+#   they sit around the circle. Parts standing ON the axis have no angle to take
+#   a turn from and are left at the widget's own colour — which is the point
+#   rather than a gap: on a model whose loop is a ring of parts around a shaft,
+#   this lights the ring and leaves the shaft alone.
+WaveMode = Literal["stack", "loop"]
+
+
+class MeshWave(BaseModel):
+    """A colour running through a model, over and over.
+
+    The one animation a wireframe can really carry. A board that only moves
+    when a number changes reads as a screen; this is what makes a widget read
+    as switched on, which on a television in a room somebody lives in is worth
+    more than it sounds.
+
+    It is not a highlight sweeping across an otherwise plain object. Every part
+    sits at its own point on the ramp at every moment, so the model always
+    holds the whole gradient and the wave is that gradient travelling. A lit
+    band moving over dark geometry leaves most of the object dead at any
+    instant; this leaves none of it dead.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    mode: WaveMode = "stack"
+    # How long one full pass takes. Slow, for the same reason the spin is: a
+    # colour that hurries reads as a warning rather than as a thing being alive.
+    seconds: float = Field(default=8.0, ge=0.5, le=600.0)
+    # The colours it runs through, in order, and the list wraps — the last
+    # leads back into the first. So ("white", "info", "destructive") is a cycle
+    # that returns through red to white; to come back the way it went, say so:
+    # ("white", "info", "destructive", "info").
+    colors: list[Colour] = Field(min_length=2, max_length=8)
+    # How much of the ramp the model spans at one moment. At 1 the far ends of
+    # the object are a full cycle apart, so every colour in the list is on
+    # screen at once; below that the model holds less of the ramp and the whole
+    # thing pulses more as one. Above 1 the ramp repeats along the model, which
+    # is how a wave gets more than one crest.
+    spread: float = Field(default=1.0, gt=0.0, le=4.0)
+
 
 class MeshPayload(BaseModel):
     """A 3D object drawn as a wireframe, turning on the spot.
@@ -47,6 +96,18 @@ class MeshPayload(BaseModel):
     # Only ever as good as the file: a model saved as one object has one part
     # and nothing to come apart from.
     explode: float = Field(default=0.0, ge=0.0, le=1.0)
+    # What colour each part is drawn in, keyed by the part's name in the file.
+    # A key may be a glob — ``encoder_*`` names seven rings without writing
+    # seven lines — and where more than one pattern matches a part, the longest
+    # pattern wins, so a name beats a wildcard without needing an order.
+    #
+    # A part named here keeps this colour and does not take the wave. That is
+    # how the two compose: pin the parts that mean something, let the rest
+    # breathe. A part named by neither takes the widget's own colour.
+    colors: dict[str, Colour] | None = None
+    # A colour travelling through the model, or None for a wireframe that just
+    # sits there in one colour.
+    wave: MeshWave | None = None
 
 
 class MeshPart(BaseModel):
