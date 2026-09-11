@@ -25,7 +25,10 @@ board data. `lib/schemas/` mirrors the backend Pydantic models.
   (`bg-red-500`), no hex/`rgb()` literals in `className`/`style`.
 - **Motion is a token set too**, in `styles.css` beside the colours:
   `--motion-settle` for a widget going somewhere else, `--motion-arrive` and
-  `--motion-leave` for one appearing or going. Nothing invents an easing at
+  `--motion-leave` for one growing into or out of its own place, and
+  `--motion-fly-in` / `--motion-fly-out` for one that has a clear corridor to an
+  edge of the screen and travels down it (`lib/entrance.ts` decides which of the
+  two, and a departure is the arrival reversed). Nothing invents an easing at
   runtime — the set grows by a commit, or the board stops looking like one
   thing. Motion moves and scales; it never recolours.
 - **One exported React component per file** (`components/ui/**`, barrels, and
