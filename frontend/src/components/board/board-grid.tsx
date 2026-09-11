@@ -6,9 +6,11 @@ import { WidgetControls } from "@/components/board/widget-controls";
 import { WidgetWake } from "@/components/board/widget-wake";
 import { Vhs } from "@/components/board/vhs";
 import { useContainerSize } from "@/hooks/use-container-size";
+import { useEntrance } from "@/hooks/use-entrance";
 import { useLeaving } from "@/hooks/use-leaving";
 import { useWidgetDrag } from "@/hooks/use-widget-drag";
 import { EDGES, type Rect } from "@/lib/drag";
+import { entranceClass, entranceVars } from "@/lib/entrance";
 import { held } from "@/lib/groups";
 import { drawn, maximisedIn } from "@/lib/maximised";
 import { cn } from "@/lib/utils";
@@ -181,6 +183,8 @@ export function BoardGrid({
   // board hears about it, so what has just gone is held for as long as it takes
   // to be seen going.
   const { drawn: onScreen, leaving, forget } = useLeaving(items);
+  // Which way each widget came in: decided once, when it first appeared.
+  const flightOf = useEntrance(items, onScreen, cols, rows);
 
   return (
     <div className="relative size-full">
@@ -192,6 +196,7 @@ export function BoardGrid({
         {onScreen.map((item) => {
           const rect = placed(item.id, rectOf(item));
           const going = leaving(item.id);
+          const flight = flightOf(item, rect, going);
           return (
             <div
               key={item.id}
@@ -204,9 +209,9 @@ export function BoardGrid({
                 // Not while a pointer is holding it: a widget easing towards
                 // where the hand already is lags behind the hand.
                 holding === item.id ? undefined : "widget-settle",
-                going ? "widget-leaving" : "widget-arriving",
+                entranceClass(flight, going),
               )}
-              style={frame(rect, cols, rows)}
+              style={{ ...frame(rect, cols, rows), ...entranceVars(flight) }}
               onPointerDown={(event) =>
                 grab(event, item.id, rectOf(item), "move")
               }
