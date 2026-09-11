@@ -109,9 +109,13 @@ def register(server: MCPServer) -> None:
                 end=datetime.fromisoformat(end) if end else None,
             )
         except (TypeError, ValueError) as exc:
+            # Both ways a pair of instants can be wrong are refused by the model
+            # itself now (schemas.spans), so they arrive here as a ValueError
+            # like any other bad field. The comparison that used to sit below
+            # this guard is gone: it ran one line after the except closed, so a
+            # start naming a timezone and an end not naming one escaped as an
+            # uncaught TypeError.
             return f"Not added: {exc}"
-        if entry.end is not None and entry.end <= entry.start:
-            return f"Not added: {title!r} would end at or before it starts."
         await _write(item, [*stack.items, entry])
         return f"Added {title!r} to {item_id}, which now holds {len(stack.items) + 1}"
 

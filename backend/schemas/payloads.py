@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from schemas.chart import ChartAxes, ChartKind, ChartPayload, ChartThreshold
 from schemas.colour import Colour
+from schemas.countdown import Countdown, CountdownPayload
 from schemas.gantt import GanttBar, GanttPayload, GanttRow
 from schemas.icon import Icon
 from schemas.media import MediaPayload, MediaTrack
@@ -180,51 +181,6 @@ class FeedPayload(_Payload):
     # the heading. A picture is served by this item's id, never by its path.
     icon: Icon | None = None
     entries: list[FeedEntry] = []
-    empty: str | None = None
-
-
-class Countdown(BaseModel):
-    """One thing that is going to happen, is happening, or just did.
-
-    Two datetimes and a name. Deliberately no "remaining" field: that is a
-    reading of the clock against these, and the browser is the only part of this
-    board that has a clock — see ``CountdownPayload``.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    title: str
-    # A name from the icon set, a path to a picture, or SVG markup, drawn beside
-    # the title. A picture is served by the id of the widget holding it.
-    icon: Icon | None = None
-    start: datetime
-    # Left out, the thing is a moment rather than a window: it has a start and
-    # is over as soon as it has begun.
-    end: datetime | None = None
-
-
-class CountdownPayload(_Payload):
-    """How long until the next few things, stacked oldest deadline first.
-
-    Nothing is ever written to this after it is set, for the reason a clock is
-    never written to: the browser already knows what time it is, and a countdown
-    fed over the socket would be one write a second forever and would freeze the
-    moment its writer stopped. So this carries the datetimes — facts a browser
-    cannot know — and the browser works out the reading.
-
-    The order is not stored either, because it changes on its own as the clock
-    passes each start and each end. What is happening comes before what is still
-    to happen, which comes before what is over; the browser sorts on every tick.
-
-    An entry stops being drawn twelve hours after it ends, but stays in the
-    payload: this is a record somebody wrote, and dropping out is a reading of
-    the clock against it like everything else here.
-    """
-
-    kind: Literal["countdown"] = "countdown"
-    title: str | None = None
-    icon: Icon | None = None
-    items: list[Countdown] = []
     empty: str | None = None
 
 
