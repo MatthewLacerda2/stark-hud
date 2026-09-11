@@ -37,5 +37,8 @@
   },
   "mesh": {
     "wontDraw": "No se puede dibujar ese modelo"
+  },
+  "flow": {
+    "empty": "Nada que dibujar"
   }
 }

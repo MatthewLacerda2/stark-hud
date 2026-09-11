@@ -5,6 +5,7 @@ import { Chart } from "@/components/board/items/chart";
 import { Clock } from "@/components/board/items/clock";
 import { Countdown } from "@/components/board/items/countdown";
 import { Feed } from "@/components/board/items/feed";
+import { Flow } from "@/components/board/items/flow";
 import { Gantt } from "@/components/board/items/gantt";
 import { Group } from "@/components/board/items/group";
 import { Image } from "@/components/board/items/image";
@@ -72,6 +73,12 @@ export function ItemView({
       return <Calendar />;
     case "countdown":
       return <Countdown id={item.id} payload={payload} />;
+    case "flow":
+      // Its cells decide which way an unplaced flow runs and how long an arrow
+      // really is, which is what a label asks before it drops.
+      return (
+        <Flow id={item.id} payload={payload} cols={item.w} rows={item.h} />
+      );
     case "gantt":
       // Its width decides which bars are wide enough to hold their names.
       return <Gantt id={item.id} payload={payload} cols={item.w} />;
