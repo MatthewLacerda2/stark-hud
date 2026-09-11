@@ -11,54 +11,62 @@ and emits the object, so widening the model or adding an encoder layer is a
 re-run rather than a modelling session.
 
 The constants are read with ``ast``, never imported. Importing ``trm.config``
-would pull in JAX and a CUDA stack to learn seven integers, and this has to run
-on a machine that only shows the board.
+would pull JAX and a CUDA stack onto a machine whose job is to show a board.
 
-Nothing here needs Blender either. Every part is a ring, a disc or a loop —
-shapes that are three lines of trigonometry each — so this writes the OBJ
-directly and the whole pipeline is the standard library.
+Every number in the shape comes from the model. Nothing is chosen because it
+looked better:
 
-What the shape is saying, from the bottom up:
+  * The **embedding** is a wide lattice, and its radius is the square root of
+    its parameter count against one block's — so it is about twice a block's
+    width because it genuinely holds about four times the numbers. The same
+    lattice is drawn again at the top, because the head is that tensor
+    transposed and there is only one of it.
+  * Each **block** is a toothed hub inside a wider ring. The teeth are the
+    attention heads, and there are as many as the model has; the longer ones
+    mark the GQA groups those heads share key and value projections into. The
+    ring around it is the MLP, and how far out it sits is the square root of
+    the SwiGLU expansion, so a block looks as top-heavy as it actually is.
+  * **Seven** of those are the encoder, used once each. The **eighth** is
+    larger and solid, because it is the one that runs again and again, and the
+    loops threaded through it are the refinement passes — one per step at
+    inference depth.
 
-  * The **embedding** is a wide flat web, and its radius is not a taste
-    decision — it is proportional to the square root of its parameter count
-    against one block's, so the slab is about twice a block's width because it
-    genuinely holds about four times the numbers. The same web appears at the
-    top as the **head**, because it is the same tensor doing a second job.
-  * The **seven encoder rings** are seven separate parts, each used once.
-  * The **refine ring** is one part, and the **passes** are loops threaded
-    through it — one loop per refinement step. Assembled, they read as what the
-    model does: a single block with the state going round it again and again.
-    Exploded, they fan apart into K separate stages, which is the same thing
-    unrolled. The widget's explode dial moves between those two readings, and
-    that is the one animation this object really wants.
+Explode does almost nothing to this object, and that is understood rather than
+unnoticed: the widget dilates part centroids and the auto-fit divides by the
+grown reach, which cancels for a stack of flat plates with no thickness to
+shed. Colour is this object's animation.
 """
 
 import argparse
 import ast
 import math
+import sys
 from pathlib import Path
 
-Point = tuple[float, float, float]
+# Run as a script rather than imported as a package member, so the module next
+# door is not on the path unless it is put there.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-# The board's own proportions for the instrument, in arbitrary units — the
-# backend centres and scales whatever it is given, so only the ratios matter.
-BLOCK_RADIUS = 0.72
-RING_TUBE = 0.05
-ENCODER_GAP = 0.2
-CHAMBER_Y = 0.45
-SLAB_Y = 1.8
-# How round things look. A wireframe on a television stops reading as curvature
-# and starts filling in somewhere around two dozen segments a circle.
-SEGMENTS = 28
-SLAB_RINGS = 4
-SLAB_SPOKES = 36
+from shapes import Obj, band, ticks, torus, tube, web
 
-# The constants this shape is built from, and the value to fall back on when a
-# config does not name one. Every one of them changes the object.
+# Proportions for the instrument, in arbitrary units — the backend centres and
+# scales whatever it is given, so only the ratios matter here.
+BLOCK_RADIUS = 0.62
+ENCODER_GAP = 0.235
+CHAMBER_Y = 0.62
+SLAB_Y = 1.95
+# How round a round thing looks. Past about forty segments the extra edges stop
+# reading as curvature on a television and start filling the shape in.
+SEGMENTS = 42
+SLAB_RINGS = 5
+SLAB_SPOKES = 64
+
+# What the shape is built from, and what to fall back on when a config computes
+# a value rather than stating it. Every one of these changes the object.
 WANTED = {
     "LATENT_DIM": 960,
     "VOCAB_SIZE": 50304,
+    "NUM_HEADS": 15,
     "REFINER_ENCODER_LAYERS": 7,
     "INFERENCE_DEPTH": 6,
 }
@@ -67,204 +75,124 @@ WANTED = {
 def read_config(path: Path) -> dict[str, int]:
     """The architecture constants, parsed out of ``config.py`` without running it.
 
-    Only plain literal assignments are read. Anything computed — and several of
-    these are, behind an ``os.environ.get`` so a run can be chosen at launch —
-    falls back to the default beside it in ``WANTED``, which is what the
-    repository ships. The alternative is executing a research config to draw a
-    picture of it, and that pulls in JAX.
+    Only plain literal assignments are read. Several of these sit behind an
+    ``os.environ.get`` so a run can be chosen at launch, and those fall back to
+    the default beside them in ``WANTED`` — which is what the repository ships.
+    The alternative is executing a research config to draw a picture of it.
     """
     found = dict(WANTED)
-    tree = ast.parse(path.read_text())
-    for node in ast.walk(tree):
+    for node in ast.walk(ast.parse(path.read_text())):
         if not isinstance(node, ast.Assign):
             continue
         for target in node.targets:
-            if not isinstance(target, ast.Name) or target.id not in WANTED:
-                continue
-            try:
-                value = ast.literal_eval(node.value)
-            except ValueError:
-                continue  # An env-overridable knob; the default already stands.
-            if isinstance(value, int):
-                found[target.id] = value
+            if isinstance(target, ast.Name) and target.id in WANTED:
+                try:
+                    value = ast.literal_eval(node.value)
+                except ValueError:
+                    continue  # An env-overridable knob; the default stands.
+                if isinstance(value, int):
+                    found[target.id] = value
     return found
 
 
-def slab_ratio(dim: int, vocab: int) -> float:
-    """How much wider the embedding slab is drawn than one block's ring.
+def mlp_hidden(dim: int) -> int:
+    """The SwiGLU inner width, rounded the way the model rounds it."""
+    return ((int(8 * dim / 3) + 63) // 64) * 64
 
-    The square root of the parameter ratio, because these are areas on the
-    screen and a count should read as an area rather than as a length —
-    otherwise the slab is four times as wide as a block and swamps the whole
-    instrument. A SwiGLU block is four square projections plus three of
-    dim by hidden, and hidden is the same multiple-of-64 rounding the model uses.
+
+def slab_ratio(dim: int, vocab: int) -> float:
+    """How much wider the embedding lattice is drawn than one block.
+
+    The square root of the parameter ratio, because these are areas on a screen
+    and a count should read as an area — at a straight ratio the slab is four
+    times as wide as a block and swamps the instrument it belongs to.
     """
-    hidden = ((int(8 * dim / 3) + 63) // 64) * 64
-    block = 4 * dim * dim + 3 * dim * hidden
+    block = 4 * dim * dim + 3 * dim * mlp_hidden(dim)
     return math.sqrt((vocab * dim) / block)
 
 
-class Obj:
-    """An OBJ file being written: named parts, points, faces and open curves."""
+def draw_block(obj: Obj, y: float, radius: float, heads: int, groups: int, expand: float) -> None:
+    """One transformer block: a toothed attention hub inside its MLP ring.
 
-    def __init__(self) -> None:
-        self.lines: list[str] = []
-        self.count = 0
+    The teeth are the heads. They stick out of the rim rather than dividing it,
+    because a division is invisible on a circle — fifteen segments in a smooth
+    ring is a smooth ring, while fifteen teeth are countable from a sofa. The
+    longer ones are the GQA groups: the heads share a smaller number of key and
+    value projections, and where those boundaries fall is a fact about the
+    block rather than decoration.
 
-    def part(self, name: str) -> None:
-        """Start a new named object. This is what the widget explodes."""
-        self.lines.append(f"o {name}")
-
-    def add(self, points: list[Point]) -> int:
-        """Write points, and hand back the 1-based index of the first."""
-        base = self.count + 1
-        for x, y, z in points:
-            self.lines.append(f"v {x:.5f} {y:.5f} {z:.5f}")
-        self.count += len(points)
-        return base
-
-    def quads(self, base: int, rows: int, cols: int, wrap: bool) -> None:
-        """Join a rows by cols lattice of points into faces.
-
-        ``wrap`` closes the lattice around the last column, which is what makes
-        a strip of points into a ring rather than a fence.
-        """
-        for r in range(rows - 1):
-            for c in range(cols if wrap else cols - 1):
-                nxt = (c + 1) % cols
-                corners = [
-                    base + r * cols + c,
-                    base + r * cols + nxt,
-                    base + (r + 1) * cols + nxt,
-                    base + (r + 1) * cols + c,
-                ]
-                self.lines.append("f " + " ".join(str(i) for i in corners))
-
-    def loop(self, points: list[Point]) -> None:
-        """A closed curve, written as an OBJ polyline.
-
-        A curve rather than a surface because that is what it is: the path the
-        state takes is a thread, and giving it a tube would make it look like
-        another component of the machine instead of the thing moving through it.
-        """
-        base = self.add(points)
-        order = [base + i for i in range(len(points))] + [base]
-        self.lines.append("l " + " ".join(str(i) for i in order))
-
-    def text(self) -> str:
-        """The finished file."""
-        return "\n".join(
-            ["# TinyRefinementModel — generated by tools/mesh/trm.py", *self.lines, ""]
-        )
-
-
-def disc(obj: Obj, name: str, y: float, radius: float) -> None:
-    """A flat polar web: the embedding, and the head that shares its weights.
-
-    Drawn as a lattice rather than an outline so it reads as something dense and
-    enormous — which, at 48 million numbers, it is. Both slabs are identical on
-    purpose: the head is this tensor transposed, and two identical webs at
-    either end of the instrument say so without a label.
+    The MLP sits outside as its own ring, at the square root of its expansion.
+    Same reasoning as the embedding lattice: a width standing in for an amount
+    should read as an area.
     """
-    obj.part(name)
-    points: list[Point] = []
-    for r in range(SLAB_RINGS + 1):
-        rr = radius * (r + 1) / (SLAB_RINGS + 1)
-        for s in range(SLAB_SPOKES):
-            angle = 2 * math.pi * s / SLAB_SPOKES
-            points.append((rr * math.cos(angle), y, rr * math.sin(angle)))
-    base = obj.add(points)
-    obj.quads(base, SLAB_RINGS + 1, SLAB_SPOKES, wrap=True)
+    band(obj, y, radius * 0.74, radius, SEGMENTS)
+    ticks(obj, y, radius, radius * 1.12, heads, 0.028)
+    ticks(obj, y, radius, radius * 1.3, groups, 0.02)
+    band(obj, y + 0.055, radius * expand * 0.94, radius * expand, SEGMENTS)
 
 
-def annulus(obj: Obj, name: str, y: float, radius: float, width: float) -> None:
-    """A flat ring: one encoder block, used once and never again."""
-    obj.part(name)
-    points: list[Point] = []
-    for rr in (radius - width, radius):
-        for s in range(SEGMENTS):
-            angle = 2 * math.pi * s / SEGMENTS
-            points.append((rr * math.cos(angle), y, rr * math.sin(angle)))
-    base = obj.add(points)
-    obj.quads(base, 2, SEGMENTS, wrap=True)
-
-
-def torus(obj: Obj, name: str, y: float, radius: float, tube: float, minor: int = 6) -> None:
-    """A solid ring: the one block the loop runs through."""
-    obj.part(name)
-    points: list[Point] = []
-    for i in range(SEGMENTS):
-        major = 2 * math.pi * i / SEGMENTS
-        cx, cz = math.cos(major), math.sin(major)
-        for j in range(minor):
-            small = 2 * math.pi * j / minor
-            rr = radius + tube * math.cos(small)
-            points.append((rr * cx, y + tube * math.sin(small), rr * cz))
-    base = obj.add(points)
-    obj.quads(base, SEGMENTS, minor, wrap=True)
-    # The lattice wraps in the minor direction above; this closes the major one,
-    # joining the last cross-section back to the first.
-    for j in range(minor):
-        nxt = (j + 1) % minor
-        obj.lines.append(
-            "f "
-            + " ".join(
-                str(i)
-                for i in (
-                    base + (SEGMENTS - 1) * minor + j,
-                    base + (SEGMENTS - 1) * minor + nxt,
-                    base + nxt,
-                    base + j,
-                )
-            )
-        )
-
-
-def pass_loop(obj: Obj, name: str, y: float, ring: float, azimuth: float) -> None:
-    """One refinement pass: a loop threaded through the shared ring.
+def pass_loop(obj: Obj, y: float, ring: float, azimuth: float) -> None:
+    """One refinement pass: a loop threaded through the shared block.
 
     The loop lies in a vertical plane through the axis, so it dives through the
     middle of the ring and comes back around outside it — a thread through a
-    hoop, which is the only honest picture of a block applied to its own output.
-    K of them at even azimuths make the rosette; the widget's explode opens them
-    outward, and the loop becomes the same computation unrolled into K stages.
+    hoop, which is the only honest picture of a block applied to its own
+    output. One per step, evenly spaced around the axis.
     """
-    obj.part(name)
     cx, cz = math.cos(azimuth), math.sin(azimuth)
     centre = ring / 2
-    points: list[Point] = []
+    points = []
     for i in range(SEGMENTS):
         angle = 2 * math.pi * i / SEGMENTS
-        out = centre + centre * 1.35 * math.cos(angle)
-        points.append((out * cx, y + centre * 0.95 * math.sin(angle), out * cz))
+        out = centre + centre * 1.4 * math.cos(angle)
+        points.append((out * cx, y + centre * 0.98 * math.sin(angle), out * cz))
     obj.loop(points)
 
 
 def build(conf: dict[str, int]) -> Obj:
     """The whole instrument, bottom to top."""
-    obj = Obj()
-    layers = conf["REFINER_ENCODER_LAYERS"]
-    depth = conf["INFERENCE_DEPTH"]
-    slab = BLOCK_RADIUS * slab_ratio(conf["LATENT_DIM"], conf["VOCAB_SIZE"])
+    obj = Obj("TinyRefinementModel — generated by tools/mesh/trm.py")
+    dim, layers = conf["LATENT_DIM"], conf["REFINER_ENCODER_LAYERS"]
+    depth, heads = conf["INFERENCE_DEPTH"], conf["NUM_HEADS"]
+    # Grouped the way the model groups them, and never fewer than one: a very
+    # narrow model would otherwise ask for zero ticks.
+    groups = max(heads // 4, 1)
+    expand = math.sqrt(mlp_hidden(dim) / dim)
+    slab = BLOCK_RADIUS * slab_ratio(dim, conf["VOCAB_SIZE"])
 
-    disc(obj, "embed", -SLAB_Y, slab)
-    # Stacked downward from just under the chamber, so adding a layer grows the
-    # instrument toward its embedding rather than shoving the loop upward.
+    obj.part("embed")
+    web(obj, -SLAB_Y, slab, SLAB_RINGS, SLAB_SPOKES)
+
+    # Stacked downward from just below the chamber, so adding a layer grows the
+    # instrument toward its embedding instead of shoving the loop upward.
     for i in range(layers):
-        y = -0.4 - (layers - 1 - i) * ENCODER_GAP
-        annulus(obj, f"encoder_{i + 1}", y, BLOCK_RADIUS, RING_TUBE * 2.6)
+        obj.part(f"encoder_{i + 1}")
+        draw_block(obj, -0.35 - (layers - 1 - i) * ENCODER_GAP, BLOCK_RADIUS, heads, groups, expand)
 
-    torus(obj, "refine_block", CHAMBER_Y, BLOCK_RADIUS * 1.15, RING_TUBE * 1.5)
+    # The shared block is the same block drawn larger and given a solid core:
+    # it is the one piece of this machine that runs more than once.
+    obj.part("refine_block")
+    torus(obj, CHAMBER_Y, BLOCK_RADIUS * 1.2, 0.045, SEGMENTS, 6)
+    draw_block(obj, CHAMBER_Y, BLOCK_RADIUS * 1.2, heads, groups, expand)
+
     for k in range(depth):
-        pass_loop(obj, f"pass_{k + 1}", CHAMBER_Y, BLOCK_RADIUS * 1.15, 2 * math.pi * k / depth)
+        obj.part(f"pass_{k + 1}")
+        pass_loop(obj, CHAMBER_Y, BLOCK_RADIUS * 1.2, 2 * math.pi * k / depth)
 
-    torus(obj, "gate", CHAMBER_Y + 0.75, BLOCK_RADIUS * 0.42, RING_TUBE, minor=5)
-    disc(obj, "head", SLAB_Y, slab)
+    # Two rings in, one ring out: the gate reads z_new beside z and hands back a
+    # blend of the two.
+    obj.part("gate")
+    band(obj, CHAMBER_Y + 0.62, BLOCK_RADIUS * 0.3, BLOCK_RADIUS * 0.36, SEGMENTS)
+    band(obj, CHAMBER_Y + 0.7, BLOCK_RADIUS * 0.3, BLOCK_RADIUS * 0.36, SEGMENTS)
+    torus(obj, CHAMBER_Y + 0.78, BLOCK_RADIUS * 0.33, 0.03, SEGMENTS, 5)
 
-    # The residual stream, as the one straight line in the object: everything
-    # else is something done to it.
+    obj.part("head")
+    web(obj, SLAB_Y, slab, SLAB_RINGS, SLAB_SPOKES)
+
+    # The residual stream: the one straight line in the object, because
+    # everything else here is something done to it.
     obj.part("stream")
-    obj.loop([(0.0, -SLAB_Y, 0.0), (0.0, SLAB_Y, 0.0)])
+    tube(obj, -SLAB_Y, SLAB_Y, 0.013, 5)
     return obj
 
 
@@ -281,13 +209,13 @@ def main() -> int:
         return 1
 
     conf = read_config(config)
-    obj = build(conf)
     target = args.out.expanduser().resolve()
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(obj.text())
+    target.write_text(build(conf).text())
 
     print(
         f"dim {conf['LATENT_DIM']} · vocab {conf['VOCAB_SIZE']} · "
+        f"{conf['NUM_HEADS']} heads in {max(conf['NUM_HEADS'] // 4, 1)} groups · "
         f"{conf['REFINER_ENCODER_LAYERS']} encoder blocks · depth {conf['INFERENCE_DEPTH']}"
     )
     print(target)
