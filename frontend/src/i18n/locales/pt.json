@@ -29,5 +29,8 @@
   },
   "countdown": {
     "empty": "Nada por vir"
+  },
+  "mesh": {
+    "wontDraw": "Não é possível desenhar esse modelo"
   }
 }

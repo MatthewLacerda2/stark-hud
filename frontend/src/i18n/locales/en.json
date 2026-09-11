@@ -29,5 +29,8 @@
   },
   "countdown": {
     "empty": "Nothing coming up"
+  },
+  "mesh": {
+    "wontDraw": "Cannot draw that model"
   }
 }

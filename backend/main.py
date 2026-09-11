@@ -30,6 +30,7 @@ from schemas.board import BoardSnapshot
 from services import persistence
 from services.arrange import RepeatedTargetError, UnknownTargetError
 from services.board import KeyTakenError, MissingFileError, SlotTakenError
+from services.mesh import BadMeshError, MeshTooBigError
 from services.notifications import BadIconError
 from services.placement import BoardFullError, NoRoomError
 
@@ -106,6 +107,17 @@ def _bad_icon_handler(_request: Request, exc: Exception) -> JSONResponse:
     return JSONResponse(status_code=422, content={"detail": str(exc)})
 
 
+def _bad_mesh_handler(_request: Request, exc: Exception) -> JSONResponse:
+    """Return 422 saying what about the file could not be drawn.
+
+    Both of these mean the same thing to a caller — the path is a real file and
+    the board still cannot show it — so they share a status and differ only in
+    the sentence, which is the part that says whether to fix the file or run it
+    through the converter.
+    """
+    return JSONResponse(status_code=422, content={"detail": str(exc)})
+
+
 def create_app() -> FastAPI:
     """Build and configure the FastAPI application."""
     settings = get_settings()
@@ -133,6 +145,8 @@ def create_app() -> FastAPI:
     app.add_exception_handler(UnknownTargetError, _unknown_target_handler)
     app.add_exception_handler(MissingFileError, _missing_file_handler)
     app.add_exception_handler(BadIconError, _bad_icon_handler)
+    app.add_exception_handler(BadMeshError, _bad_mesh_handler)
+    app.add_exception_handler(MeshTooBigError, _bad_mesh_handler)
 
     app.add_middleware(LoggingMiddleware)
     app.include_router(api_router, prefix="/api/v1")

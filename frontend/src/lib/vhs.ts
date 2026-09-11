@@ -84,13 +84,22 @@ export function tapeVars(tape: Tape): CSSProperties {
   } as CSSProperties;
 }
 
-// A picture is not a hologram. These four are photographs, films and players —
-// things the board shows rather than things it draws — and a tape texture over
-// a film is a texture over somebody else's picture. The rule the board already
-// keeps for chrome, kept here for the look.
-const PICTURES: ItemKind[] = ["image", "video", "media"];
+// The widgets the board's filters leave alone, for two different reasons.
+//
+// The first three are photographs, films and players — things the board shows
+// rather than things it draws — and a tape texture over a film is a texture
+// over somebody else's picture. The rule the board already keeps for chrome,
+// kept here for the look.
+//
+// The mesh is the other reason, and it is cost rather than taste: these are SVG
+// filters over a widget's whole region, and they re-run every time that region
+// repaints. A wireframe repaints sixty times a second, so a filter on one is
+// the drifting grain all over again — the single most expensive thing this
+// board ever did. It draws its own glow into its own canvas instead, which is
+// also why it still looks lit on a board that never asked for bloom.
+const UNFILTERED: ItemKind[] = ["image", "video", "media", "mesh"];
 
 /** Whether the tape belongs on what this widget draws. */
 export function holographic(kind: ItemKind): boolean {
-  return !PICTURES.includes(kind);
+  return !UNFILTERED.includes(kind);
 }

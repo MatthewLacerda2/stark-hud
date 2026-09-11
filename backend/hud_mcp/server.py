@@ -20,6 +20,7 @@ from hud_mcp import (
     layout,
     lists,
     media,
+    meshes,
     notifications,
     speech,
     wake,
@@ -132,6 +133,7 @@ def build_server() -> MCPServer:
     ink.register(server)
     lists.register(server)
     media.register(server)
+    meshes.register(server)
     notifications.register(server)
     wake.register(server)
     speech.register(server)

@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Box,
   CalendarDays,
   Clock,
   Disc3,
@@ -36,6 +37,7 @@ const GLYPH: Record<
   box: Square,
   image: FileImage,
   video: Film,
+  mesh: Box,
   media: Disc3,
   chart: BarChart3,
   inbox: Inbox,
