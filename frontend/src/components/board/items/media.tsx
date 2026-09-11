@@ -409,7 +409,7 @@ export function Media({
       ) : null}
 
       {watching ? null : (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-3 widget-text">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-[3cqmin] widget-text">
           {small || !track ? null : (
             <span className="w-full truncate text-center text-node font-semibold">
               {track.title}

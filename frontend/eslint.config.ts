@@ -66,6 +66,7 @@ export default tseslint.config(
       "local/no-color-literal": "error",
       "local/no-hand-rolled-form-control": "error",
       "local/no-redundant-font-utility": "error",
+      "local/no-fixed-widget-inset": "error",
 
       // --- Color allowlist via the real theme. ---
       "better-tailwindcss/no-unknown-classes": [
@@ -108,6 +109,7 @@ export default tseslint.config(
       "local/no-legacy-text-scale": "off",
       "local/no-color-literal": "off",
       "local/no-redundant-font-utility": "off",
+      "local/no-fixed-widget-inset": "off",
       "better-tailwindcss/no-unknown-classes": "off",
     },
   },

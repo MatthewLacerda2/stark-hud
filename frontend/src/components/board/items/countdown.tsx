@@ -50,7 +50,7 @@ export function Countdown({
   const { ref, fits } = useFitting(rows.length);
 
   return (
-    <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl widget-surface widget-edge p-5 widget-text">
+    <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl widget-surface widget-edge p-[4cqmin] widget-text">
       {payload.title ? (
         <h3 className="flex shrink-0 items-center gap-2 text-node font-semibold tracking-tight">
           <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />
@@ -66,7 +66,7 @@ export function Countdown({
               <li
                 key={`${entry.title}-${entry.start}`}
                 className={cn(
-                  "flex gap-3 py-2 text-node-sm",
+                  "flex gap-3 py-[1.25cqmin] text-node-sm",
                   // Over, and still there: quiet rather than gone, because
                   // somebody should be able to see what it was.
                   phase === "over" && "opacity-60",

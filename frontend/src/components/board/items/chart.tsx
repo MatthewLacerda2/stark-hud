@@ -438,11 +438,14 @@ export function Chart({ id, payload }: { id: string; payload: ChartPayload }) {
     <Card
       className={cn(
         "size-full border-0 widget-surface widget-edge shadow-none widget-text",
-        gauge ? "py-0" : "py-3",
+        gauge ? "py-0" : "py-[2cqmin]",
       )}
     >
       <CardContent
-        className={cn("relative min-h-0 flex-1", gauge ? "p-0" : "px-3 pb-1")}
+        className={cn(
+          "relative min-h-0 flex-1",
+          gauge ? "p-0" : "px-[2cqmin] pb-[0.75cqmin]",
+        )}
       >
         {payload.data.length === 0 ? (
           <div className="flex size-full items-center justify-center text-muted-foreground">

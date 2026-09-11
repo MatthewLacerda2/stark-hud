@@ -12,7 +12,7 @@ const SIZES: Record<TextPayload["size"], string> = {
 /** Free-standing text with no card around it. */
 export function Text({ payload }: { payload: TextPayload }) {
   return (
-    <div className="flex size-full items-center justify-center p-2">
+    <div className="flex size-full items-center justify-center p-[2cqmin]">
       <p
         className={`${SIZES[payload.size]} wrap-break-word whitespace-pre-wrap text-center text-foreground`}
       >

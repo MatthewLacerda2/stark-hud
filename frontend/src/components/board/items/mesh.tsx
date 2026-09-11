@@ -73,7 +73,7 @@ export function Mesh({ id, payload }: { id: string; payload: MeshPayload }) {
 
   if (found?.failed)
     return (
-      <div className="flex size-full flex-col items-center justify-center gap-2 rounded-xl bg-background p-4">
+      <div className="flex size-full flex-col items-center justify-center gap-2 rounded-xl bg-background p-[3.5cqmin]">
         <span className="text-node text-foreground">{t("mesh.wontDraw")}</span>
         <span className="max-w-full truncate text-node-sm text-muted-foreground">
           {found.failed}
