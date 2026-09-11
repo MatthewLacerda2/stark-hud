@@ -5,6 +5,10 @@
  * one field and TypeScript narrows the rest.
  */
 
+// The flow lives next door; the union below needs it by name as well as
+// re-exporting it, since a re-export binds nothing locally.
+import type { FlowPayload } from "@/lib/schemas/flow";
+
 export type ChartKind = "line" | "bar" | "pie" | "area" | "radial" | "radar";
 /** Which axes a cartesian chart draws. The polar kinds have neither. */
 export type ChartAxes = "both" | "x" | "y" | "none";
@@ -16,6 +20,18 @@ export type NotifyLevel = "info" | "success" | "warn" | "error";
  * which the backend rebuilt from an allowlist before it was ever stored.
  */
 export type IconRef = string;
+
+// A flow's three models live in a module of their own, for the reason they do
+// on the other side of the wire: a payload made of two further models is not
+// one more block of fields, and this file is at the house's 550-line ceiling.
+// Re-exported here because this is where every component already looks for a
+// payload type.
+export type {
+  FlowLink,
+  FlowNode,
+  FlowPayload,
+  FlowSide,
+} from "@/lib/schemas/flow";
 
 export interface NotePayload {
   kind: "note";
@@ -396,7 +412,8 @@ export type Payload =
   | FeedPayload
   | GroupPayload
   | CountdownPayload
-  | GanttPayload;
+  | GanttPayload
+  | FlowPayload;
 
 export type ItemKind = Payload["kind"];
 
