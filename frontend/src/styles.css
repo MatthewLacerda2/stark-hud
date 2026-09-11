@@ -152,9 +152,30 @@
   /* Fast away, slow into place: a widget that has arrived somewhere reads as
      having been put there rather than having drifted to a stop. */
   --motion-settle-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
-  --motion-arrive: 300ms;
-  --motion-leave: 220ms;
+  /* Growing out of nothing in its own place, for a widget boxed in on all four
+     sides. The same 420ms a settle takes: an arrival that covers no distance
+     should read as costing what a move across the board costs. */
+  --motion-arrive: 420ms;
+  --motion-leave: 300ms;
+  /* Flying in from off the screen. The corridor picked is the nearest one, so
+     the travel is at most about half the board — six to eleven cells, which on
+     a 1920-wide television is 400 to 700 pixels. One duration for the whole
+     flight rather than a speed scaled by distance: a constant speed makes a
+     widget arriving from just off the edge crawl, and the eye is reading "it
+     came from over there", not timing it. At 700ms that longest flight averages
+     a thousand pixels a second, and because the easing is nearly all at the
+     front it is thrown in and then glides the last tenth into place. Short
+     enough that the board is never a thing you wait for. */
+  --motion-fly-in: 700ms;
+  /* Leaving is the arrival reversed and a departure should not hold the screen:
+     about two thirds of the way in, the same ratio the pair above have. */
+  --motion-fly-out: 460ms;
   --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Exactly `--motion-ease` read backwards. Going is not coming played in
+     reverse unless the easing is reversed too: a widget that eased *into* the
+     edge of the screen would look like it was being parked off-stage rather
+     than leaving. */
+  --motion-leave-ease: cubic-bezier(0.7, 0, 0.84, 0);
 
   /* --- Typography tokens: size / line-height / weight. --- */
   --text-display: 4.2rem;
@@ -542,6 +563,13 @@
    what the browser drew last time, which needs no new plumbing at all.
 
    Moves and scales, and that is the whole vocabulary.
+
+   An arrival is one of the two: a widget with a clear corridor to an edge of
+   the screen flies in down it, and one boxed in by its neighbours grows out of
+   nothing where it stands. `lib/entrance.ts` decides which, and a departure is
+   whichever it would have been, played backwards. The flight is a `translate`
+   and never a change of `left`/`top`, because those four belong to the settle
+   below and an arrival is not a layout change.
    -------------------------------------------------------------------------- */
 @utility widget-settle {
   transition:
@@ -556,8 +584,20 @@
   }
 }
 
+/* A widget with nowhere to fly in from, because a neighbour is in the way on
+   all four sides. It grows out of nothing where it belongs. */
 @utility widget-arriving {
   animation: widget-arrive var(--motion-arrive) var(--motion-ease);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+/* A widget with a clear corridor to an edge, which flies in down it.
+   `lib/entrance.ts` picks the edge and sets `--fly-x` / `--fly-y`. */
+@utility widget-flying-in {
+  animation: widget-fly-in var(--motion-fly-in) var(--motion-ease);
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -570,7 +610,7 @@
 @utility widget-leaving {
   z-index: 0;
   pointer-events: none;
-  animation: widget-leave var(--motion-leave) var(--motion-ease) forwards;
+  animation: widget-leave var(--motion-leave) var(--motion-leave-ease) forwards;
 
   /* The leave still ends — it ends at once — because its ending is what tells
      the board to forget the widget. Cancelled outright, a ghost would stay. */
@@ -579,14 +619,42 @@
   }
 }
 
+/* The same ghost, leaving by the way it could have come — recomputed against
+   the board as it stands now, not as it stood when the widget arrived. */
+@utility widget-flying-out {
+  z-index: 0;
+  pointer-events: none;
+  animation: widget-fly-out var(--motion-fly-out) var(--motion-leave-ease)
+    forwards;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation-duration: 1ms;
+  }
+}
+
 @keyframes widget-arrive {
   from {
     opacity: 0;
-    transform: scale(0.94);
+    transform: scale(0);
   }
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+/* No fade. A widget that travels was off the screen and then is on it, which is
+   what a thing that arrives from somewhere does; fading it up mid-flight would
+   have it condense out of the air over the board instead.
+
+   The percentages are of the widget's own box, so `-450%` is four and a half of
+   its own widths to the left — off the board, and the page clips there. */
+@keyframes widget-fly-in {
+  from {
+    transform: translate(var(--fly-x, 0), var(--fly-y, 0));
+  }
+  to {
+    transform: translate(0, 0);
   }
 }
 
@@ -597,7 +665,16 @@
   }
   to {
     opacity: 0;
-    transform: scale(0.94);
+    transform: scale(0);
+  }
+}
+
+@keyframes widget-fly-out {
+  from {
+    transform: translate(0, 0);
+  }
+  to {
+    transform: translate(var(--fly-x, 0), var(--fly-y, 0));
   }
 }
 
