@@ -9,6 +9,7 @@ import { useContainerSize } from "@/hooks/use-container-size";
 import { useLeaving } from "@/hooks/use-leaving";
 import { useWidgetDrag } from "@/hooks/use-widget-drag";
 import { EDGES, type Rect } from "@/lib/drag";
+import { entrance, entranceClass, entranceVars } from "@/lib/entrance";
 import { held } from "@/lib/groups";
 import { drawn, maximisedIn } from "@/lib/maximised";
 import { cn } from "@/lib/utils";
@@ -192,6 +193,14 @@ export function BoardGrid({
         {onScreen.map((item) => {
           const rect = placed(item.id, rectOf(item));
           const going = leaving(item.id);
+          // Which way it came in, or goes out: the nearest clear corridor to an
+          // edge of the screen. Measured against the board without it, which on
+          // the way out is the board it is leaving behind.
+          const flight = entrance(
+            rect,
+            items.filter((other) => other.id !== item.id),
+            { cols, rows },
+          );
           return (
             <div
               key={item.id}
@@ -204,9 +213,9 @@ export function BoardGrid({
                 // Not while a pointer is holding it: a widget easing towards
                 // where the hand already is lags behind the hand.
                 holding === item.id ? undefined : "widget-settle",
-                going ? "widget-leaving" : "widget-arriving",
+                entranceClass(flight, going),
               )}
-              style={frame(rect, cols, rows)}
+              style={{ ...frame(rect, cols, rows), ...entranceVars(flight) }}
               onPointerDown={(event) =>
                 grab(event, item.id, rectOf(item), "move")
               }
