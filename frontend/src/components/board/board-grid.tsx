@@ -71,7 +71,7 @@ function frame(rect: Rect, cols: number, rows: number): React.CSSProperties {
  */
 function looked(item: Item, tape: Tape, bloom: Bloom): string | undefined {
   if (!holographic(item.payload.kind)) return undefined;
-  const taped = tape.grain > 0 || tape.scanlines > 0;
+  const taped = tape.dirt > 0 || tape.scanlines > 0;
   const glowing = lit(bloom);
   if (taped && glowing) return "bloom-holo";
   if (glowing) return "bloom-lit";
