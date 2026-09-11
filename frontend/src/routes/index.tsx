@@ -29,8 +29,16 @@ const BLOOM = bloomFrom(window.location.search);
  */
 function BoardPage() {
   const { t } = useTranslation();
-  const { items, background, ink, notifications, wakes, spoken, connected } =
-    useBoard();
+  const {
+    items,
+    background,
+    ink,
+    notifications,
+    wakes,
+    reloads,
+    spoken,
+    connected,
+  } = useBoard();
   // The board's voice. Nothing is drawn for it: the browser is the only part of
   // this board with a speaker, so saying a line is something the page does
   // rather than something a widget shows.
@@ -71,6 +79,7 @@ function BoardPage() {
           everything={items}
           notifications={notifications}
           wakes={wakes}
+          reloads={reloads}
           tape={TAPE}
           bloom={BLOOM}
           cols={cols}

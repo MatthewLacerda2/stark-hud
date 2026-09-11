@@ -21,11 +21,18 @@ export function ItemView({
   item,
   notifications,
   holds,
+  reload = 0,
 }: {
   item: Item;
   notifications: Notification[];
   /** What a folded group is holding. Empty for every other kind of widget. */
   holds?: Item[];
+  /**
+   * How many times this widget has been told the file behind it changed. Only
+   * the mesh reads one, and only the mesh has a file that can change without
+   * the widget changing.
+   */
+  reload?: number;
 }) {
   const payload = item.payload;
   switch (payload.kind) {
@@ -50,7 +57,7 @@ export function ItemView({
     case "mesh":
       // Draws itself from its own clock and needs nothing from the board: the
       // geometry is fetched by id and the spin comes from the browser.
-      return <Mesh id={item.id} payload={payload} />;
+      return <Mesh id={item.id} payload={payload} reload={reload} />;
     case "chart":
       return <Chart id={item.id} payload={payload} />;
     case "inbox":

@@ -20,6 +20,7 @@ const EMPTY = {
   ink: null,
   notifications: [],
   wakes: {} as Record<string, number>,
+  reloads: {} as Record<string, number>,
   spoken: [] as Spoken[],
 };
 
@@ -203,5 +204,38 @@ describe("the board's ink", () => {
     });
 
     expect(state.ink).toEqual({ color: "var(--color-chart-2)" });
+  });
+});
+
+describe("a mesh told its file changed", () => {
+  it("counts the telling, so the widget asks for the geometry again", () => {
+    const state = play(
+      { event: "mesh.reloaded", data: { id: "a" } },
+      { event: "mesh.reloaded", data: { id: "a" } },
+    );
+    expect(state.reloads).toEqual({ a: 2 });
+  });
+
+  it("does not count a move or a resize", () => {
+    // The reason this is its own event rather than a nudge on `item.updated`:
+    // a downloaded model is a hundred thousand vertices and a drag must not
+    // drag them back over the wire.
+    const moved = note("a", "hi");
+    const state = play(
+      { event: "item.created", data: moved },
+      { event: "item.updated", data: { ...moved, x: 4 } },
+    );
+    expect(state.reloads).toEqual({});
+  });
+
+  it("leaves the count alone when the geometry lands", () => {
+    // Unlike a wake, which its answer settles. This is a count of how many
+    // times the file moved; it only has to differ from the last one the widget
+    // saw, so there is nothing to clear and nothing to race.
+    const state = play(
+      { event: "mesh.reloaded", data: { id: "a" } },
+      { event: "item.updated", data: note("a", "hi") },
+    );
+    expect(state.reloads).toEqual({ a: 1 });
   });
 });

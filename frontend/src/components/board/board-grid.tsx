@@ -110,9 +110,10 @@ function widgetVars(item: Item, alpha: number): React.CSSProperties {
  * draw almost nothing — see `drawn`. Nothing about the layout changes, so giving
  * the room back is one render and the board comes back as it was.
  *
- * `wakes` counts how often each widget has been told work is coming. It is not
- * part of what a widget is, so it rides beside the items rather than on them:
- * nothing about the board has changed at the point one of these arrives.
+ * `wakes` counts how often each widget has been told work is coming, and
+ * `reloads` how often a mesh has been told its file changed under it. Neither
+ * is part of what a widget is, so both ride beside the items rather than on
+ * them: nothing about the board has changed at the point one of these arrives.
  *
  * `tape` is the look, and it arrives here rather than being drawn over the
  * whole page because it belongs to the panes and not to the room behind them.
@@ -122,6 +123,7 @@ export function BoardGrid({
   everything,
   notifications,
   wakes,
+  reloads,
   tape,
   bloom,
   cols,
@@ -133,6 +135,7 @@ export function BoardGrid({
   everything: Item[];
   notifications: Notification[];
   wakes: Record<string, number>;
+  reloads: Record<string, number>;
   tape: Tape;
   /** How much light the widgets spill. One setting for the whole board. */
   bloom: Bloom;
@@ -222,6 +225,7 @@ export function BoardGrid({
                         item={item}
                         notifications={notifications}
                         holds={held(item, everything)}
+                        reload={reloads[item.id] ?? 0}
                       />
                     </div>
                     <Vhs tape={tape} />
@@ -277,6 +281,7 @@ export function BoardGrid({
         >
           <div className={cn("size-full", looked(maximised, tape, bloom))}>
             <ItemView
+              reload={reloads[maximised.id] ?? 0}
               // It is the whole board now, so that is the size it is told it
               // has: what a widget draws depends on how many cells it was given.
               item={{ ...maximised, w: cols, h: rows }}

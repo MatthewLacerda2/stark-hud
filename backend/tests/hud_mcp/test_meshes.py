@@ -3,6 +3,7 @@
 import pytest
 from mcp.server.mcpserver import MCPServer
 
+from core.hub import hub
 from hud_mcp.server import build_server
 from repositories import board as repo
 from schemas.board import MeshPayload
@@ -112,4 +113,47 @@ async def test_colouring_something_that_is_not_a_mesh(server: MCPServer) -> None
     """A readable sentence rather than an exception, like every tool here."""
     note = await call(server, "add_note", text="hello")
     said = await call(server, "color_mesh", target=note.split("note ")[1].split(" ")[0])
+    assert "No mesh widget" in said
+
+
+class Listener:
+    """A socket that keeps what it was sent, so a broadcast can be read back."""
+
+    def __init__(self) -> None:
+        self.sent: list[dict] = []
+
+    async def accept(self) -> None:
+        return None
+
+    async def send_json(self, message: dict) -> None:
+        self.sent.append(message)
+
+
+async def test_reloading_tells_the_boards_without_changing_the_widget(
+    server: MCPServer,
+) -> None:
+    """The whole point: the file moved, the widget did not.
+
+    An `item.updated` here would rewrite the board file and make every other
+    client redraw a widget whose payload is identical — so this is its own
+    ephemeral event, the shape `item.waking` already uses.
+    """
+    item_id = await a_mesh(server)
+    before = repo.get(item_id)
+    socket = Listener()
+    await hub.connect(socket)
+    try:
+        said = await call(server, "reload_mesh", target=item_id)
+    finally:
+        await hub.disconnect(socket)
+
+    assert "/models/thing.obj" in said
+    assert socket.sent == [{"event": "mesh.reloaded", "data": {"id": item_id}}]
+    assert repo.get(item_id) == before
+
+
+async def test_reloading_something_that_is_not_a_mesh(server: MCPServer) -> None:
+    """A readable sentence rather than an exception, like every tool here."""
+    note = await call(server, "add_note", text="hello")
+    said = await call(server, "reload_mesh", target=note.split("note ")[1].split(" ")[0])
     assert "No mesh widget" in said

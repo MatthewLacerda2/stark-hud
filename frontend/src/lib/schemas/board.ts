@@ -508,6 +508,10 @@ export type BoardEvent =
   /* Work is coming for this widget; nothing about it has changed yet. Sent by
      whoever is about to write to it, before they go and work out what to write. */
   | { event: "item.waking"; data: { id: string } }
+  /* This mesh's file has been written again and the widget should re-read it.
+     Nothing about the widget changed, which is exactly why this is not an
+     `item.updated`: the payload is identical and only the bytes on disk moved. */
+  | { event: "mesh.reloaded"; data: { id: string } }
   | { event: "item.removed"; data: { id: string } }
   | { event: "notification.created"; data: Notification }
   | { event: "notification.removed"; data: { id: string } }

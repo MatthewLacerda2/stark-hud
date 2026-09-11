@@ -44,6 +44,19 @@ interface BoardState {
    */
   wakes: Record<string, number>;
   /**
+   * How many times each mesh has been told its file changed under it.
+   *
+   * A counter rather than a flag, and read as one: the widget folds it into the
+   * key it fetches geometry by, so a second telling refetches even though the
+   * widget's id and its path are both the same as they were. That is the whole
+   * mechanism — there is nothing to switch off afterwards.
+   *
+   * Not board state, like `wakes` beside it: a page that connects after a
+   * reload has just fetched the current file anyway, so a snapshot starts this
+   * empty and loses nothing.
+   */
+  reloads: Record<string, number>;
+  /**
    * Lines the board has been told to say out loud since this page connected.
    *
    * A queue rather than the latest one: two agents speaking at the same moment
@@ -59,6 +72,7 @@ const EMPTY: BoardState = {
   ink: null,
   notifications: [],
   wakes: {},
+  reloads: {},
   spoken: [],
 };
 
@@ -82,6 +96,10 @@ export function reduceBoard(
         ink: message.data.ink,
         notifications: message.data.notifications,
         wakes: {},
+        // Nothing to carry across a reconnect: the page is about to fetch each
+        // model's geometry for the first time anyway, so it has the file as it
+        // is on disk right now and has no older version to be told about.
+        reloads: {},
         // A reconnect does not replay what was said while the page was away: a
         // television reading out the afternoon's announcements because someone
         // restarted the browser is worse than one that misses a line.
@@ -120,6 +138,18 @@ export function reduceBoard(
           i.id === message.data.id ? message.data : i,
         ),
         wakes: settled(state.wakes, message.data.id),
+      };
+    case "mesh.reloaded":
+      // Deliberately not cleared when the geometry lands, unlike a wake. A wake
+      // is a promise that something is coming and is settled by its arrival;
+      // this is a count of how many times the file has moved, and the number
+      // only has to differ from the last one the widget saw.
+      return {
+        ...state,
+        reloads: {
+          ...state.reloads,
+          [message.data.id]: (state.reloads[message.data.id] ?? 0) + 1,
+        },
       };
     case "item.waking":
       return {
