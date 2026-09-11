@@ -161,13 +161,16 @@ describe("a flow", () => {
   });
 
   it("drops that word rather than laying it half over the line", async () => {
-    // Nine boxes across twelve cells leaves each arrow well under a cell long.
+    // Nine ranks across twelve cells leaves each arrow well under a cell long.
     const many = Array.from({ length: 9 }, (_, at) => node(`n${at}`));
-    const drawn = await show(many, [link("n0", "n1", { label: "ok" })]);
+    const chain = many
+      .slice(1)
+      .map((to, at) => link(many[at].id, to.id, { label: "ok" }));
+    const drawn = await show(many, chain);
 
     expect(drawn.labels()).toEqual([]);
-    // The arrow itself stays: it is the word that had nowhere to go.
-    expect(drawn.lines()).toHaveLength(1);
+    // The arrows themselves stay: it is the words that had nowhere to go.
+    expect(drawn.lines()).toHaveLength(8);
   });
 
   it("says its empty line rather than drawing an empty pane", async () => {

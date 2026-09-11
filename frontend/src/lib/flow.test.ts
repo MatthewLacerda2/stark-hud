@@ -7,13 +7,14 @@
  * cannot be checked here is how any of it looks — that is a television.
  */
 import { describe, expect, it } from "vitest";
-import type { FlowLink, FlowNode } from "@/lib/schemas/board";
-import type { Point } from "@/lib/flow";
+import type { FlowLink, FlowNode, FlowPayload } from "@/lib/schemas/board";
+import type { Box, Point } from "@/lib/flow";
 import {
   anchor,
-  boxes,
+  arrows,
   cells,
   facing,
+  layout,
   LINE_CROSS,
   LINE_FILL,
   midpoint,
@@ -68,24 +69,45 @@ function near(at: Point) {
 const WIDE = { cols: 12, rows: 4 };
 const TALL = { cols: 4, rows: 12 };
 
+function flow(nodes: FlowNode[], links: FlowLink[] = []): FlowPayload {
+  return { kind: "flow", title: null, icon: null, nodes, links };
+}
+
+/** A flow laid out in a widget of the given shape. */
+function where(nodes: FlowNode[], links: FlowLink[] = [], size = WIDE) {
+  return layout(flow(nodes, links), size.cols, size.rows);
+}
+
+/** Whether two boxes share any area at all. */
+function touching(a: Box, b: Box): boolean {
+  return (
+    a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+  );
+}
+
+/** Every pair of boxes that overlaps. Named, so a failure says which two. */
+function overlaps(placed: Map<string, Box>): string[] {
+  const all = [...placed];
+  return all.flatMap(([name, box], at) =>
+    all
+      .slice(at + 1)
+      .filter(([, other]) => touching(box, other))
+      .map(([other]) => `${name}/${other}`),
+  );
+}
+
 describe("where the boxes land", () => {
   it("puts a node exactly where it said it sits", () => {
-    const placed = boxes(
-      [node("build", { x: 0.1, y: 0.2, w: 0.3, h: 0.4 })],
-      WIDE.cols,
-      WIDE.rows,
-    );
+    const laid = where([node("build", { x: 0.1, y: 0.2, w: 0.3, h: 0.4 })]);
 
-    expect(placed.get("build")).toEqual({ x: 0.1, y: 0.2, w: 0.3, h: 0.4 });
+    expect(laid.boxes.get("build")).toEqual({ x: 0.1, y: 0.2, w: 0.3, h: 0.4 });
   });
 
-  it("lays an unplaced flow out along the widget's longer side", () => {
-    const placed = boxes(
-      [node("a"), node("b"), node("c")],
-      WIDE.cols,
-      WIDE.rows,
-    );
-    const along = ["a", "b", "c"].map((id) => placed.get(id)!);
+  it("lays a flow with no arrows in it out along the widget's longer side", () => {
+    // Nothing leads to anything, so there is no graph to rank: the boxes are
+    // just boxes, and they take the long side.
+    const laid = where([node("a"), node("b"), node("c")]);
+    const along = ["a", "b", "c"].map((id) => laid.boxes.get(id)!);
 
     // Three equal slots across, every box the same size and the same distance
     // down: one line, evenly spaced, uniformly sized.
@@ -102,8 +124,8 @@ describe("where the boxes land", () => {
   });
 
   it("turns that line down the widget when the widget is taller than it is wide", () => {
-    const placed = boxes([node("a"), node("b")], TALL.cols, TALL.rows);
-    const down = ["a", "b"].map((id) => placed.get(id)!);
+    const laid = where([node("a"), node("b")], [], TALL);
+    const down = ["a", "b"].map((id) => laid.boxes.get(id)!);
 
     expect(down.map((box) => box.h)).toEqual([LINE_FILL / 2, LINE_FILL / 2]);
     expect(down[0].y).toBeLessThan(down[1].y);
@@ -113,13 +135,122 @@ describe("where the boxes land", () => {
   it("keeps every box it lays out inside the widget", () => {
     for (const count of [1, 2, 5, 9]) {
       const nodes = Array.from({ length: count }, (_, at) => node(`n${at}`));
-      for (const box of boxes(nodes, WIDE.cols, WIDE.rows).values()) {
+      for (const box of where(nodes).boxes.values()) {
         expect(box.x).toBeGreaterThanOrEqual(0);
         expect(box.y).toBeGreaterThanOrEqual(0);
         expect(box.x + box.w).toBeLessThanOrEqual(1);
         expect(box.y + box.h).toBeLessThanOrEqual(1);
       }
     }
+  });
+});
+
+/** One box, then two beside each other, then one where they join. */
+const DIAMOND = ["start", "left", "right", "join"].map((id) => node(id));
+const SPLITS = [
+  link("start", "left"),
+  link("start", "right"),
+  link("left", "join"),
+  link("right", "join"),
+];
+
+/** clone, build, test, ship — and a red test that sends you back to build. */
+const PIPELINE = ["clone", "build", "test", "ship"].map((id) => node(id));
+const RETRY = [
+  link("clone", "build"),
+  link("build", "test"),
+  link("test", "ship"),
+  link("test", "build", { label: "red", curve: "s" }),
+];
+
+describe("ranks", () => {
+  it("puts a node one rank past the deepest thing leading into it", () => {
+    // `start` leads to both, and `left` leads to `right` as well: the long path
+    // decides, so `right` sits after `left` rather than beside it.
+    const laid = where(
+      [node("start"), node("right"), node("left")],
+      [link("start", "left"), link("start", "right"), link("left", "right")],
+    );
+
+    expect([...laid.ranks]).toEqual([
+      ["start", 0],
+      ["right", 2],
+      ["left", 1],
+    ]);
+  });
+
+  it("draws a branch as one box, then two side by side, then one", () => {
+    const laid = where(DIAMOND, SPLITS);
+    const box = (id: string) => laid.boxes.get(id)!;
+
+    // Along the flow: three ranks, in order.
+    expect(box("start").x).toBeLessThan(box("left").x);
+    expect(box("left").x).toBe(box("right").x);
+    expect(box("left").x).toBeLessThan(box("join").x);
+    // Across it: the two middle boxes are apart, and the single ones centred.
+    expect(box("left").y).toBeLessThan(box("right").y);
+    expect(box("start").y).toBe(box("join").y);
+  });
+
+  it("gives every box in the flow one size, whatever its rank holds", () => {
+    const sizes = new Set(
+      [...where(DIAMOND, SPLITS).boxes.values()].map(
+        (box) => `${box.w}x${box.h}`,
+      ),
+    );
+
+    expect(sizes.size).toBe(1);
+  });
+
+  it("overlaps nothing, on a branch or on a merge", () => {
+    const merge = [link("start", "join"), link("left", "join")];
+
+    expect(overlaps(where(DIAMOND, SPLITS).boxes)).toEqual([]);
+    expect(overlaps(where(DIAMOND, merge).boxes)).toEqual([]);
+    expect(overlaps(where(DIAMOND, SPLITS, TALL).boxes)).toEqual([]);
+  });
+
+  it("keeps every ranked box inside the widget", () => {
+    for (const size of [WIDE, TALL]) {
+      for (const box of where(DIAMOND, SPLITS, size).boxes.values()) {
+        expect(box.x).toBeGreaterThanOrEqual(0);
+        expect(box.y).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.w).toBeLessThanOrEqual(1);
+        expect(box.y + box.h).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+
+  it("draws a chain in exactly the line a chain was always drawn in", () => {
+    // A flow that is a line has one node per rank, so the ranked layout has to
+    // agree to the last digit with the line #77 drew. It is the same arithmetic.
+    const chain = [node("a"), node("b"), node("c")];
+
+    expect(where(chain, [link("a", "b"), link("b", "c")]).boxes).toEqual(
+      where(chain).boxes,
+    );
+  });
+
+  it("ranks a cycle without hanging, and keeps every link", () => {
+    const round = [node("a"), node("b"), node("c")];
+    const links = [link("a", "b"), link("b", "c"), link("c", "a")];
+    const laid = where(round, links);
+
+    // `c -> a` is the link that closes the loop, so it is the one left out of
+    // the layering — depth-first from the payload's first node.
+    expect([...laid.ranks.values()]).toEqual([0, 1, 2]);
+    expect(arrows(flow(round, links), laid)).toHaveLength(3);
+    expect(overlaps(laid.boxes)).toEqual([]);
+  });
+
+  it("gives the same geometry for the same payload, every time", () => {
+    const payload = flow(PIPELINE, RETRY);
+    const once = layout(payload, TALL.cols, TALL.rows);
+    const again = layout(payload, TALL.cols, TALL.rows);
+
+    expect(again.boxes).toEqual(once.boxes);
+    expect(again.ranks).toEqual(once.ranks);
+    expect(arrows(payload, again)).toEqual(arrows(payload, once));
   });
 });
 
