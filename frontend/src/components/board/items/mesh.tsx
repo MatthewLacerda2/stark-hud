@@ -123,26 +123,58 @@ type Ink = [number, number, number];
 /**
  * Turn anything the board calls a colour into numbers, by asking the browser.
  *
- * The board's palette arrives as `var(--color-accent)`, which is not a colour
- * until something resolves it against the stylesheet — and the value it
- * resolves to follows the theme, which is the whole point of using a token
- * rather than a hex. So the resolving is handed to the one thing that already
- * knows: set the colour on a real element inside the widget and read back what
- * the browser computed.
+ * Two questions, and each goes to the thing that can actually answer it.
  *
- * Falls back to the widget's own ink for anything unresolvable, because a
- * wireframe that silently draws in nothing is a widget that looks broken.
+ * The board's palette arrives as `var(--color-info)`, which is not a colour
+ * until something resolves it against the stylesheet — and what it resolves to
+ * follows the theme, which is the whole point of a token over a hex. Only the
+ * document knows that, so the value is set on a real element inside the widget
+ * and read back.
+ *
+ * What comes back is then whatever CSS colour syntax the palette was written
+ * in, and this board's is written in `oklch()`. Reading that with a regex for
+ * `rgb()` is what broke the first version of this: every colour missed, every
+ * part fell through to the fallback, and the model drew a uniform white while
+ * the wave ran underneath it doing nothing anybody could see. So the parsing
+ * goes to the thing that can parse any of it — paint one pixel and look at the
+ * pixel. A canvas has to understand every colour CSS has, and unlike a regex it
+ * cannot be behind by one colour space.
  */
-function inkOf(probe: HTMLElement, value: string, fallback: Ink): Ink {
+function inkReader(): (value: string) => Ink | null {
+  const scratch = document.createElement("canvas");
+  scratch.width = 1;
+  scratch.height = 1;
+  const ctx = scratch.getContext("2d", { willReadFrequently: true });
+  return (value: string) => {
+    if (!ctx || !value) return null;
+    // Cleared first, so a value the canvas cannot parse leaves the previous
+    // colour behind rather than the one before it — a silent wrong colour is
+    // the failure this whole function exists to stop.
+    ctx.clearRect(0, 0, 1, 1);
+    ctx.fillStyle = "#000";
+    ctx.fillStyle = value;
+    ctx.fillRect(0, 0, 1, 1);
+    const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+    return [r, g, b];
+  };
+}
+
+/** One colour the board named, as numbers, or the widget's own ink instead. */
+function inkOf(
+  probe: HTMLElement,
+  read: (value: string) => Ink | null,
+  value: string,
+  fallback: Ink,
+): Ink {
+  const had = probe.style.color;
   probe.style.color = "";
   probe.style.color = value;
   const computed = getComputedStyle(probe).color;
-  const found = /rgba?\(([^)]+)\)/.exec(computed);
-  if (!found) return fallback;
-  const parts = found[1].split(/[,\s/]+/).map(Number);
-  return parts.length >= 3 && parts.slice(0, 3).every((n) => !Number.isNaN(n))
-    ? [parts[0], parts[1], parts[2]]
-    : fallback;
+  // Put the element back as it was found. Leaving an inline colour on the
+  // canvas would override the `widget-text` class it takes its default from,
+  // so the next read would return this colour rather than the board's ink.
+  probe.style.color = had;
+  return read(computed) ?? fallback;
 }
 
 /** Two inks blended, as something canvas will take as a stroke. */
@@ -168,7 +200,8 @@ function spin(
   if (!context) return () => {};
 
   const { moved, bounds } = layout(wire.parts, payload.explode, payload.tilt);
-  const base = inkOf(element, "", [255, 255, 255]);
+  const read = inkReader();
+  const base = inkOf(element, read, "", [255, 255, 255]);
   const ink = `rgb(${base[0]} ${base[1]} ${base[2]})`;
 
   // What colour each part is pinned to, worked out once. A part named in
@@ -180,11 +213,13 @@ function spin(
   const pinned = wire.parts.map((part) => {
     const rule = colourFor(part.name, payload.colors);
     if (rule === null) return null;
-    const [r, g, b] = inkOf(element, rule, base);
+    const [r, g, b] = inkOf(element, read, rule, base);
     return `rgb(${r} ${g} ${b})`;
   });
   const wave = payload.wave;
-  const ramp = wave ? wave.colors.map((c) => inkOf(element, c, base)) : [];
+  const ramp = wave
+    ? wave.colors.map((c) => inkOf(element, read, c, base))
+    : [];
   const phase = wave ? phases(wire.parts, wave.mode) : [];
   // One scratch array per part, reused every frame. The alternative is
   // allocating a few hundred objects sixty times a second, which is a garbage
