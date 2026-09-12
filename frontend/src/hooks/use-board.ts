@@ -6,6 +6,7 @@ import type {
   Ink,
   Item,
   Notification,
+  Origin,
   Spoken,
 } from "@/lib/schemas/board";
 
@@ -26,6 +27,16 @@ const RETRY_MAX_MS = 10_000;
 
 /** How many spoken lines the page remembers. Enough to outlast a burst. */
 const SPOKEN_KEPT = 8;
+
+/**
+ * How many origins the page keeps around.
+ *
+ * Each one draws for about two seconds and then draws nothing, so this is not a
+ * limit on what is shown — the server already caps that. It is how long a spent
+ * one lingers in state before the next few push it out, and a handful is enough
+ * that nothing is ever dropped while it is still on screen.
+ */
+const ORIGINS_KEPT = 4;
 
 interface BoardState {
   items: Item[];
@@ -64,6 +75,19 @@ interface BoardState {
    * Trimmed to the last few, because nothing here reads an old one twice.
    */
   spoken: Spoken[];
+  /**
+   * What made each of the last few widgets, in the order the calls arrived.
+   *
+   * Beside the items rather than on them, for the reason `wakes` is: nothing
+   * about the board has changed at the point one of these turns up, and a
+   * widget is not a different widget for having been asked for out loud.
+   *
+   * A list rather than a map keyed by id, because that is what it is: a few
+   * things that were just said. An id is never reused, so the widget each one
+   * belongs to is found by looking, and one whose widget has gone simply draws
+   * nothing.
+   */
+  origins: Origin[];
 }
 
 const EMPTY: BoardState = {
@@ -74,6 +98,7 @@ const EMPTY: BoardState = {
   wakes: {},
   reloads: {},
   spoken: [],
+  origins: [],
 };
 
 /** The same wakes without the one for `id`. */
@@ -104,6 +129,10 @@ export function reduceBoard(
         // television reading out the afternoon's announcements because someone
         // restarted the browser is worse than one that misses a line.
         spoken: [],
+        // A page that has just loaded has missed every call that built the
+        // board it is showing, and that is right: an origin is what somebody
+        // just did, not a property of what is on screen.
+        origins: [],
       };
     case "speech.spoken":
       return {
@@ -112,7 +141,7 @@ export function reduceBoard(
       };
     case "board.cleared":
       // The background is not an item; clearing the board leaves it alone.
-      return { ...state, items: [], wakes: {} };
+      return { ...state, items: [], wakes: {}, origins: [] };
     case "board.arranged":
       // One event for a change that moved several widgets. Sent whole rather
       // than as a burst of updates so that folding a group is one render on the
@@ -150,6 +179,16 @@ export function reduceBoard(
           ...state.reloads,
           [message.data.id]: (state.reloads[message.data.id] ?? 0) + 1,
         },
+      };
+    case "item.origin":
+      // Only ever appended. Nothing here clears one when it has finished
+      // playing: the popup ends itself on its own animation, and an entry that
+      // has stopped drawing costs a few characters until the next few push it
+      // out. There is no moment in this reducer that knows when two seconds
+      // are up, and inventing one would mean a clock in a pure function.
+      return {
+        ...state,
+        origins: [...state.origins, message.data].slice(-ORIGINS_KEPT),
       };
     case "item.waking":
       return {

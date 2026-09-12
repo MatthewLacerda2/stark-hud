@@ -110,6 +110,7 @@ async function board() {
         notifications={[]}
         wakes={{}}
         reloads={{}}
+        origins={[]}
         tape={NO_TAPE}
         bloom={NO_BLOOM}
         cols={COLS}

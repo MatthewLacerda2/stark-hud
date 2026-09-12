@@ -10,6 +10,7 @@ import type {
   BoardEvent,
   Item,
   Notification,
+  Origin,
   Spoken,
 } from "@/lib/schemas/board";
 import { reduceBoard } from "@/hooks/use-board";
@@ -22,6 +23,7 @@ const EMPTY = {
   wakes: {} as Record<string, number>,
   reloads: {} as Record<string, number>,
   spoken: [] as Spoken[],
+  origins: [] as Origin[],
 };
 
 function note(id: string, text: string): Item {
@@ -237,5 +239,60 @@ describe("a mesh told its file changed", () => {
       { event: "item.updated", data: note("a", "hi") },
     );
     expect(state.reloads).toEqual({ a: 1 });
+  });
+});
+
+describe("the call that made a widget", () => {
+  const said = (id: string, text: string) => ({
+    event: "item.origin" as const,
+    data: { id, text },
+  });
+
+  it("rides beside the items, with nothing about the board changed", () => {
+    const state = play(
+      { event: "item.created", data: note("a", "hello") },
+      said("a", 'add_note(text="hello")'),
+    );
+
+    expect(state.origins).toEqual([
+      { id: "a", text: 'add_note(text="hello")' },
+    ]);
+    expect(state.items).toHaveLength(1);
+    expect(state.wakes).toEqual({});
+  });
+
+  it("keeps only the last few, so a rebuilt board cannot grow this for ever", () => {
+    const state = play(
+      said("a", "one"),
+      said("b", "two"),
+      said("c", "three"),
+      said("d", "four"),
+      said("e", "five"),
+    );
+
+    expect(state.origins.map((o) => o.id)).toEqual(["b", "c", "d", "e"]);
+  });
+
+  it("survives nothing: a page that has just loaded missed every call", () => {
+    const state = play(said("a", "one"), {
+      event: "board.snapshot",
+      data: {
+        items: [note("a", "hello")],
+        background: null,
+        ink: null,
+        notifications: [],
+      },
+    });
+
+    expect(state.origins).toEqual([]);
+  });
+
+  it("goes with the widgets when the board is cleared", () => {
+    const state = play(said("a", "one"), {
+      event: "board.cleared",
+      data: { removed: 1 },
+    });
+
+    expect(state.origins).toEqual([]);
   });
 });

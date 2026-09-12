@@ -91,6 +91,7 @@ async function board(items: Item[]) {
           notifications={[]}
           wakes={{}}
           reloads={{}}
+          origins={[]}
           tape={NO_TAPE}
           bloom={NO_BLOOM}
           cols={32}
