@@ -11,7 +11,7 @@ from core.hub import hub
 from repositories import board as repo
 from schemas.board import ItemCreate, ItemRead, Payload
 from services import board as service
-from services import groups
+from services import groups, origin
 from services.board import SlotTakenError
 from services.placement import BoardFullError, cells, size
 
@@ -118,7 +118,7 @@ async def add(
     except SlotTakenError as exc:
         return f"Not added: {exc}. Omit x and y to let the board place it."
 
-    await hub.broadcast("item.created", item.model_dump(mode="json"))
+    await origin.created(item)
     return f"Added {describe(item)}"
 
 

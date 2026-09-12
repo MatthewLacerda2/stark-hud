@@ -26,6 +26,7 @@ from hud_mcp import (
     speech,
     wake,
 )
+from hud_mcp.origin import OriginServer
 
 # Written to be read by a model that has never seen this board. The grid size is
 # interpolated rather than typed out: it has already changed once, and stale
@@ -123,7 +124,10 @@ def build_server() -> MCPServer:
     """Create the MCP server with every tool registered."""
     settings = get_settings()
     instructions = _INSTRUCTIONS.format(cols=settings.GRID_COLS, rows=settings.GRID_ROWS)
-    server = MCPServer(name="stark-hud", instructions=instructions)
+    # Not a plain MCPServer: this one remembers what it was called with while
+    # the call runs, which is how a widget gets an origin without any tool
+    # passing its own name along. See `hud_mcp/origin.py`.
+    server = OriginServer(name="stark-hud", instructions=instructions)
     content.register(server)
     charts.register(server)
     countdowns.register(server)
