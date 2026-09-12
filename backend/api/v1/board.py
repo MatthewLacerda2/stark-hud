@@ -1,6 +1,8 @@
 """Board endpoints. Every mutation is broadcast to connected clients."""
 
-from fastapi import APIRouter, HTTPException, status
+from collections.abc import AsyncIterator
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from core.hub import hub
 from repositories import board as repo
@@ -17,8 +19,24 @@ from schemas.board import (
 from services import arrange as arrange_service
 from services import board as service
 from services import media as media_service
+from services import origin
 
-router = APIRouter(prefix="/board", tags=["board"])
+
+async def _telling(request: Request) -> AsyncIterator[None]:
+    """Hold this request, as a line, for as long as it is being served.
+
+    The seam on this side. A widget the agent writes over HTTP, or one a phone
+    posts, gets an origin the same way an MCP call does — and it is attached
+    here, once, for the whole router, rather than by each handler that happens
+    to create something. The body is already read and cached by the time a
+    dependency runs, so this costs a dictionary lookup.
+    """
+    body = await request.body()
+    with origin.telling(origin.request(request.method, request.url.path, body)):
+        yield
+
+
+router = APIRouter(prefix="/board", tags=["board"], dependencies=[Depends(_telling)])
 
 
 def _get_or_404(item_id: str) -> ItemRead:
@@ -89,7 +107,7 @@ async def clear_ink() -> None:
 async def create_item(payload: ItemCreate) -> ItemRead:
     """Add an item, auto-placing it when coordinates are omitted."""
     item = service.create(payload)
-    await hub.broadcast("item.created", item.model_dump(mode="json"))
+    await origin.created(item)
     return item
 
 
@@ -112,7 +130,7 @@ async def upsert_by_key(key: str, payload: ItemCreate) -> ItemRead:
     existing = repo.get_by_key(key)
     if existing is None:
         item = service.create(payload.model_copy(update={"key": key}))
-        await hub.broadcast("item.created", item.model_dump(mode="json"))
+        await origin.created(item)
         return item
 
     item = service.update(existing, ItemUpdate(payload=payload.payload))

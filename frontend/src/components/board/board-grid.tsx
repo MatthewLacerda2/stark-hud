@@ -1,7 +1,8 @@
 import { useCallback, useRef, useState } from "react";
-import type { Item, Notification } from "@/lib/schemas/board";
+import type { Item, Notification, Origin } from "@/lib/schemas/board";
 import { updateItem } from "@/lib/api/board";
 import { ItemView } from "@/components/board/item-view";
+import { OriginCall } from "@/components/board/origin-call";
 import { WidgetControls } from "@/components/board/widget-controls";
 import { WidgetWake } from "@/components/board/widget-wake";
 import { Vhs } from "@/components/board/vhs";
@@ -13,6 +14,7 @@ import { EDGES, type Rect } from "@/lib/drag";
 import { entranceClass, entranceVars } from "@/lib/entrance";
 import { held } from "@/lib/groups";
 import { drawn, maximisedIn } from "@/lib/maximised";
+import { beside } from "@/lib/origin";
 import { cn } from "@/lib/utils";
 import { holographic, type Tape } from "@/lib/vhs";
 import { lit, type Bloom } from "@/lib/bloom";
@@ -117,6 +119,13 @@ function widgetVars(item: Item, alpha: number): React.CSSProperties {
  * is part of what a widget is, so both ride beside the items rather than on
  * them: nothing about the board has changed at the point one of these arrives.
  *
+ * `origins` is the third of those, and the loudest: the call that made a
+ * widget, drawn next to it for two seconds. It is drawn after the widgets and
+ * over them rather than inside one, which is what keeps it out of the layout
+ * entirely — it takes no cell, moves nothing and cannot make a finite board
+ * fuller. A widget that has gone has no origin drawn, because there is nothing
+ * left to draw it beside.
+ *
  * `tape` is the look, and it arrives here rather than being drawn over the
  * whole page because it belongs to the panes and not to the room behind them.
  */
@@ -126,6 +135,7 @@ export function BoardGrid({
   notifications,
   wakes,
   reloads,
+  origins,
   tape,
   bloom,
   cols,
@@ -138,6 +148,8 @@ export function BoardGrid({
   notifications: Notification[];
   wakes: Record<string, number>;
   reloads: Record<string, number>;
+  /** What made each of the last few widgets. Drawn beside them, never on them. */
+  origins: Origin[];
   tape: Tape;
   /** How much light the widgets spill. One setting for the whole board. */
   bloom: Bloom;
@@ -262,6 +274,23 @@ export function BoardGrid({
                 ))}
               </div>
             </div>
+          );
+        })}
+
+        {/* Last in the coordinate space and so on top of every widget in it.
+            A widget flying in from an edge is still travelling while its call
+            is already up, which is the right way round: a terminal echoes the
+            command and the output follows. */}
+        {origins.map((origin) => {
+          const item = onScreen.find((each) => each.id === origin.id);
+          if (!item) return null;
+          const seat = beside(placed(item.id, rectOf(item)), { cols, rows });
+          return (
+            <OriginCall
+              key={origin.id}
+              text={origin.text}
+              style={frame(seat, cols, rows)}
+            />
           );
         })}
       </div>

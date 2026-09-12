@@ -511,6 +511,12 @@ export interface Spoken {
   created_at: string;
 }
 
+/** What made a widget appear: the call, as a line of code, and what it made. */
+export interface Origin {
+  id: string;
+  text: string;
+}
+
 /** Events pushed over the board socket. */
 export type BoardEvent =
   | { event: "board.snapshot"; data: BoardSnapshot }
@@ -525,6 +531,12 @@ export type BoardEvent =
   /* Work is coming for this widget; nothing about it has changed yet. Sent by
      whoever is about to write to it, before they go and work out what to write. */
   | { event: "item.waking"; data: { id: string } }
+  /* The call that made a widget, beside it for two seconds and then gone.
+     Texture rather than a log — the look of a machine being told what to do,
+     and nobody is meant to read it. Sent at creation and written nowhere, so a
+     page that connects a second later has missed it and a reload replays
+     none. */
+  | { event: "item.origin"; data: Origin }
   /* This mesh's file has been written again and the widget should re-read it.
      Nothing about the widget changed, which is exactly why this is not an
      `item.updated`: the payload is identical and only the bytes on disk moved. */

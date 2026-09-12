@@ -72,6 +72,10 @@
      clock needs ten digits, a colon and a slash, and a board that goes plain
      when the wifi drops is not a board. */
   --font-rounded: Quicksand, var(--font-sans);
+  /* Code, for the one thing on this board that is code: the call that made a
+     widget. Named here rather than left to Tailwind's default so the board's
+     three faces are all in one place and all deliberate. */
+  --font-mono: ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace;
 
   /* --- Node-relative type. `cqi` is a percentage of the container's inline
          size, so text in a widget grows with the widget. Each item wrapper is a
@@ -176,6 +180,15 @@
      edge of the screen would look like it was being parked off-stage rather
      than leaving. */
   --motion-leave-ease: cubic-bezier(0.7, 0, 0.84, 0);
+  /* The call that made a widget, said beside it and then taken away. Fixed
+     however long the call is: the *text* is what gives, cut on the server
+     before it is ever sent, because a five-hundred-line payload scrolled in two
+     seconds is a grey blur that reads as a fault rather than as life. Two
+     seconds is roughly how long a command stays interesting in a terminal —
+     long enough to register that something was said, too short to start
+     reading. `backend/services/origin.py` holds the same number, where it is
+     also the width of the window that caps how many run at once. */
+  --motion-origin: 2000ms;
 
   /* --- Typography tokens: size / line-height / weight. --- */
   --text-display: 4.2rem;
@@ -785,4 +798,87 @@
       rgb(255 40 90 / calc(var(--vhs-fringe, 0) * 0.3)),
     calc(var(--vhs-fringe, 0) * -0.035em) 0 0
       rgb(40 225 255 / calc(var(--vhs-fringe, 0) * 0.26));
+}
+
+/* --------------------------------------------------------------------------
+   The call that made a widget, beside it for two seconds.
+
+   Texture rather than a log. It is the look of a machine being told what to do,
+   which is the flourish a terminal gets for free and this board never had: the
+   room can see that something is being *driven* rather than changing by itself.
+
+   Over the widgets and under the maximised layer, taking no pointer and no
+   cell. The board is finite and never scrolls, so nothing that appears for two
+   seconds may be able to make it fuller — this is drawn on top of the board's
+   coordinate space and never enters the arithmetic that fills it.
+
+   Two channels again, as the wake has: the panel opens and shuts on the
+   element, and the text scrolls on the line inside it, so neither has to double
+   as the other.
+   -------------------------------------------------------------------------- */
+@utility origin-call {
+  z-index: 20;
+  /* Its own query container, in both axes. The text is sized from the panel's
+     width (`cqi`, like every other widget on this board) and scrolled by
+     exactly the amount it overflows the panel's height (`cqb`). Neither number
+     is measured in JavaScript, so nothing here waits for a ResizeObserver and
+     the first painted frame is already right. */
+  container-type: size;
+  /* Dim, and barely a panel at all: enough ground to read a thin grey line over
+     a video, and no more. The rule down the left is what says "a machine said
+     this" without a label saying it. */
+  background: color-mix(in oklab, var(--color-card) 45%, transparent);
+  border-left: 2px solid color-mix(in oklab, var(--color-info) 40%, transparent);
+  transform-origin: top left;
+  animation: origin-call var(--motion-origin) var(--motion-ease) forwards;
+
+  /* Asked for stillness, it never appears. There is nothing here to hold still:
+     a panel that flashed up and then stayed would be the only thing on this
+     board somebody had to go and dismiss. */
+  @media (prefers-reduced-motion: reduce) {
+    display: none;
+  }
+}
+
+/* The line itself, drifting up by however much it overflows and no further.
+   A call that is genuinely short does not move at all, which is the nicer
+   case — the clock is fixed, so less to travel simply means travelling
+   slower. */
+@utility origin-call-line {
+  animation: origin-scroll var(--motion-origin) ease-in-out forwards;
+}
+
+/* Up, hold, shrink, gone. The hold is most of it: the opening and the closing
+   are there to stop it cutting, not to be watched. */
+@keyframes origin-call {
+  0% {
+    opacity: 0;
+    transform: translateY(0.5rem) scaleY(0.6);
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+  86% {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(0) scale(0.94);
+  }
+}
+
+/* `100%` is the text's own height and `100cqb` the panel's, so the difference
+   is the overflow and nothing else. Clamped at zero so text that fits sits
+   still instead of sliding down out of its own panel. */
+@keyframes origin-scroll {
+  0%,
+  14% {
+    transform: translateY(0);
+  }
+  92%,
+  100% {
+    transform: translateY(min(0px, calc(100cqb - 100%)));
+  }
 }

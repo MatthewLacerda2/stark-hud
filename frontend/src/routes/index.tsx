@@ -36,6 +36,7 @@ function BoardPage() {
     notifications,
     wakes,
     reloads,
+    origins,
     spoken,
     connected,
   } = useBoard();
@@ -80,6 +81,7 @@ function BoardPage() {
           notifications={notifications}
           wakes={wakes}
           reloads={reloads}
+          origins={origins}
           tape={TAPE}
           bloom={BLOOM}
           cols={cols}

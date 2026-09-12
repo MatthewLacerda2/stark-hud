@@ -148,6 +148,7 @@ async function grid(): Promise<{
           notifications={[]}
           wakes={{}}
           reloads={{}}
+          origins={[]}
           tape={NO_TAPE}
           bloom={NO_BLOOM}
           cols={32}

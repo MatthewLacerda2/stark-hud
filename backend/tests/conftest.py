@@ -15,11 +15,18 @@ os.environ.setdefault("STATE_FILE", "")
 import pytest
 
 from repositories import board, notifications
+from services import origin
 
 
 @pytest.fixture(autouse=True)
 def clean_board() -> None:
-    """Empty the board around every test."""
+    """Empty the board around every test.
+
+    The origin window is emptied with it: it counts what has gone out in the
+    last couple of seconds, and a test that creates six widgets would otherwise
+    decide how many the next test is allowed to announce.
+    """
+    origin.burst.clear()
     board.clear()
     board.set_background(None)
     board.set_ink(None)
