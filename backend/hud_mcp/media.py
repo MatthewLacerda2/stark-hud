@@ -101,10 +101,10 @@ def register(server: MCPServer) -> None:
         loop: bool = False,
         muted: bool = False,
         playing: bool = True,
-        x: int | None = None,
-        y: int | None = None,
-        w: int | None = None,
-        h: int | None = None,
+        x: float | None = None,
+        y: float | None = None,
+        w: float | None = None,
+        h: float | None = None,
         description: str | None = None,
     ) -> str:
         """Put a player on the board with a queue in it, and start it.
