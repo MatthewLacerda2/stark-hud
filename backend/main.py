@@ -24,6 +24,7 @@ from core.hub import hub
 from core.logging_middleware import LoggingMiddleware
 from core.rate_limiter import limiter
 from hud_mcp.server import build_app as build_mcp_app
+from hud_mcp.server import server as board_tools
 from repositories import board as repo
 from repositories import notifications as notifications_repo
 from schemas.board import BoardSnapshot
@@ -149,6 +150,11 @@ def create_app() -> FastAPI:
     app.add_exception_handler(MeshTooBigError, _bad_mesh_handler)
 
     app.add_middleware(LoggingMiddleware)
+    # The one introduction between the two surfaces. `api/` and `hud_mcp/` sit
+    # at the same height and neither may import the other — but the command
+    # endpoint has to reach the board's tool catalogue, and this is the
+    # composition root, which is the place that is allowed to know about both.
+    app.state.board = board_tools()
     app.include_router(api_router, prefix="/api/v1")
     app.mount("/mcp", mcp_app)
 

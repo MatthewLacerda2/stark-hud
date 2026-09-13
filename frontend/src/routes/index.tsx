@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { boardStatus } from "@/lib/api/board";
 import { Background } from "@/components/board/background";
 import { BoardGrid } from "@/components/board/board-grid";
+import { CommandBar } from "@/components/board/command-bar";
 import { VhsFilter } from "@/components/board/vhs-filter";
 import { BloomFilter } from "@/components/board/bloom-filter";
 import { useBoard } from "@/hooks/use-board";
@@ -93,6 +94,11 @@ function BoardPage() {
             {t("board.empty")}
           </p>
         ) : null}
+
+        {/* Outside `board-grid.tsx` on purpose: that file is at the top of its
+            length budget, and this belongs to the page rather than to the grid
+            — it is not a widget and never takes a cell. */}
+        <CommandBar />
 
         {!connected ? (
           <p className="absolute right-4 bottom-3 text-body text-warning">

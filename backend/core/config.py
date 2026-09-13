@@ -116,6 +116,36 @@ class Settings(BaseSettings):
     # megabyte or two and never grows past it.
     SPEECH_KEEP: int = Field(default=20, ge=1)
 
+    # Driving the board by typing at it, which is bought from Google a prompt at
+    # a time. Empty is a working configuration, exactly like the voice above:
+    # the bar refuses in one sentence and everything else on the board carries
+    # on. Never in this repository — the environment passes it in.
+    GEMINI_API_KEY: str = ""
+
+    # Which model a prompt goes to when the bar did not say. A setting rather
+    # than a literal because the right answer is a measurement — how long each
+    # one takes to answer with all fifty tool declarations attached — and the
+    # point of this whole path is speed, so it should be changeable by whoever
+    # takes that measurement without touching code.
+    GEMINI_MODEL: str = "gemini-3.5-flash-lite"
+
+    # How many times round the call-tools-and-ask-again loop before giving up.
+    # A ceiling and not a target: almost everything typed at this board is one
+    # or two calls, and a model that has not finished by the fourth turn is
+    # looping rather than working. Without it a confused model can spend the
+    # account.
+    GEMINI_MAX_ROUNDS: int = Field(default=4, ge=1, le=10)
+
+    # A ceiling on what the model may write back. It is only ever writing tool
+    # calls — there is no answer to render anywhere — so this is small on
+    # purpose: it is the runaway that costs money, not the work.
+    GEMINI_MAX_OUTPUT_TOKENS: int = Field(default=2048, ge=256)
+
+    # How long one prompt may take, end to end, before the browser is told it
+    # failed. Well past what any of these models needs, and short enough that a
+    # stuck request does not leave the bar hanging with nothing to say.
+    GEMINI_TIMEOUT_SECONDS: float = Field(default=30.0, gt=0)
+
     @property
     def cors_origins_list(self) -> list[str]:
         """Parse the comma-separated CORS origins into a list."""

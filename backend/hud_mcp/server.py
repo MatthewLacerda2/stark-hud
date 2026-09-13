@@ -4,6 +4,8 @@ Same process, same board: tools call the services directly, so there is no HTTP
 hop and no second copy of the state.
 """
 
+from functools import lru_cache
+
 from mcp.server.mcpserver import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 from starlette.applications import Starlette
@@ -146,6 +148,22 @@ def build_server() -> MCPServer:
     return server
 
 
+@lru_cache(maxsize=1)
+def server() -> MCPServer:
+    """The one server this process is running, tools and instructions and all.
+
+    `build_app` mounts it and `services.command` drives it, and they have to be
+    the same object rather than two builds of the same thing: the origin a tool
+    call carries lives in a context variable set by this class, and the whole
+    point of `services.command` executing through `call_tool` is that a widget
+    Gemini makes announces itself exactly like one Claude makes.
+
+    Cached rather than a module-level build so importing this module still costs
+    nothing, which the tests rely on.
+    """
+    return build_server()
+
+
 def build_app() -> Starlette:
     """Return the ASGI app to mount at /mcp.
 
@@ -153,7 +171,7 @@ def build_app() -> Starlette:
     so validating the Host header would only give a false sense of safety:
     anything that can reach the port can already drive the board.
     """
-    return build_server().streamable_http_app(
+    return server().streamable_http_app(
         streamable_http_path="/",
         transport_security=TransportSecuritySettings(
             enable_dns_rebinding_protection=False,

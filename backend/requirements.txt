@@ -12,3 +12,11 @@ mutagen==1.48.1
 # carries the error bodies that tell a good key missing a scope apart from a bad
 # one, which is the whole of the difference between two identical 401s.
 elevenlabs==2.65.0
+# Driving the board from a typed instruction, through Gemini's function calling.
+# The vendor's own SDK rather than raw HTTP for one concrete reason: its
+# `FunctionDeclaration.parameters_json_schema` takes a JSON Schema as written,
+# so the fifty tool schemas the MCP server already publishes go across
+# untouched. The `parameters` field beside it takes only Gemini's OpenAPI
+# subset, which cannot express the `anyOf: [X, null]` every optional argument
+# in this codebase serialises as.
+google-genai==2.23.0

@@ -40,5 +40,11 @@
   },
   "flow": {
     "empty": "Nada que dibujar"
+  },
+  "command": {
+    "placeholder": "Dile al panel qué hacer",
+    "sending": "Trabajando…",
+    "failed": "No pasó nada: {{reason}}",
+    "model": "Modelo"
   }
 }
