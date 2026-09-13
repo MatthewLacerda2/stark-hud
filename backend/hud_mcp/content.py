@@ -11,7 +11,7 @@ from typing import cast
 
 from mcp.server.mcpserver import MCPServer
 
-from hud_mcp.common import add
+from hud_mcp.common import ON_HOST, add
 from schemas.board import (
     BoxPayload,
     CalendarPayload,
@@ -148,7 +148,7 @@ def register(server: MCPServer) -> None:
             BoxPayload(label=label, fill=fill, stroke=stroke), x, y, w, h, description=description
         )
 
-    @server.tool()
+    @server.tool(annotations=ON_HOST)
     async def add_image(
         path: str,
         alt: str | None = None,

@@ -6,7 +6,7 @@ from mcp.server.mcpserver import MCPServer
 from pydantic import ValidationError
 
 from core.hub import hub
-from hud_mcp.common import describe, screens
+from hud_mcp.common import DESTRUCTIVE, describe, screens
 from repositories import board as repo
 from schemas.board import Arrangement, Change, ItemUpdate
 from services import arrange as arrange_service
@@ -180,7 +180,7 @@ def register(server: MCPServer) -> None:
         await hub.broadcast("item.removed", {"id": item_id})
         return f"Removed {item_id}"
 
-    @server.tool()
+    @server.tool(annotations=DESTRUCTIVE)
     async def clear_board() -> str:
         """Remove everything. There is no undo and nothing is saved."""
         removed = repo.clear()

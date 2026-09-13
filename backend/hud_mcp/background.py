@@ -3,6 +3,7 @@
 from mcp.server.mcpserver import MCPServer
 
 from core.hub import hub
+from hud_mcp.common import ON_HOST
 from schemas.board import Background
 from services import board as service
 from services.board import MissingFileError
@@ -11,7 +12,7 @@ from services.board import MissingFileError
 def register(server: MCPServer) -> None:
     """Attach the background tools to the server."""
 
-    @server.tool()
+    @server.tool(annotations=ON_HOST)
     async def set_background(path: str, blur: bool = False) -> str:
         """Play a local video behind the board, on a loop and always silent.
 

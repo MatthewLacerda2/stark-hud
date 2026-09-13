@@ -35,5 +35,11 @@
   },
   "flow": {
     "empty": "Nada a desenhar"
+  },
+  "command": {
+    "placeholder": "Diga ao painel o que fazer",
+    "sending": "Trabalhando…",
+    "failed": "Nada aconteceu: {{reason}}",
+    "model": "Modelo"
   }
 }

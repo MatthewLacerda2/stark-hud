@@ -13,7 +13,7 @@ OBJ beside whatever it was given.
 from mcp.server.mcpserver import MCPServer
 
 from core.hub import hub
-from hud_mcp.common import add, find
+from hud_mcp.common import ON_HOST, add, find
 from schemas.board import ItemRead, ItemUpdate, MeshPayload, MeshWave
 from services import board as service
 from services.board import SlotTakenError
@@ -50,7 +50,7 @@ def register(server: MCPServer) -> None:
         await hub.broadcast("item.updated", updated.model_dump(mode="json"))
         return f"Set {said} on {item.id}"
 
-    @server.tool()
+    @server.tool(annotations=ON_HOST)
     async def add_mesh(
         path: str,
         spin: float = 0.08,
