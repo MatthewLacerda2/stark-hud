@@ -36,10 +36,10 @@ def register(server: MCPServer) -> None:
     async def add_note(
         text: str,
         color: str | None = None,
-        x: int | None = None,
-        y: int | None = None,
-        w: int | None = None,
-        h: int | None = None,
+        x: float | None = None,
+        y: float | None = None,
+        w: float | None = None,
+        h: float | None = None,
         description: str | None = None,
     ) -> str:
         """Put a sticky note on the board.
@@ -57,10 +57,10 @@ def register(server: MCPServer) -> None:
     async def add_text(
         text: str,
         size: str = "md",
-        x: int | None = None,
-        y: int | None = None,
-        w: int | None = None,
-        h: int | None = None,
+        x: float | None = None,
+        y: float | None = None,
+        w: float | None = None,
+        h: float | None = None,
         description: str | None = None,
     ) -> str:
         """Put bare text on the board, with no card behind it.
@@ -84,10 +84,10 @@ def register(server: MCPServer) -> None:
         title_color: str | None = None,
         icon_color: str | None = None,
         item_color: str | None = None,
-        x: int | None = None,
-        y: int | None = None,
-        w: int | None = None,
-        h: int | None = None,
+        x: float | None = None,
+        y: float | None = None,
+        w: float | None = None,
+        h: float | None = None,
         description: str | None = None,
     ) -> str:
         """Put a heading and a list of lines on the board.
@@ -134,10 +134,10 @@ def register(server: MCPServer) -> None:
         label: str | None = None,
         fill: str | None = None,
         stroke: str | None = None,
-        x: int | None = None,
-        y: int | None = None,
-        w: int | None = None,
-        h: int | None = None,
+        x: float | None = None,
+        y: float | None = None,
+        w: float | None = None,
+        h: float | None = None,
         description: str | None = None,
     ) -> str:
         """Put a labelled container on the board.
@@ -153,10 +153,10 @@ def register(server: MCPServer) -> None:
     async def add_image(
         path: str,
         alt: str | None = None,
-        x: int | None = None,
-        y: int | None = None,
-        w: int | None = None,
-        h: int | None = None,
+        x: float | None = None,
+        y: float | None = None,
+        w: float | None = None,
+        h: float | None = None,
         parent_id: str | None = None,
         description: str | None = None,
     ) -> str:
@@ -175,10 +175,10 @@ def register(server: MCPServer) -> None:
         autoplay: bool = True,
         loop: bool = False,
         muted: bool = True,
-        x: int | None = None,
-        y: int | None = None,
-        w: int | None = None,
-        h: int | None = None,
+        x: float | None = None,
+        y: float | None = None,
+        w: float | None = None,
+        h: float | None = None,
         parent_id: str | None = None,
         description: str | None = None,
     ) -> str:
@@ -193,10 +193,10 @@ def register(server: MCPServer) -> None:
     @server.tool()
     async def add_inbox(
         title: str | None = None,
-        x: int | None = None,
-        y: int | None = None,
-        w: int | None = None,
-        h: int | None = None,
+        x: float | None = None,
+        y: float | None = None,
+        w: float | None = None,
+        h: float | None = None,
         description: str | None = None,
     ) -> str:
         """Put the notification inbox on the board.
@@ -213,10 +213,10 @@ def register(server: MCPServer) -> None:
         title: str | None = None,
         icon: str | None = None,
         empty: str | None = None,
-        x: int | None = None,
-        y: int | None = None,
-        w: int | None = None,
-        h: int | None = None,
+        x: float | None = None,
+        y: float | None = None,
+        w: float | None = None,
+        h: float | None = None,
         description: str | None = None,
     ) -> str:
         """Put a feed of things that happened on the board, newest first.
@@ -247,10 +247,10 @@ def register(server: MCPServer) -> None:
 
     @server.tool()
     async def add_clock(
-        x: int | None = None,
-        y: int | None = None,
-        w: int | None = None,
-        h: int | None = None,
+        x: float | None = None,
+        y: float | None = None,
+        w: float | None = None,
+        h: float | None = None,
         description: str | None = None,
     ) -> str:
         """Put a clock on the board: the time now, and the date under it.
@@ -263,10 +263,10 @@ def register(server: MCPServer) -> None:
 
     @server.tool()
     async def add_calendar(
-        x: int | None = None,
-        y: int | None = None,
-        w: int | None = None,
-        h: int | None = None,
+        x: float | None = None,
+        y: float | None = None,
+        w: float | None = None,
+        h: float | None = None,
         description: str | None = None,
     ) -> str:
         """Put a calendar on the board: this month, with today in a box.

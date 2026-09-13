@@ -44,10 +44,10 @@ def register(server: MCPServer) -> None:
         colors: list[str] | None = None,
         unfilled: str | None = None,
         thresholds: list[dict] | None = None,
-        x: int | None = None,
-        y: int | None = None,
-        w: int | None = None,
-        h: int | None = None,
+        x: float | None = None,
+        y: float | None = None,
+        w: float | None = None,
+        h: float | None = None,
         description: str | None = None,
     ) -> str:
         """Draw a chart from data you supply inline.
