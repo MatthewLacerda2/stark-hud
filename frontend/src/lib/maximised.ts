@@ -35,11 +35,16 @@ export function maximisedIn(items: Item[]): Item | undefined {
  * put back — everything they show comes off the board, not out of themselves —
  * so leaving maximised finds them exactly as they were.
  *
- * A player is the exception, and stays mounted. It may be sounding, and sound is
- * not covered by anything: the record playing in the corner has to go on playing
+ * A player that can be heard is the exception, and stays mounted. Sound is not
+ * covered by anything: the record playing in the corner has to go on playing
  * while a film is watched. Taking it out of the tree would also lose where it had
  * got to and tell the server it had stopped, which is a worse bargain than the
  * picture it wastes.
+ *
+ * A muted player has no such claim, and goes with everything else. That is what
+ * a decorative loop is — it used to be a `video` widget, dropped here for
+ * exactly this reason, and folding the two kinds together must not quietly put a
+ * second 1080p stream back behind a film nobody can see past.
  *
  * The maximised widget itself is drawn over the board instead, so its own place
  * is empty for the same reason it always was.
@@ -47,5 +52,5 @@ export function maximisedIn(items: Item[]): Item | undefined {
 export function drawn(item: Item, maximised: Item | undefined): boolean {
   if (!maximised) return true;
   if (item.id === maximised.id) return false;
-  return item.payload.kind === "media";
+  return item.payload.kind === "media" && !item.payload.muted;
 }

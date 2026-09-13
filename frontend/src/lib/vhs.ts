@@ -91,10 +91,10 @@ export function tapeVars(tape: Tape): CSSProperties {
 
 // The widgets the board's filters leave alone, for two different reasons.
 //
-// The first three are photographs, films and players — things the board shows
-// rather than things it draws — and a tape texture over a film is a texture
-// over somebody else's picture. The rule the board already keeps for chrome,
-// kept here for the look.
+// The first two are photographs and players — things the board shows rather
+// than things it draws — and a tape texture over a film is a texture over
+// somebody else's picture. The rule the board already keeps for chrome, kept
+// here for the look.
 //
 // The mesh is the other reason, and it is cost rather than taste: these are SVG
 // filters over a widget's whole region, and they re-run every time that region
@@ -102,7 +102,7 @@ export function tapeVars(tape: Tape): CSSProperties {
 // the drifting grain all over again — the single most expensive thing this
 // board ever did. It draws its own glow into its own canvas instead, which is
 // also why it still looks lit on a board that never asked for bloom.
-const UNFILTERED: ItemKind[] = ["image", "video", "media", "mesh"];
+const UNFILTERED: ItemKind[] = ["image", "media", "mesh"];
 
 /** Whether the tape belongs on what this widget draws. */
 export function holographic(kind: ItemKind): boolean {
