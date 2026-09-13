@@ -56,7 +56,18 @@ stays as it was is a clearer answer than a board changed into something nobody
 asked for.
 
 You have one turn's worth of patience: do it in as few calls as it takes.
+
+You only have the tools listed with this request. The board's instructions
+above mention others — files on a computer, a wake_item to call before slow
+work — and those do not exist for you: you cannot see the computer this board
+runs on, and nothing you do takes long enough to announce.
 """
+
+# Never sent to a typed instruction, whatever their annotations say. `wake_item`
+# is the pulse a Claude session sends before going away to think for a while;
+# a Flash model answers in a moment, so from here it is a round trip that shows
+# the room a widget waking up for nothing.
+_NOT_FOR_TYPING = frozenset({"wake_item"})
 
 
 class Tooling(Protocol):
@@ -102,8 +113,31 @@ def _client(key: str) -> genai.Client:
     return genai.Client(api_key=key)
 
 
+def typeable(tools: list[Tool]) -> list[Tool]:
+    """The tools a typed instruction may use: the ones that need only the board.
+
+    A model behind this bar sees the board and the sentence and nothing else. It
+    has never seen the computer the board runs on, so a tool that takes a path
+    on that computer — a picture, a film, a 3D file, a background — is a tool it
+    can only guess at, and a guessed path is a widget that says "file not
+    found" on a television. Those tools mark themselves with MCP's own
+    `open_world_hint` where they are defined (`hud_mcp.common.ON_HOST`), so the
+    rule lives with the tool rather than in a list here that goes stale the
+    day somebody adds a seventh.
+
+    Claude keeps every tool. This is not a second catalogue, it is the same one
+    with the doors this model cannot walk through left shut.
+    """
+    return [
+        tool
+        for tool in tools
+        if tool.name not in _NOT_FOR_TYPING
+        and not (tool.annotations and tool.annotations.open_world_hint)
+    ]
+
+
 def declarations(tools: list[Tool]) -> list[types.FunctionDeclaration]:
-    """Every MCP tool, as something Gemini can call.
+    """Every MCP tool it is given, as something Gemini can call.
 
     `parameters_json_schema` and not `parameters`: the latter takes Gemini's own
     OpenAPI subset, and every optional argument on this board is `X | None` in
@@ -258,7 +292,7 @@ async def run(prompt: str, board: Tooling, model: str | None = None) -> CommandR
         )
 
     chosen = model or settings.GEMINI_MODEL
-    tools = await board.list_tools()
+    tools = typeable(await board.list_tools())
     began = time.monotonic()
     try:
         async with asyncio.timeout(settings.GEMINI_TIMEOUT_SECONDS):

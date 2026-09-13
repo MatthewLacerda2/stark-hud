@@ -7,6 +7,8 @@ Placement failures come back as readable text rather than exceptions: the caller
 is a model, and "no room, 12 cells free" is something it can act on.
 """
 
+from mcp_types import ToolAnnotations
+
 from core.hub import hub
 from repositories import board as repo
 from schemas.board import ItemCreate, ItemRead, Payload
@@ -14,6 +16,19 @@ from services import board as service
 from services import groups, origin
 from services.board import SlotTakenError
 from services.placement import BoardFullError, cells, size
+
+# Tools that reach past the board: a path on the host, a file it reads, a URL it
+# fetches. `open_world_hint` is MCP's own word for exactly this, and the honest
+# metadata for any client. It is also what decides which tools a typed
+# instruction may use — `services.command` sends a model only the tools that
+# need nothing but the board and the sentence, because a model that has never
+# seen this computer cannot name a file on it and should not go looking.
+ON_HOST = ToolAnnotations(open_world_hint=True)
+
+# Tools that take something away that cannot be put back. One mistyped sentence
+# away from an empty board is worth saying out loud in the metadata, whichever
+# model is holding the keys.
+DESTRUCTIVE = ToolAnnotations(destructive_hint=True)
 
 
 def _playing(item: ItemRead) -> str:

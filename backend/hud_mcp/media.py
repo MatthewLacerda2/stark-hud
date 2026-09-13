@@ -23,7 +23,7 @@ from typing import cast
 from mcp.server.mcpserver import MCPServer
 
 from core.hub import hub
-from hud_mcp.common import add, wake
+from hud_mcp.common import ON_HOST, add, wake
 from repositories import board as repo
 from schemas.board import ItemRead, ItemUpdate, MediaPayload
 from schemas.media import MEDIA_ACTIONS, MediaAction
@@ -94,7 +94,7 @@ def register(server: MCPServer) -> None:
         # object and only this one is known to be a player's.
         return f"{verb.capitalize()} {item.id}: {_describe(payload)}"
 
-    @server.tool()
+    @server.tool(annotations=ON_HOST)
     async def add_media(
         tracks: list[str],
         title: str | None = None,
@@ -149,7 +149,7 @@ def register(server: MCPServer) -> None:
         line = await add(payload, x, y, w, h, description=description)
         return line if line.startswith("Not added") else f"{line}, {_describe(payload)}"
 
-    @server.tool()
+    @server.tool(annotations=ON_HOST)
     async def set_media_queue(
         item_id: str, tracks: list[str], start: int = 0, title: str | None = None
     ) -> str:
