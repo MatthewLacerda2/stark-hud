@@ -44,97 +44,62 @@ def register(server: MCPServer) -> None:
         colors: list[str] | None = None,
         unfilled: str | None = None,
         thresholds: list[dict] | None = None,
-        x: int | None = None,
-        y: int | None = None,
-        w: int | None = None,
-        h: int | None = None,
+        x: float | None = None,
+        y: float | None = None,
+        w: float | None = None,
+        h: float | None = None,
         description: str | None = None,
     ) -> str:
         """Draw a chart from data you supply inline.
 
         The board never fetches or polls: send the numbers. `chart` is line, bar,
         pie, area, radial or radar. `x_key` names the field on the x axis and
-        `series` names the fields to plot. To update a chart, remove it and add
-        it again.
+        `series` the fields to plot. To update a chart, remove it and add it
+        again.
 
-        `axes` says which axes a line, bar or area chart draws: both (the
-        default), x, y or none. Leave it out unless the numbers read on their
-        own without a scale — a pie has no axes and ignores it.
+        `axes` — both (the default), x, y or none — is read by line, bar and
+        area only; leave it out unless the numbers read without a scale.
 
-        `colors` is one CSS colour per series. An eight-digit hex carries alpha —
-        `#33ccffaa` — which leaves the video behind the board showing through the
-        marks.
+        `colors` is one CSS colour per series. An eight-digit hex carries alpha
+        (`#33ccffaa`), which lets the video behind the board show through.
 
-        `thresholds` is how a chart on this board is allowed to shout. The board
-        is deliberately one tone, so a colour that appears means something went
-        past a line. Pass a list of `{"at": 90, "color": "#ff5c33"}`: a mark
-        above `at` takes that colour, and anything under every threshold keeps
-        the colour it already had. Give two and the highest one a value clears
-        wins, which is how an attention level and an alarm level live on the
-        same chart.
+        `thresholds` is how a chart is allowed to shout on a board that is
+        deliberately one tone: `[{"at": 90, "color": "#ff5c33"}]` turns any mark
+        above `at` that colour, and the highest threshold cleared wins, so an
+        attention level and an alarm level can share a chart. `at` is in the
+        plotted units — a gauge plotting a percentage says `at: 77`, not
+        `at: 12` for 12 GB. Only bar and radial read it: a bar decides bar by
+        bar and a gauge on its one value; pie and line already colour every
+        series and ignore it.
 
-        `unfilled` is the rest of a gauge's ring: the part the arc has not
-        reached. Translucent white unless you say otherwise, and it is meant to
-        stay translucent — the track is what makes the arc read as a proportion
-        rather than as a lonely stripe, and a solid one turns the gauge into a
-        dark disc with a bright edge on it. An eight-digit hex is the usual way
-        to say how see-through: `#ffffff40` is a quarter, `#ffffff80` a half.
-        Only a radial has a ring, so only a radial reads this.
+        A radial is a gauge: each row of `data` is a ring, an arc of a circle
+        whose ceiling is `max` — always pass `max`. Up to three rings,
+        concentric and touching, first row outermost, each with its own colour
+        and its own threshold; a fourth row is refused. `unfilled` is the rest
+        of the ring, translucent white unless told otherwise (`#ffffff40` is a
+        quarter, `#ffffff80` a half) — keep it translucent, or the gauge becomes
+        a dark disc with a bright edge. The middle is who the gauge is: `icon`
+        and `title` side by side, with `data[0][x_key]` under them for a
+        spelled-out reading like "3.7 of 15.6 GB". With more than one ring that
+        reading is not drawn, so make `title` name the set ("Machine", not
+        "RAM"), about six characters. `unit` does nothing on a radial.
 
-        `at` is in the units of the plotted value, not of what the number means
-        to a human. The memory gauge plots a percentage, so "above 12 GB of
-        15.6" is `at: 77`, not `at: 12`.
+        A radar is a shape, not a reading: one row per spoke, one series, a
+        polygon inside a grid that stays visible so an idle machine is a small
+        polygon in a reticle rather than an empty widget. Pass `max` as the
+        outer ring, send the rows in the order they should go round
+        (neighbouring spokes read as one lobe), and expect `axes` and a second
+        series to be ignored.
 
-        Only bar and radial read `thresholds`. A bar decides one bar at a time,
-        so a single hot core turns while the rest stay as they were, and a gauge
-        decides on its one value. A pie and a line chart already give every
-        series a colour of its own — that is what those charts are for — so they
-        ignore the field completely rather than half-honouring it.
-
-        A radial is a gauge: each row of `data` is a ring, drawn as an arc of a
-        circle whose ceiling is `max`, so always pass `max`. The ring is the
-        message — it says the proportion from across the room.
-
-        Up to three rings, concentric and touching, first row outermost. Use
-        that instead of three gauges when three readings belong together: the
-        board is finite and never scrolls, and three percentages used to cost
-        half its width. Each ring takes its own colour from `colors` and its own
-        `thresholds`, so one can turn while the others stay white. A fourth row
-        is refused — that is a second widget.
-
-        The middle of the rings is who the gauge is: `icon` and `title` side by
-        side, with `data[0][x_key]` under them for when a number is genuinely
-        wanted, the way "3.7 of 15.6 GB" is. With more than one ring that
-        spelled-out reading is not drawn, so write a `title` that names the set
-        rather than a reading — "Machine" rather than "RAM". Keep it to about
-        six characters; a longer one is not refused, it just runs out of ring to
-        sit in. `unit` does nothing on a radial, because there is no bare number
-        for it to sit against.
-
-        A radar is the other polar one, and it is a shape rather than a reading:
-        one row per spoke, one series, drawn as a polygon inside a grid that
-        stays visible so an idle machine is a small polygon in a reticle rather
-        than an empty widget. Pass `max` — it is the ring the polygon is drawn
-        against, and without one the largest value fills it whatever it is. Send
-        the rows in the order you want them to go round; neighbouring spokes are
-        what a viewer reads as one lobe, so put things that belong together next
-        to each other. `axes` means nothing here, and neither does a second
-        series: two polygons over one another are two shapes to disentangle,
-        which is the opposite of what this chart is for.
-
-        Every other chart says what it is in its top-left corner: `icon` at the
-        top and `title` stacked under it, anchored there — a longer title grows
-        downward over the plot rather than pushing it anywhere, so neither of
-        them costs the chart any height. That is what lets a CPU widget be a
-        slim strip of bars and still say it is the CPU. Pass either, both or
-        neither; all four are meaningful.
+        Every other chart says what it is in its top-left corner: `icon` above
+        `title`, anchored there, so a long title grows down over the plot and
+        costs the chart no height — a CPU widget can be a slim strip of bars
+        and still say it is the CPU. Either, both or neither is fine.
 
         `icon` is a name from the notification icon set, an absolute path to a
-        picture on this machine, or SVG markup — `<svg viewBox="0 0 24 24" ...>`
-        with paths and shapes in it, which is how you draw something the icon
-        set has no name for. It is sanitised on the way in, so anything that
-        loads or runs is dropped. Paint it with `currentColor` and it takes the
-        widget's colour.
+        picture on this machine, or SVG markup (`<svg viewBox="0 0 24 24" ...>`),
+        sanitised so nothing that loads or runs survives. Paint it with
+        `currentColor` and it takes the widget's colour.
         """
         if chart not in KINDS:
             return f"Not added: chart must be {_one_of(KINDS)} (got {chart!r})"

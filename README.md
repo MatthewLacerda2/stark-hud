@@ -63,8 +63,8 @@ gone. The board stores facts; the browser works out the readings.
 | `gantt` | Named rows of bars over the next stretch of time, so two things at once have a shape. Nothing writes to it either; the scale re-tunes itself as the clock passes. |
 | `clock` | The time, with the date under it when there is room. |
 | `inbox` · `feed` | Notifications as a phone's shade; things that happened elsewhere, newest first. |
-| `media` | Audio, video or YouTube, with a queue, loop and maximise. |
-| `image` · `video` | A local file, served by id — a path never reaches a URL. |
+| `media` | Audio, video or YouTube, with a queue, loop and maximise. One file is a queue of one, which is what a clip on the board is. |
+| `image` | A local file, served by id — a path never reaches a URL. |
 | `group` | A widget that holds widgets, in one of three states. Open, they are on the board. Folded, they come off and it draws a shelf of icons in their place. Away, they come off and nothing is drawn: a screen the board is not showing, which is how one board carries several full-board subjects and cuts between them. |
 | `box` | A frame drawn on the board. Decoration, and nothing else. |
 

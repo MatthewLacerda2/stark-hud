@@ -125,6 +125,32 @@ def _reattached(items: list[ItemRead]) -> list[ItemRead]:
     return [i if i.parent_id in here else i.model_copy(update={"parent_id": None}) for i in items]
 
 
+def _as_media(payload: dict) -> dict:
+    """A stored ``video`` payload read as the one-track player it is now.
+
+    This is the one place a widget kind is recognised after it has left the
+    union, and it is here rather than anywhere upstream because a payload is
+    validated on the way in: a ``video`` reaching ``ItemRead`` is a widget
+    dropped, not a widget upgraded.
+
+    A ``video`` was one local file with ``autoplay``, ``loop`` and ``muted``,
+    which is a ``media`` with one track, ``playing``, ``loop`` and ``muted`` —
+    and that is why the kind went. Every flag comes across, so a clip that was
+    silent stays silent; what it gains is a transport, which a video never had.
+
+    Nothing is bumped in ``FORMAT`` for this. That number is for a file an older
+    build cannot read, and ``media`` predates the fold: a board written today
+    loads on the build before this one.
+    """
+    return {
+        "kind": "media",
+        "tracks": [{"path": payload.get("path")}],
+        "playing": payload.get("autoplay", True),
+        "loop": payload.get("loop", False),
+        "muted": payload.get("muted", True),
+    }
+
+
 def _salvage(document: dict) -> HudFile:
     """Build a board from a file, skipping the parts this build cannot read.
 
@@ -143,12 +169,26 @@ def _salvage(document: dict) -> HudFile:
         )
 
     kept: list[ItemRead] = []
+    upgraded = 0
     for entry in document.get("items") or []:
+        entry = entry or {}
+        if (entry.get("payload") or {}).get("kind") == "video":
+            entry = {**entry, "payload": _as_media(entry["payload"])}
+            upgraded += 1
         try:
             kept.append(ItemRead.model_validate(entry))
         except ValidationError:
-            kind = (entry or {}).get("payload", {}).get("kind", "?")
+            kind = entry.get("payload", {}).get("kind", "?")
             logger.warning("dropping a %s widget this build cannot read", kind)
+
+    # Read is also written: the board is saved whole, so marking it changed puts
+    # the upgraded widgets back on disk at the next flush, and the day no file
+    # has a video in it is the day `_as_media` can go. Nothing else about a
+    # restore is dirty — what was just read is what is already there — but this
+    # genuinely is: the board now differs from the file it came from.
+    if upgraded:
+        logger.info("read %s video widgets as players with one track", upgraded)
+        touch()
 
     kept = _reattached(kept)
 

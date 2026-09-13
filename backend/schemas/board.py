@@ -43,7 +43,6 @@ from schemas.payloads import (
     Payload,
     TextPayload,
     TextSize,
-    VideoPayload,
 )
 
 __all__ = [
@@ -83,7 +82,6 @@ __all__ = [
     "PlaybackReport",
     "TextPayload",
     "TextSize",
-    "VideoPayload",
     "WaveMode",
     "Wireframe",
 ]

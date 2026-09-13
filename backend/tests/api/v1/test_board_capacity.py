@@ -25,11 +25,11 @@ async def _fill(client: AsyncClient) -> int:
 async def test_full_board_reports_what_is_free(client: AsyncClient) -> None:
     """A rejected insert tells the caller how much space is left."""
     await _fill(client)
-    response = await client.post(ITEMS, json={"payload": {"kind": "video", "path": "/x.mkv"}})
+    response = await client.post(ITEMS, json={"payload": {"kind": "media"}})
     assert response.status_code == 409
     body = response.json()
     assert body["cells_free"] == 0
-    assert body["requested"] == [16, 9]
+    assert body["requested"] == [10, 6]
 
 
 async def test_freed_slot_is_reused(client: AsyncClient) -> None:

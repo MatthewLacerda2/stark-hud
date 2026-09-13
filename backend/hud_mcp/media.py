@@ -101,10 +101,10 @@ def register(server: MCPServer) -> None:
         loop: bool = False,
         muted: bool = False,
         playing: bool = True,
-        x: int | None = None,
-        y: int | None = None,
-        w: int | None = None,
-        h: int | None = None,
+        x: float | None = None,
+        y: float | None = None,
+        w: float | None = None,
+        h: float | None = None,
         description: str | None = None,
     ) -> str:
         """Put a player on the board with a queue in it, and start it.
@@ -127,8 +127,15 @@ def register(server: MCPServer) -> None:
         it. `loop` says what happens after the last: start again from the top,
         or stop.
 
-        Sound is on unless you mute it, unlike add_video. This widget is the one
-        that is meant to be heard.
+        A queue of one is an ordinary queue, and is how a single clip goes on
+        the board: `["/mnt/d_drive/Video/clip.mkv"]` draws the film and nothing
+        else, and can then be paused, sought and maximised like anything here.
+
+        Sound is on unless you mute it: this is the widget meant to be heard.
+        A clip put up to be looked at rather than listened to is the other case
+        — pass `muted=True`, and usually `loop=True` with it. Several widgets
+        making noise at once is unusable, and nobody at the television can turn
+        one down.
 
         A video draws video and nothing else: no title over it, no queue
         position under it. Audio draws its album art with the track's title
