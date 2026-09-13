@@ -32,7 +32,7 @@ async def test_vanished_file_404s_with_the_path(client: AsyncClient, tmp_path: P
 
 
 async def test_a_note_is_not_media(client: AsyncClient) -> None:
-    """Only image and video items expose bytes."""
+    """Only an image exposes bytes here; a player's tracks have a route of their own."""
     note = (await client.post(ITEMS, json={"payload": {"kind": "note", "text": "x"}})).json()
     assert (await client.get(f"/api/v1/media/{note['id']}")).status_code == 404
 

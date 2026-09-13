@@ -126,21 +126,6 @@ class ImagePayload(_Payload):
     alt: str | None = None
 
 
-class VideoPayload(_Payload):
-    """A video read from a local path and served back by this API.
-
-    One file, played once, with no idea what comes after it. A queue of them —
-    audio as well as video, driven from a session rather than from the screen —
-    is the ``media`` widget in ``schemas.media`` instead.
-    """
-
-    kind: Literal["video"] = "video"
-    path: str
-    autoplay: bool = True
-    loop: bool = False
-    muted: bool = True
-
-
 class InboxPayload(_Payload):
     """Where notifications are shown.
 
@@ -258,7 +243,6 @@ Payload = Annotated[
     | ListPayload
     | BoxPayload
     | ImagePayload
-    | VideoPayload
     | MediaPayload
     | MeshPayload
     | ChartPayload
@@ -307,5 +291,4 @@ __all__ = [
     "NotePayload",
     "Payload",
     "TextPayload",
-    "VideoPayload",
 ]

@@ -25,10 +25,12 @@ _DEFAULT_SIZES: dict[str, tuple[float, float]] = {
     "list": (7, 7),
     "box": (10, 6),
     "image": (8, 6),
-    "video": (16, 9),
     # Wide enough for a title beside the art and tall enough to be a player
     # rather than a thumbnail — comfortably over the four cells below which it
-    # stops drawing one.
+    # stops drawing one. One size whether it is holding an album or a film: a
+    # cell is square, so this is 5:3, and a 16:9 picture inside it loses about
+    # ten pixels top and bottom. A second size keyed on what is in the queue
+    # would be a default nothing in the tool's own schema could tell you about.
     "media": (10, 6),
     "chart": (10, 7),
     "inbox": (8, 8),

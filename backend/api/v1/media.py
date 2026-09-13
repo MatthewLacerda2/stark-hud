@@ -11,14 +11,12 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
 
 from repositories import board as repo
-from schemas.board import ImagePayload, VideoPayload
+from schemas.board import ImagePayload
 from schemas.media import media_type
 from services import board as service
 from services import media as media_service
 
 router = APIRouter(prefix="/media", tags=["media"])
-
-_MEDIA_KINDS = {"image", "video"}
 
 
 def _stream(path: str) -> FileResponse:
@@ -48,11 +46,14 @@ async def get_background_media() -> FileResponse:
 
 @router.get("/{item_id}")
 async def get_media(item_id: str) -> FileResponse:
-    """Stream the file behind an image or video item."""
+    """Stream the picture behind an image item.
+
+    Only a picture reaches this route. A film is a track of a player and is
+    addressed by the widget's id and its place in the queue, which is what the
+    route below is for.
+    """
     item = repo.get(item_id)
-    # isinstance rather than the kind set: both say the same thing, and only one
-    # of them tells the type checker that `.path` is there to be read.
-    if item is None or not isinstance(item.payload, ImagePayload | VideoPayload):
+    if item is None or not isinstance(item.payload, ImagePayload):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No media for that id")
     return _stream(item.payload.path)
 
