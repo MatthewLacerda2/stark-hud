@@ -11,7 +11,6 @@ import { Group } from "@/components/board/items/group";
 import { Image } from "@/components/board/items/image";
 import { Media } from "@/components/board/items/media";
 import { Mesh } from "@/components/board/items/mesh";
-import { Video } from "@/components/board/items/video";
 import { Inbox } from "@/components/board/items/inbox";
 import { List } from "@/components/board/items/list";
 import { Note } from "@/components/board/items/note";
@@ -47,8 +46,6 @@ export function ItemView({
       return <Box payload={payload} />;
     case "image":
       return <Image id={item.id} payload={payload} />;
-    case "video":
-      return <Video id={item.id} payload={payload} />;
     case "media":
       // Its size decides whether it draws a player or only a thumbnail, the way
       // the clock's height decides whether the date fits.

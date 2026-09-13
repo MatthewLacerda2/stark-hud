@@ -87,14 +87,6 @@ export interface ImagePayload {
   alt: string | null;
 }
 
-export interface VideoPayload {
-  kind: "video";
-  path: string;
-  autoplay: boolean;
-  loop: boolean;
-  muted: boolean;
-}
-
 /**
  * A 3D model drawn as a turning wireframe.
  *
@@ -402,7 +394,6 @@ export type Payload =
   | ListPayload
   | BoxPayload
   | ImagePayload
-  | VideoPayload
   | MeshPayload
   | MediaPayload
   | ChartPayload

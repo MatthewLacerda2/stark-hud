@@ -32,7 +32,6 @@ EXPECTED = {
     "add_text",
     "add_to_countdown",
     "add_to_group",
-    "add_video",
     "arrange",
     "board_status",
     "clear_background",
@@ -112,7 +111,13 @@ async def call(server: MCPServer, name: str, **args: object) -> str:
 
 async def test_every_tool_is_registered(server: MCPServer) -> None:
     """The catalogue is the contract; a missing tool is a silent regression."""
-    assert {t.name for t in await server.list_tools()} == EXPECTED
+    named = {t.name for t in await server.list_tools()}
+    assert named == EXPECTED
+    # Said out loud rather than left to the set above. Every description here is
+    # sent whole to every model that drives this board, so a second tool for one
+    # thing is text a model reads and then has to choose between, every time; a
+    # one-track add_media is a video, and a video is what add_video was.
+    assert "add_video" not in named
 
 
 async def test_adding_reports_where_it_landed(server: MCPServer) -> None:

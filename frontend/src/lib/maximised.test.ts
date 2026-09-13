@@ -34,14 +34,14 @@ function item(id: string, payload: Payload): Item {
   };
 }
 
-function media(maximised: boolean): Payload {
+function media(maximised: boolean, muted = false): Payload {
   return {
     kind: "media",
     tracks: [],
     index: 0,
     playing: true,
     loop: false,
-    muted: false,
+    muted,
     maximised,
     captions: false,
     seconds: 0,
@@ -50,13 +50,9 @@ function media(maximised: boolean): Payload {
 }
 
 const clock: Payload = { kind: "clock" };
-const video: Payload = {
-  kind: "video",
-  path: "/mnt/d_drive/Video/loop.mp4",
-  autoplay: true,
-  loop: true,
-  muted: true,
-};
+// A clip put up to be looked at rather than listened to. It used to be a widget
+// kind of its own; now it is a player with one thing in it and nothing to hear.
+const loop: Payload = media(false, true);
 
 describe("the widget with the whole board", () => {
   it("is the media widget asking for it, and nothing else ever asks", () => {
@@ -72,7 +68,7 @@ describe("what the grid still draws underneath", () => {
   const film = item("film", media(true));
 
   it("draws everything when nobody has the board", () => {
-    for (const covered of [clock, video, media(false)]) {
+    for (const covered of [clock, loop, media(false)]) {
       expect(drawn(item("other", covered), undefined)).toBe(true);
     }
   });
@@ -80,7 +76,9 @@ describe("what the grid still draws underneath", () => {
   it("stops drawing what a maximised widget covers", () => {
     const kinds: [ItemKind, Payload][] = [
       ["clock", clock],
-      ["video", video],
+      // A muted player is covered like anything else: it has nothing to be
+      // heard, so the only thing it was costing was a decode for nobody.
+      ["media", loop],
       ["note", { kind: "note", text: "hello", color: null }],
     ];
     for (const [kind, payload] of kinds) {
@@ -88,7 +86,7 @@ describe("what the grid still draws underneath", () => {
     }
   });
 
-  it("keeps a player, because sound is not covered by anything", () => {
+  it("keeps a player that can be heard, because sound is not covered", () => {
     expect(drawn(item("song", media(false)), film)).toBe(true);
   });
 

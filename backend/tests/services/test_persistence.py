@@ -172,3 +172,65 @@ def test_a_format_2_board_loses_its_groups_and_comes_up_anyway(tmp_path, monkeyp
     kept = board.list_items()
     assert [i.payload.kind for i in kept] == ["note"]
     assert kept[0].parent_id is None
+
+
+def _before_the_fold(path: str) -> dict:
+    """A widget as a board written before the video kind went holds it.
+
+    The shape of a real item, with a `video` payload in it: one local file, and
+    the three flags that are now `playing`, `loop` and `muted` on a player.
+    """
+    return {
+        "id": "clip00000001",
+        "key": "trailer",
+        "payload": {"kind": "video", "path": path, "autoplay": False, "loop": True, "muted": True},
+        "x": 4.5,
+        "y": 2,
+        "w": 16,
+        "h": 9,
+        "parent_id": None,
+        "pinned": False,
+        "created_at": "2026-01-01T00:00:00Z",
+    }
+
+
+def test_a_stored_video_comes_up_as_the_player_it_is_now(tmp_path, monkeypatch):
+    """Nobody loses a widget to a version bump: same id, same place, same name."""
+    target = _point_at(tmp_path, monkeypatch)
+    entry = _before_the_fold("/mnt/d_drive/Video/clip.mkv")
+    target.write_text(json.dumps({"hud": 3, "items": [entry]}), encoding="utf-8")
+
+    persistence.restore()
+
+    (widget,) = board.list_items()
+    assert widget.id == entry["id"]
+    assert widget.key == "trailer"
+    assert (widget.x, widget.y, widget.w, widget.h) == (4.5, 2, 16, 9)
+    player = widget.payload
+    assert player.kind == "media"
+    assert [(t.path, t.kind) for t in player.tracks] == [("/mnt/d_drive/Video/clip.mkv", "video")]
+    # `autoplay` is `playing`, and the other two come across as they were: a clip
+    # that was silent and looping is still silent and still looping.
+    assert (player.playing, player.loop, player.muted) == (False, True, True)
+
+
+def test_the_upgraded_board_is_what_goes_back_to_disk(tmp_path, monkeypatch):
+    """Read is also written, so `video` leaves the file at the next flush.
+
+    Marked changed on the way in rather than left for the next write to happen
+    along: what is in memory really does differ from the file it came off, which
+    is the whole of what dirty means — and it gives the upgrade an end date.
+    """
+    target = _point_at(tmp_path, monkeypatch)
+    assert persistence.save()
+    target.write_text(
+        json.dumps({"hud": 3, "items": [_before_the_fold("/clip.mp4")]}), encoding="utf-8"
+    )
+    assert not store.dirty()
+
+    persistence.restore()
+    assert store.dirty(), "an upgraded board is not the board that is on disk"
+    assert persistence.save()
+
+    written = json.loads(target.read_text(encoding="utf-8"))
+    assert [e["payload"]["kind"] for e in written["items"]] == ["media"]

@@ -93,14 +93,18 @@ function track(title: string, kind: "audio" | "video") {
   };
 }
 
-function media(maximised: boolean, kind: "audio" | "video"): Payload {
+function media(
+  maximised: boolean,
+  kind: "audio" | "video",
+  muted = false,
+): Payload {
   return {
     kind: "media",
     tracks: [track(kind, kind)],
     index: 0,
     playing: true,
     loop: false,
-    muted: false,
+    muted,
     maximised,
     captions: false,
     seconds: 0,
@@ -113,17 +117,9 @@ function board(maximised: boolean): Item[] {
   return [
     item("film", media(maximised, "video"), 0),
     item("song", media(false, "audio"), 7),
-    item(
-      "loop",
-      {
-        kind: "video",
-        path: "/mnt/d_drive/loop.mp4",
-        autoplay: true,
-        loop: true,
-        muted: true,
-      },
-      14,
-    ),
+    // A clip put up to be looked at and not listened to: a player with one
+    // thing in it and nothing to hear. It was a widget kind of its own once.
+    item("loop", media(false, "video", true), 14),
     item("note", { kind: "note", text: "Buy milk", color: null }, 21),
   ];
 }
@@ -187,7 +183,7 @@ describe("a widget with the whole board", () => {
     expect(sources()).toEqual([
       "/api/v1/media/film/track/0?v=s1",
       "/api/v1/media/song/track/0?v=s1",
-      "/api/v1/media/loop",
+      "/api/v1/media/loop/track/0?v=s1",
     ]);
     expect(text()).toContain("Buy milk");
   });
@@ -215,7 +211,7 @@ describe("a widget with the whole board", () => {
     expect(sources()).toEqual([
       "/api/v1/media/film/track/0?v=s1",
       "/api/v1/media/song/track/0?v=s1",
-      "/api/v1/media/loop",
+      "/api/v1/media/loop/track/0?v=s1",
     ]);
     expect(text()).toContain("Buy milk");
   });

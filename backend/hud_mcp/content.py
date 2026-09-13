@@ -25,7 +25,6 @@ from schemas.board import (
     NotePayload,
     TextPayload,
     TextSize,
-    VideoPayload,
 )
 
 
@@ -168,27 +167,6 @@ def register(server: MCPServer) -> None:
         return await add(
             ImagePayload(path=path, alt=alt), x, y, w, h, parent_id, description=description
         )
-
-    @server.tool()
-    async def add_video(
-        path: str,
-        autoplay: bool = True,
-        loop: bool = False,
-        muted: bool = True,
-        x: float | None = None,
-        y: float | None = None,
-        w: float | None = None,
-        h: float | None = None,
-        parent_id: str | None = None,
-        description: str | None = None,
-    ) -> str:
-        """Show a local video file.
-
-        Muted by default: several widgets playing sound at once is unusable. Only
-        unmute when the video is the point of the board right now.
-        """
-        payload = VideoPayload(path=path, autoplay=autoplay, loop=loop, muted=muted)
-        return await add(payload, x, y, w, h, parent_id, description=description)
 
     @server.tool()
     async def add_inbox(
