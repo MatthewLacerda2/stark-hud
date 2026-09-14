@@ -30,19 +30,35 @@ const WASH = 0.14;
  * side because a line has no axis of its own and needs one chosen for it — the
  * same call `scorsese_core::shape` makes for `stroke_width`, and picking the
  * same one twice is one fewer thing to remember. Halved from 1/70 on
- * 2026-09-14: at a television's size that weight drew frames, not outlines.
+ * 2026-09-14 — at a television's size that weight drew frames, not outlines —
+ * and thinned again the same day, once the halving had been seen.
  */
-const STROKE = 1 / 140;
+const STROKE = 1 / 180;
 
 /** The thinnest a line may get. Below a pixel a browser draws a ghost of one. */
 const MIN_STROKE = 1.6;
 
-/** How long a head is, and how far its base spreads, as multiples of the line. */
-const HEAD_LENGTH = 4.2;
-const HEAD_SPREAD = 1.7;
+/** How long a head is, and how far its base spreads, as multiples of the line.
+ *
+ * Retuned with the line: when the stroke went from 1/140 to 1/180 the head was
+ * already the right size, so these grew by the same ratio and it stayed put. */
+const HEAD_LENGTH = 5.4;
+const HEAD_SPREAD = 2.2;
 
-/** How far a label sits off its arrow, as a multiple of the line's thickness. */
-const LABEL_LIFT = 2.6;
+/** How far a label sits off its arrow, as a multiple of the line's thickness.
+ * Grew with the head, for the same reason. */
+const LABEL_LIFT = 3.3;
+
+/**
+ * The most a corner may round, as a fraction of the widget's shorter side.
+ *
+ * A box's radius is a fraction of its own shorter side, so a small box stays
+ * in proportion — but the same fraction on a big box is a bulge, not a
+ * corner. Capped against the widget, so every box in a diagram rounds by at
+ * most the same amount, which is what a drawn flowchart does anyway. An
+ * ellipse is a shape, not a radius, and is not capped.
+ */
+const MAX_CORNER = 1 / 40;
 
 /**
  * A diagram of boxes and arrows: *this leads to that*.
@@ -161,7 +177,10 @@ function Node({
   const corner =
     node.shape === "ellipse"
       ? "50%"
-      : `${node.radius * Math.min(box.w * width, box.h * height)}px`;
+      : `${Math.min(
+          node.radius * Math.min(box.w * width, box.h * height),
+          MAX_CORNER * Math.min(width, height),
+        )}px`;
 
   return (
     <div
