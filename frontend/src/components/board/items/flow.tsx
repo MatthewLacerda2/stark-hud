@@ -20,7 +20,7 @@ import { arrows, cells, layout, midpoint, roomy } from "@/lib/flow";
  * the more solid the pane the less the word stands off it. Halved from 0.28
  * on 2026-09-14 because the panes read as plates, not glass.
  */
-const WASH = 0.28;
+const WASH = 0.14;
 
 /**
  * The house line weight, as a fraction of the widget's shorter side.
@@ -32,7 +32,7 @@ const WASH = 0.28;
  * same one twice is one fewer thing to remember. Halved from 1/70 on
  * 2026-09-14: at a television's size that weight drew frames, not outlines.
  */
-const STROKE = 1 / 70;
+const STROKE = 1 / 140;
 
 /** The thinnest a line may get. Below a pixel a browser draws a ghost of one. */
 const MIN_STROKE = 1.6;
