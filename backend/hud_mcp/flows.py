@@ -82,7 +82,9 @@ def register(server: MCPServer) -> None:
 
         `shape` is "rectangle" (the default) or "ellipse", and `radius` rounds a
         rectangle's corners as a fraction of the box's own shorter side: 0 is
-        square and 0.5 is a pill. There is no third shape on purpose — a branch
+        square and 0.5 is a pill — on a box of ordinary size, since a corner
+        never rounds past a small fraction of the widget and a big box stays a
+        box. There is no third shape on purpose — a branch
         is said by the words on the two arrows leaving a box, and a flowchart
         that needs a legend has stopped being readable from a sofa.
 
