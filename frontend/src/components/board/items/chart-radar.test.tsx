@@ -9,6 +9,7 @@ import { describe, expect, it } from "vitest";
 import type { ChartPayload } from "@/lib/schemas/board";
 import {
   BARS,
+  SIZE,
   render,
   stubLayout,
 } from "@/components/board/items/chart-render";
@@ -101,5 +102,18 @@ describe("a radar", () => {
     });
 
     expect(centre(hot)).toEqual(centre(cold));
+  });
+
+  it("draws its outer ring out to the edge of the space it was given", async () => {
+    const host = await render(RADAR);
+    // Recharts writes each ring's radius on the ring itself.
+    const radii = [
+      ...host.querySelectorAll(".recharts-polar-grid-concentric-polygon"),
+    ].map((ring) => Number(ring.getAttribute("radius")));
+
+    // Within a pixel of half the shorter side, as the gauge's ring is: what is
+    // resized is what is seen, so a radar and a gauge given the same square
+    // draw the same circle.
+    expect(Math.max(...radii)).toBeGreaterThan(SIZE.height / 2 - 1);
   });
 });

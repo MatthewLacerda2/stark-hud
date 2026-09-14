@@ -83,8 +83,9 @@ const UNFILLED = "#ffffff40";
 // grid with it instead of leaving a white cage behind.
 const GRID_INK = 0.3;
 
-// The polygon gets the whole plot, less enough room for its own stroke not to be
-// clipped when a value is at the ceiling.
+// The polygon gets the whole plot. Recharts otherwise keeps five pixels of
+// margin all round, and a widget whose drawing stops short of its own edge is
+// one whose edge cannot be lined up with anything by eye.
 const POLAR_FILL = { top: 0, right: 0, bottom: 0, left: 0 };
 
 // The most rings one gauge draws. Four is a target, five is a pattern, and a
@@ -356,8 +357,13 @@ function Body({ payload }: { payload: ChartPayload }) {
     // reading: a spike is one of them, a fat blob is all of them. A second
     // polygon over the first would be two shapes to disentangle instead.
     const color = `var(--color-${series[0]})`;
+    // The outer ring is the widget's edge, as the gauge's is: what you resize
+    // is what you see, so two polar widgets given the same square draw the
+    // same circle. A value at the ceiling meets the edge and loses the outer
+    // half of its stroke there, which is the price of a box that is the
+    // drawing.
     return (
-      <RadarChart data={data} margin={POLAR_FILL} outerRadius="92%">
+      <RadarChart data={data} margin={POLAR_FILL} outerRadius="100%">
         {/* Drawn, unlike the cartesian grid below. At idle every core is at 2%
             and the polygon is a speck in the middle — with nothing behind it the
             widget reads as broken rather than as quiet. Rings and spokes give it
@@ -500,19 +506,23 @@ export function Chart({ id, payload }: { id: string; payload: ChartPayload }) {
   // height whether the widget has height to spare or not, and on a chart that
   // wants to be a strip of bars it was most of the widget.
   const gauge = payload.chart === "radial";
+  // A polar chart draws a circle to its shorter side and nothing else: no
+  // axis to keep off the edge, no label to make room for. So the circle gets
+  // the whole widget, and the widget's box is the circle's box.
+  const polar = gauge || payload.chart === "radar";
   return (
     // Only a colour at an opacity. A border and a blur survive at zero opacity
     // and still draw a rectangle, which defeats the point of turning it down.
     <Card
       className={cn(
         "size-full border-0 widget-surface widget-edge shadow-none widget-text",
-        gauge ? "py-0" : "py-[2cqmin]",
+        polar ? "py-0" : "py-[2cqmin]",
       )}
     >
       <CardContent
         className={cn(
           "relative min-h-0 flex-1",
-          gauge ? "p-0" : "px-[2cqmin] pb-[0.75cqmin]",
+          polar ? "p-0" : "px-[2cqmin] pb-[0.75cqmin]",
         )}
       >
         {payload.data.length === 0 ? (
