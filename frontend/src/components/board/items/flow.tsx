@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 import type { FlowLink, FlowNode, FlowPayload } from "@/lib/schemas/board";
 import { Icon } from "@/components/board/icon";
 import { useContainerSize } from "@/hooks/use-container-size";
+import { useFitText } from "@/hooks/use-fit-text";
 import { carriesAlpha } from "@/lib/colour";
 import type { Box, Point, Route } from "@/lib/flow";
 import { arrows, cells, layout, midpoint, roomy } from "@/lib/flow";
@@ -14,8 +15,12 @@ import { arrows, cells, layout, midpoint, roomy } from "@/lib/flow";
  * and its word are marks and are drawn at full strength on top, in their own
  * layer, so turning the glass down does not take the word down with it. A
  * colour that states its own alpha has already answered this.
+ *
+ * Faint on purpose: the word on the glass is the same ink as the glass, so
+ * the more solid the pane the less the word stands off it. Halved from 0.28
+ * on 2026-09-14 because the panes read as plates, not glass.
  */
-const WASH = 0.28;
+const WASH = 0.14;
 
 /**
  * The house line weight, as a fraction of the widget's shorter side.
@@ -24,9 +29,10 @@ const WASH = 0.28;
  * a diagram drawn in two thicknesses reads as two diagrams. Against the shorter
  * side because a line has no axis of its own and needs one chosen for it — the
  * same call `scorsese_core::shape` makes for `stroke_width`, and picking the
- * same one twice is one fewer thing to remember.
+ * same one twice is one fewer thing to remember. Halved from 1/70 on
+ * 2026-09-14: at a television's size that weight drew frames, not outlines.
  */
-const STROKE = 1 / 70;
+const STROKE = 1 / 140;
 
 /** The thinnest a line may get. Below a pixel a browser draws a ghost of one. */
 const MIN_STROKE = 1.6;
@@ -145,6 +151,7 @@ function Node({
   height: number;
   stroke: number;
 }) {
+  const { ref, size } = useFitText(node.text);
   if (!box) return null;
   const colour = node.color ?? "currentColor";
   // A fraction of the box's own shorter side, worked out in pixels. A CSS
@@ -158,7 +165,7 @@ function Node({
 
   return (
     <div
-      className="absolute flex items-center justify-center overflow-hidden px-[1.5cqmin] text-center"
+      className="absolute flex items-center justify-center overflow-hidden px-[1.5cqmin] py-[0.5cqmin] text-center"
       style={{
         left: `${box.x * 100}%`,
         top: `${box.y * 100}%`,
@@ -177,7 +184,16 @@ function Node({
           opacity: carriesAlpha(colour) ? 1 : WASH,
         }}
       />
-      <span className="relative text-node-sm leading-tight break-words">
+      {/* Sized to the box, not to a token: a word is as large as the box
+          lets it be, up to the widget's own type size. A block that fills the
+          width and is clipped at the height is what the fitting measures
+          against, and a word is left whole rather than broken — a word that
+          will not fit on a line is what shrinks the type. */}
+      <span
+        ref={ref}
+        className="relative block max-h-full w-full overflow-hidden text-node leading-tight"
+        style={size === undefined ? undefined : { fontSize: `${size}px` }}
+      >
         {node.text}
       </span>
     </div>
