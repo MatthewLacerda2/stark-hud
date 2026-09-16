@@ -11,6 +11,11 @@
 #   json_path       optional, for URLs: a dotted path to dig into the response.
 #   panel           the item to write. Anything the board accepts.
 #   place           optional x/y/w/h in grid cells; omit to let the board choose.
+#   description     optional. The note only sessions read, given to the widget
+#                   when it is created: what it is, and what feeds it.
+#   transient       optional. The panel exists only while the source has rows to
+#                   put in it: no rows, no widget. For a subject that is not
+#                   always there.
 #
 # Commands live here rather than on the board on purpose: the board is open to
 # the whole LAN, and a display should not be a way to run code on this machine.
@@ -105,3 +110,71 @@ name = "alerts"
 command = "python3 {collectors}/alerts.py"
 every = 300
 notifications = true
+
+
+# The training run that owns the GPU, in three widgets: what the model is
+# learning, how far through it is, and whether the optimiser is behaving.
+#
+# All three are the same collector called three ways, the way the two gauges
+# above are `gpu.py util` and `gpu.py vram`: a source writes one panel, so a
+# widget is a call. It finds the run by asking the driver what is on the card
+# and reading /proc, so nobody has to point the board at a run by name, and it
+# prints no rows at all when nothing on the card has earned a television. That
+# is what `transient` is for — an hour after a run ends these three come off the
+# board rather than sitting there saying "no data".
+#
+# A minute, not an hour: this reads a CSV, which costs nothing, and a line that
+# grows while you watch it is the difference between a dashboard and a poster.
+
+# The one widget here that says how good the model is; everything else is the
+# run's health, so this gets the room. Two lines, dim for the training loss and
+# bright for the held-out one, which is the one that matters — no legend, since
+# they sit on top of each other and which is which is not the reading. `axes =
+# "y"` because the level is the whole point (4.5 nats is a different animal from
+# 11) while the x position is what the gauge below already answers. No unit on
+# the axis: a loss is in nats and a reader who needs telling that is reading the
+# sheets `make report` draws, not a television.
+[[source]]
+name = "trm_curve"
+command = "python3 {collectors}/trm_run.py curve ~/Desktop/Repos/TinyRefinementModel"
+every = 60
+transient = true
+place = { x = 23, y = 4, w = 9, h = 8.5 }
+description = """
+Cross-entropy against millions of tokens for whichever TinyRefinementModel run owns the GPU: the dim line is the training loss, the bright one the held-out probe. Fed by tools/collectors/trm_run.py through the agent, once a minute, and not hand-maintained — it appears when a real run starts and comes off the board an hour after one ends. The matplotlib sheets `make report` draws in that repository are the same numbers for reading up close."""
+panel = { kind = "chart", chart = "line", title = "loss", x_key = "tokens", series = ["train", "held"], axes = "y", colors = ["#ffffff59", "#ffffffd9"] }
+
+# The gradient norm, one bar per sample, in multiples of the clip it is held to
+# — so the threshold at 1 is the clip itself whatever the clip is set to that
+# week, and a bar that turns is the clip setting the step size rather than the
+# schedule. Amber rather than the red the disk alarms use: it is worth noticing,
+# not worth getting up for, and early in every run it is normal.
+#
+# No axes at all. The colour is the reading and the shape is the trend, which is
+# the same argument the CPU radar makes for having no spoke labels; a scale in
+# multiples of a clip would be a number to work out on a wall nobody reads.
+[[source]]
+name = "trm_health"
+command = "python3 {collectors}/trm_run.py health ~/Desktop/Repos/TinyRefinementModel"
+every = 60
+transient = true
+place = { x = 23, y = 12.5, w = 4, h = 5.5 }
+description = """
+The training run's gradient norm, each bar a sample across the run, in multiples of the gradient clip — so a bar past 1 turns amber and means the clip is setting the step size rather than the schedule. Fed by tools/collectors/trm_run.py through the agent; it comes and goes with the run, and is not hand-maintained."""
+panel = { kind = "chart", chart = "bar", icon = "zap", x_key = "step", series = ["norm"], axes = "none", colors = ["#ffffffa6"], thresholds = [{ at = 1.0, color = "var(--chart-3)" }] }
+
+# How far through the budget the run is. A gauge because a proportion is the one
+# thing a room can read without looking twice, and the same white and unfilled
+# ring as the three gauges along the top, because it is the same kind of
+# reading. The spelled-out line under the title is the one place these three
+# widgets write a number out in words — "61.6/67.1M" — and the ring carries the
+# rest.
+[[source]]
+name = "trm_progress"
+command = "python3 {collectors}/trm_run.py progress ~/Desktop/Repos/TinyRefinementModel"
+every = 60
+transient = true
+place = { x = 27, y = 12.5, w = 5, h = 5.5 }
+description = """
+How much of its token budget the training run has done, with the count spelled out under the ring. Fed by tools/collectors/trm_run.py through the agent; the budget is the run's own TRAIN_TOKEN_BUDGET, and the widget comes and goes with the run rather than being hand-maintained."""
+panel = { kind = "chart", chart = "radial", title = "tokens", x_key = "label", series = ["pct"], max = 100, colors = ["#ffffffa6"], unfilled = "#ffffff80" }

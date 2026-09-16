@@ -76,13 +76,26 @@ class Board:
         """
         self.call("POST", "/notifications", entry)
 
-    def write(self, key: str, payload: dict, place: dict) -> None:
+    def remove(self, key: str) -> None:
+        """Take the panel called ``key`` off the board, if it is up.
+
+        The board writes a panel by name and deletes one by id, so this looks the
+        id up. Nothing to remove is the ordinary case and costs one GET: a source
+        whose subject is not there says so every time it runs.
+        """
+        for item in self.call("GET", "/board/items") or []:
+            if item.get("key") == key:
+                self.call("DELETE", f"/board/items/{item['id']}")
+
+    def write(self, key: str, payload: dict, made: dict) -> None:
         """Create or update the panel called ``key``.
 
-        ``place`` only takes effect the first time; the board ignores it after,
-        so a panel someone dragged stays dragged.
+        ``made`` is what the item is given the first time — where it goes, and
+        the note for whoever drives the board next. The board ignores all of it
+        after, so a panel somebody dragged stays dragged and a note somebody
+        rewrote stays rewritten; only the payload is replaced on every pass.
         """
-        self.call("PUT", f"/board/items/by-key/{key}", {"payload": payload, **place})
+        self.call("PUT", f"/board/items/by-key/{key}", {"payload": payload, **made})
 
 
 # ------------------------------------------------------------------ reading
@@ -177,6 +190,26 @@ class Source:
         # instead of into a panel. There is no `panel` on such a source: the rows
         # are the notifications, already shaped.
         self.announces = bool(spec.get("notifications", False))
+        # `transient = true` means the widget only exists while the source has
+        # something to put in it. Printing no rows takes the panel off the board
+        # instead of leaving an empty frame saying "no data" — which is right for
+        # a subject that comes and goes, like the training run that happens to be
+        # on the GPU, and wrong for the tmux list, where no sessions is a fact
+        # about this machine worth showing. Hence a flag rather than a rule.
+        #
+        # Not the same thing as a source that failed. That prints nothing at all
+        # and is handled where it always was: the last good panel stays up.
+        self.fleeting = bool(spec.get("transient", False))
+        # What the item is created with, as against what is written to it every
+        # time. Where it goes, and its `description`: the note only sessions
+        # read, which is the right place for what a panel is and what feeds it.
+        # It belongs here rather than in the payload because a payload is
+        # rewritten whole every few seconds and this has to outlive that — and
+        # because a widget that comes and goes would otherwise lose its note the
+        # first time it came down.
+        self.made = dict(spec.get("place", {}))
+        if "description" in spec:
+            self.made["description"] = spec["description"]
         # What was true last time this ran. Not what has ever been said: a
         # condition that clears and comes back is news again, and remembering it
         # forever would silence the second time a disk filled up.
@@ -246,7 +279,10 @@ def tick(board: Board, sources: list[Source], now: float) -> None:
             for entry in source.news(produced if isinstance(produced, list) else []):
                 board.announce(entry)
             continue
-        board.write(source.name, source.payload(produced), source.spec.get("place", {}))
+        if source.fleeting and produced == []:
+            board.remove(source.name)
+            continue
+        board.write(source.name, source.payload(produced), source.made)
 
 
 def main() -> None:
