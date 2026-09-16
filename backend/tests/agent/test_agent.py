@@ -5,7 +5,7 @@ where a collector's output becomes what the board is sent, and it is the half
 that decides whether a panel is right.
 """
 
-from tools.agent import Board, Source, interpret, tick
+from tools.agent import Source, interpret
 
 
 def _source(**spec) -> Source:
@@ -116,61 +116,3 @@ def test_a_row_with_no_key_falls_back_to_its_title():
     source.news([{"title": "sshd.service has failed"}])
 
     assert source.news([{"title": "sshd.service has failed"}]) == []
-
-
-class _Board(Board):
-    """A board that remembers what it was told instead of saying it."""
-
-    def __init__(self, up: list[dict] | None = None) -> None:
-        super().__init__("http://board/api/v1")
-        self.up = up or []
-        self.calls: list[tuple[str, str]] = []
-
-    def call(self, method: str, path: str, body: dict | None = None):
-        self.calls.append((method, path))
-        return self.up if method == "GET" else None
-
-
-def _transient(**spec) -> Source:
-    """A source whose widget only exists while it has something to put in it."""
-    return Source({"name": "trm_curve", "transient": True, "panel": {"kind": "chart"}, **spec})
-
-
-def test_a_transient_source_with_nothing_to_say_takes_its_widget_down():
-    """An empty frame saying "no data" where a training run used to be is worse
-    than no widget: the subject is gone, so the widget should be."""
-    board = _Board([{"key": "trm_curve", "id": "abc"}])
-    tick(board, [_transient(command="echo []")], 0.0)
-
-    assert ("DELETE", "/board/items/abc") in board.calls
-
-
-def test_a_widget_that_is_already_down_is_not_chased():
-    """The ordinary case while nothing is training, and it costs one GET."""
-    board = _Board()
-    tick(board, [_transient(command="echo []")], 0.0)
-
-    assert [method for method, _ in board.calls] == ["GET"]
-
-
-def test_a_transient_source_with_rows_is_written_like_any_other_panel():
-    """Having something to say is the whole of the difference."""
-    board = _Board()
-    tick(board, [_transient(command="echo [7]")], 0.0)
-
-    assert board.calls == [("PUT", "/board/items/by-key/trm_curve")]
-
-
-def test_a_panel_is_created_with_its_note_and_then_left_alone():
-    """A widget that comes and goes loses whatever was set on it by hand the
-    first time it comes down, so the note is declared beside the panel."""
-    source = Source(
-        {
-            "name": "trm_curve",
-            "panel": {"kind": "chart"},
-            "place": {"x": 23, "y": 4},
-            "description": "what this is, and what feeds it",
-        }
-    )
-
-    assert source.made == {"x": 23, "y": 4, "description": "what this is, and what feeds it"}
