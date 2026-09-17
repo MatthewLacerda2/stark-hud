@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import type { DialGroup } from "@/lib/dials";
 import type { ItemKind } from "@/lib/schemas/board";
 
 /**
@@ -52,6 +53,9 @@ const FULL: Tape = {
 
 const PARTS = Object.keys(FULL) as (keyof Tape)[];
 
+/** How much of the tape, when the URL does not say: all of it. */
+const MASTER = 1;
+
 function amount(raw: string | null, fallback: number): number {
   const value = raw === null ? fallback : Number(raw);
   return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : fallback;
@@ -71,7 +75,7 @@ function amount(raw: string | null, fallback: number): number {
  */
 export function tapeFrom(search: string): Tape {
   const asked = new URLSearchParams(search);
-  const master = amount(asked.get("vhs"), 1);
+  const master = amount(asked.get("vhs"), MASTER);
   const tape = { ...NO_TAPE };
   for (const part of PARTS) {
     tape[part] = amount(asked.get(part), FULL[part]) * master;
@@ -108,3 +112,14 @@ const UNFILTERED: ItemKind[] = ["image", "media", "mesh"];
 export function holographic(kind: ItemKind): boolean {
   return !UNFILTERED.includes(kind);
 }
+
+/** The tape's numbers, for the menu that turns them. */
+export const TAPE_DIALS: DialGroup = {
+  name: "vhs",
+  master: { param: "vhs", fallback: MASTER, ceiling: 1 },
+  parts: PARTS.map((part) => ({
+    param: part,
+    fallback: FULL[part],
+    ceiling: 1,
+  })),
+};

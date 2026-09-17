@@ -41,5 +41,22 @@
     "sending": "Working…",
     "failed": "Nothing happened: {{reason}}",
     "model": "Model"
+  },
+  "look": {
+    "title": "Look",
+    "vhs": "Tape",
+    "scanlines": "Scanlines",
+    "dirt": "Dirt",
+    "vignette": "Vignette",
+    "fringe": "Fringe",
+    "bloom": "Bloom",
+    "spread": "Spread",
+    "glow": "Glow",
+    "cutoff": "Cutoff",
+    "depth": "Depth",
+    "tilt": "Tilt",
+    "sway": "Sway",
+    "glass": "Glass",
+    "reset": "Reset"
   }
 }

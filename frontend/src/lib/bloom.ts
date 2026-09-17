@@ -1,3 +1,5 @@
+import type { DialGroup } from "@/lib/dials";
+
 /**
  * How much light a widget spills, part by part.
  *
@@ -87,6 +89,9 @@ const SCALED = ["spread", "glow"] as const;
  */
 const CEILING: Record<keyof Bloom, number> = { spread: 1, glow: 4, cutoff: 1 };
 
+/** How much light, when the URL does not say: none. */
+const MASTER = 0;
+
 function amount(raw: string | null, fallback: number, ceiling: number): number {
   const value = raw === null ? fallback : Number(raw);
   return Number.isFinite(value)
@@ -108,7 +113,7 @@ function amount(raw: string | null, fallback: number, ceiling: number): number {
  */
 export function bloomFrom(search: string): Bloom {
   const asked = new URLSearchParams(search);
-  const master = amount(asked.get("bloom"), 0, 1);
+  const master = amount(asked.get("bloom"), MASTER, 1);
   const bloom = { ...NO_BLOOM };
   for (const part of SCALED) {
     bloom[part] = amount(asked.get(part), FULL[part], CEILING[part]) * master;
@@ -121,3 +126,15 @@ export function bloomFrom(search: string): Bloom {
 export function lit(bloom: Bloom): boolean {
   return bloom.glow > 0 && bloom.spread > 0;
 }
+
+/** Bloom's numbers, for the menu that turns them. The cutoff is a part the
+ * master leaves alone, but it is still a number somebody turns. */
+export const BLOOM_DIALS: DialGroup = {
+  name: "bloom",
+  master: { param: "bloom", fallback: MASTER, ceiling: 1 },
+  parts: (["spread", "glow", "cutoff"] as const).map((part) => ({
+    param: part,
+    fallback: FULL[part],
+    ceiling: CEILING[part],
+  })),
+};
