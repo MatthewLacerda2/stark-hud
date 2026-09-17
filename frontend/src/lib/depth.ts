@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import type { DialGroup } from "@/lib/dials";
 import { DIRT } from "@/lib/dirt";
 
 /**
@@ -167,3 +168,14 @@ export function recede(turned: Lean, width: number, height: number): number {
     Math.abs(Math.sin(turned.y * radians)) * (width / 2)
   );
 }
+
+/** Depth's numbers, for the menu that turns them. */
+export const DEPTH_DIALS: DialGroup = {
+  name: "depth",
+  master: { param: "depth", fallback: MASTER, ceiling: 1 },
+  parts: PARTS.map((part) => ({
+    param: part,
+    fallback: SETTLED[part],
+    ceiling: 1,
+  })),
+};

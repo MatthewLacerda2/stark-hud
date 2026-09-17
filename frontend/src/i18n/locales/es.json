@@ -46,5 +46,22 @@
     "sending": "Trabajando…",
     "failed": "No pasó nada: {{reason}}",
     "model": "Modelo"
+  },
+  "look": {
+    "title": "Aspecto",
+    "vhs": "Cinta",
+    "scanlines": "Líneas",
+    "dirt": "Suciedad",
+    "vignette": "Viñeta",
+    "fringe": "Franja",
+    "bloom": "Brillo",
+    "spread": "Alcance",
+    "glow": "Intensidad",
+    "cutoff": "Umbral",
+    "depth": "Profundidad",
+    "tilt": "Inclinación",
+    "sway": "Balanceo",
+    "glass": "Vidrio",
+    "reset": "Restablecer"
   }
 }
