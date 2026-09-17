@@ -19,6 +19,7 @@ import { beside } from "@/lib/origin";
 import { cn } from "@/lib/utils";
 import { holographic, type Tape } from "@/lib/vhs";
 import { lit, type Bloom } from "@/lib/bloom";
+import { seatVars } from "@/lib/depth";
 
 // Long enough to move the pointer from the widget to the controls without them
 // vanishing on the way.
@@ -240,7 +241,10 @@ export function BoardGrid({
             >
               <div
                 className="@container relative size-full min-h-0 min-w-0 depth-carry"
-                style={widgetVars(item, alphaOf(item))}
+                style={{
+                  ...widgetVars(item, alphaOf(item)),
+                  ...seatVars(rect, cols, rows, width, height),
+                }}
                 onMouseEnter={() => show(item.id)}
                 onMouseLeave={hideSoon}
               >

@@ -32,12 +32,12 @@ export function Clock({ rows }: { rows: number }) {
 
   return (
     <div className="flex size-full flex-col items-center justify-center gap-1 rounded-xl widget-surface widget-edge p-[3.5cqmin] font-rounded widget-text">
-      <span className="text-node-xl font-bold tabular-nums tracking-tight">
+      <span className="text-node-xl font-bold tabular-nums tracking-tight extrude-glyph">
         {time}
       </span>
       {rows >= ROWS_FOR_DATE ? (
         <span
-          className="font-semibold tabular-nums opacity-70"
+          className="font-semibold tabular-nums opacity-70 extrude-glyph"
           // Half again the small size: the date is a caption, but a caption on
           // a TV still has to be legible from the sofa.
           style={{ fontSize: "calc(var(--text-node-sm) * 1.5)" }}

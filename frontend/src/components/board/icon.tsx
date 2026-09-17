@@ -110,7 +110,8 @@ export const NAMED: Record<
 
 // A picture is given a little more room than a glyph: a photograph cropped to
 // the size of a line of text reads as a smudge.
-const GLYPH = "size-[1.2em] shrink-0";
+// `extrude-glyph` does nothing off a depth board. See `styles.css`.
+const GLYPH = "size-[1.2em] shrink-0 extrude-glyph";
 const IMAGE = "size-[1.4em] shrink-0 rounded object-cover";
 // Markup arrives with whatever `width` and `height` its author gave it, and a
 // 24-pixel icon beside text scaled to the widget would be a speck. The rule

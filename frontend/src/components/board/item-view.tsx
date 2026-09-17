@@ -4,6 +4,7 @@ import { Calendar } from "@/components/board/items/calendar";
 import { Chart } from "@/components/board/items/chart";
 import { Clock } from "@/components/board/items/clock";
 import { Countdown } from "@/components/board/items/countdown";
+import { Extrusion } from "@/components/board/extrusion";
 import { Feed } from "@/components/board/items/feed";
 import { Flow } from "@/components/board/items/flow";
 import { Gantt } from "@/components/board/items/gantt";
@@ -57,7 +58,12 @@ export function ItemView({
       // geometry is fetched by id and the spin comes from the browser.
       return <Mesh id={item.id} payload={payload} reload={reload} />;
     case "chart":
-      return <Chart id={item.id} payload={payload} />;
+      // Its marks run back into the pane on a depth board; see `extrusion.tsx`.
+      return (
+        <Extrusion>
+          <Chart id={item.id} payload={payload} />
+        </Extrusion>
+      );
     case "inbox":
       return <Inbox payload={payload} notifications={notifications} />;
     case "feed":
