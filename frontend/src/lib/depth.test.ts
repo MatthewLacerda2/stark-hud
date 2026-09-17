@@ -6,7 +6,16 @@
  * like a 3D effect, just the wrong one, and nobody would notice from a sofa.
  */
 import { describe, expect, it } from "vitest";
-import { deep, depthFrom, lean, moving, recede } from "@/lib/depth";
+import {
+  deep,
+  depthFrom,
+  farther,
+  lean,
+  leanShift,
+  moving,
+  recede,
+  seatVars,
+} from "@/lib/depth";
 
 const CENTRE = { x: 0, y: 0 };
 
@@ -91,5 +100,61 @@ describe("keeping the near corner on the screen", () => {
     // comes forward by that times the sine of the turn.
     const back = recede({ x: 0, y: 5 }, 1920, 1080);
     expect(back).toBeCloseTo(960 * Math.sin((5 * Math.PI) / 180));
+  });
+});
+
+describe("how far something behind a widget's face moves", () => {
+  const board = { cols: 32, rows: 18, width: 1920, height: 1080 };
+  const at = (x: number, y: number) =>
+    seatVars(
+      { x, y, w: 2, h: 2 },
+      board.cols,
+      board.rows,
+      board.width,
+      board.height,
+    ) as Record<string, number>;
+
+  it("does not move in the middle of the board", () => {
+    expect(at(15, 8)["--seat-x"]).toBeCloseTo(0);
+    expect(at(15, 8)["--seat-y"]).toBeCloseTo(0);
+  });
+
+  it("moves towards the middle, the way the walls open", () => {
+    // Top left: depth pulls it right and down, towards the vanishing point.
+    expect(at(0, 0)["--seat-x"]).toBeGreaterThan(0);
+    expect(at(0, 0)["--seat-y"]).toBeGreaterThan(0);
+    expect(at(30, 16)["--seat-x"]).toBeLessThan(0);
+  });
+
+  it("says nothing before the board has been measured", () => {
+    expect(seatVars({ x: 0, y: 0, w: 2, h: 2 }, 32, 18, 0, 0)).toEqual({});
+  });
+});
+
+describe("how far the lean moves something behind the face", () => {
+  it("is nothing when level", () => {
+    const shift = leanShift({ x: 0, y: 0 });
+    expect(shift.x).toBeCloseTo(0);
+    expect(shift.y).toBeCloseTo(0);
+  });
+
+  it("swings against the side that recedes", () => {
+    // Right side back: a point behind the face slides left.
+    expect(leanShift({ x: 0, y: 5 }).x).toBeLessThan(0);
+    // Top back: a point behind the face drops.
+    expect(leanShift({ x: 5, y: 0 }).y).toBeGreaterThan(0);
+  });
+});
+
+describe("how much smaller the back of a mark is drawn", () => {
+  it("is the face itself at no depth", () => {
+    expect(farther(0, 1920, 1080)).toBe(1);
+  });
+
+  it("shrinks further the deeper it goes, and never by much", () => {
+    const near = farther(0.5, 1920, 1080);
+    const far = farther(1.25, 1920, 1080);
+    expect(far).toBeLessThan(near);
+    expect(far).toBeGreaterThan(0.95);
   });
 });

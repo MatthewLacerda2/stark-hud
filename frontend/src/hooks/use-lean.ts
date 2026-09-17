@@ -1,5 +1,12 @@
 import { useEffect, type RefObject } from "react";
-import { lean, moving, recede, type Depth, type Pointer } from "@/lib/depth";
+import {
+  lean,
+  leanShift,
+  moving,
+  recede,
+  type Depth,
+  type Pointer,
+} from "@/lib/depth";
 
 /**
  * How long the board takes to catch up with the pointer, in seconds.
@@ -59,6 +66,11 @@ export function useLean(
       const turned = lean(asked, at, (now - started) / 1000);
       const back = recede(turned, element.clientWidth, element.clientHeight);
       element.style.transform = `translateZ(${-back}px) rotateX(${turned.x}deg) rotateY(${turned.y}deg)`;
+      // For what is drawn behind a widget's face without being in the 3D scene:
+      // the extruded icons and chart marks. See `leanShift`.
+      const shift = leanShift(turned);
+      element.style.setProperty("--lean-x", String(shift.x));
+      element.style.setProperty("--lean-y", String(shift.y));
 
       const settled =
         Math.abs(target.x - at.x) < SETTLED &&
@@ -93,6 +105,8 @@ export function useLean(
       window.removeEventListener("pointermove", point);
       document.removeEventListener("pointerout", leave);
       element.style.transform = "";
+      element.style.removeProperty("--lean-x");
+      element.style.removeProperty("--lean-y");
     };
   }, [ref, depth, still]);
 }

@@ -897,13 +897,12 @@
    -------------------------------------------------------------------------- */
 
 /* The camera. Measured against the longer side of the screen so a 4K television
-   and a laptop see the same lean rather than the same pixels of it. Close enough
-   that a pane near the edge of the board shows a sliver of wall at rest. */
+   and a laptop see the same lean rather than the same pixels of it. How far away
+   it stands is `PERSPECTIVE` in `lib/depth.ts`, which the extrusions below also
+   have to know. */
 @utility depth-stage {
-  perspective: 75vmax;
+  perspective: var(--perspective);
   perspective-origin: 50% 50%;
-  /* How deep a pane is, front to back. */
-  --slab: 1.6vmin;
 }
 
 @utility depth-board {
@@ -1029,4 +1028,110 @@
     var(--glass-edge),
     var(--glass-back)
   );
+}
+
+/* --------------------------------------------------------------------------
+   Extrusion: icons and chart marks with a thickness, running back into the pane.
+
+   Not real 3D, and it cannot be. Everything a widget draws sits under the tape
+   and bloom filters, and a filter flattens whatever is under it. So a mark's
+   depth is drawn the way a 3D renderer would place it: copies of the mark, each
+   a little deeper, shifted by how far perspective and the lean move something
+   that deep. `--seat-*` is the widget's share of that, from where it sits on the
+   board, and `--lean-*` the board's; both are the shift for one pixel of depth.
+   Only inside a depth board — without one, none of this exists.
+   -------------------------------------------------------------------------- */
+
+/* Something drawn in one colour, extruded by chained drop shadows in that
+   colour: an icon, or the clock's digits.
+
+   Each shadow repeats everything before it one step further back and paints
+   under it, so six of them lay the glyph down six steps deep, and the colour
+   seen at each depth is the colour of the shadow that first reached it. That is
+   what lets the side darken as it goes back, and it goes from well lit to nearly
+   dark, because a side lit evenly across its depth reads as a flat copy.
+
+   Not much darker than that, though. The board behind a glyph is a dark room,
+   and a side taken nearly to black vanished into it entirely — the depth was
+   there and could only be found by making it ten times deeper.
+
+   Opaque, and darker than the glyph rather than fainter. See-through sides in
+   the glyph's own colour read as light coming off it, not as its thickness —
+   see `LIT_NEAR` in `extrusion.tsx`, which is the same decision for charts. No
+   extra elements, and a photograph never gets this class.
+
+   Sized in `em`, so the depth is a proportion of the glyph whatever size it is
+   drawn at. */
+@utility extrude-glyph {
+  .depth-board & {
+    --extrude-step: 0.056em;
+    --extrude-x: calc(
+      (var(--seat-x, 0) + var(--lean-x, 0)) * var(--extrude-step)
+    );
+    --extrude-y: calc(
+      (var(--seat-y, 0) + var(--lean-y, 0)) * var(--extrude-step)
+    );
+    filter: drop-shadow(
+        var(--extrude-x) var(--extrude-y) 0
+          color-mix(in oklab, currentColor 60%, black)
+      )
+      drop-shadow(
+        var(--extrude-x) var(--extrude-y) 0
+          color-mix(in oklab, currentColor 52%, black)
+      )
+      drop-shadow(
+        var(--extrude-x) var(--extrude-y) 0
+          color-mix(in oklab, currentColor 44%, black)
+      )
+      drop-shadow(
+        var(--extrude-x) var(--extrude-y) 0
+          color-mix(in oklab, currentColor 36%, black)
+      )
+      drop-shadow(
+        var(--extrude-x) var(--extrude-y) 0
+          color-mix(in oklab, currentColor 28%, black)
+      )
+      drop-shadow(
+        var(--extrude-x) var(--extrude-y) 0
+          color-mix(in oklab, currentColor 20%, black)
+      );
+  }
+}
+
+/* One copy of a chart, set back into the pane — see `extrusion.tsx`.
+
+   The copy is the whole widget cloned, so it lays out exactly as the chart does,
+   and then only the marks are allowed to show: the bars, rings, areas and lines.
+   Text, axes and grids stay on the face, where they are read. `visibility`
+   rather than removal, so hidden parts still hold their place and the marks land
+   exactly behind the ones they copy. */
+@utility extrude-copy {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transform: translate(
+      calc((var(--seat-x, 0) + var(--lean-x, 0)) * var(--extrude-at)),
+      calc((var(--seat-y, 0) + var(--lean-y, 0)) * var(--extrude-at))
+    )
+    scale(var(--extrude-scale, 1));
+
+  & .recharts-surface {
+    visibility: visible;
+  }
+
+  &
+    .recharts-surface
+    :is(
+      text,
+      .recharts-cartesian-axis,
+      .recharts-cartesian-grid,
+      .recharts-polar-grid,
+      .recharts-polar-angle-axis,
+      .recharts-polar-radius-axis,
+      .recharts-reference-line,
+      .recharts-label-list
+    ) {
+    visibility: hidden;
+  }
 }

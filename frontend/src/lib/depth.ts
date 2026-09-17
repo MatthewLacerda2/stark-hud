@@ -111,9 +111,30 @@ export function moving(depth: Depth): boolean {
   return depth.tilt > 0 || depth.sway > 0;
 }
 
+/**
+ * How far the camera stands from the board, as a share of the screen's longer
+ * side.
+ *
+ * Close enough that a pane near the edge of the board shows a sliver of wall at
+ * rest. Here rather than in the stylesheet because two things have to agree on
+ * it: the stage's CSS perspective, and `seatVars`, which works out by hand how
+ * far that perspective moves something drawn behind a widget's face.
+ */
+const PERSPECTIVE = 0.75;
+
+/**
+ * How deep a pane is, front to back, as a share of the screen's shorter side.
+ * Beside `PERSPECTIVE` for the same reason: the walls are drawn from it by the
+ * stylesheet, and the extrusions work out by hand how much smaller it makes the
+ * back of a mark.
+ */
+const SLAB = 0.016;
+
 /** The variables the panes read. */
 export function depthVars(depth: Depth): CSSProperties {
   return {
+    "--perspective": `${PERSPECTIVE * 100}vmax`,
+    "--slab": `${SLAB * 100}vmin`,
     "--glass": depth.glass,
     "--glass-dirt": `url("${DIRT}")`,
   } as CSSProperties;
@@ -179,3 +200,69 @@ export const DEPTH_DIALS: DialGroup = {
     ceiling: 1,
   })),
 };
+
+/** A widget's place on the board, in the board's own cells. */
+type Seat = { x: number; y: number; w: number; h: number };
+
+/**
+ * How far something one pixel behind this widget's face appears to move, from
+ * where the widget sits.
+ *
+ * Perspective pulls whatever is further away towards the middle of the screen,
+ * which is why the walls of a pane near the edge show at rest. An icon or a
+ * chart extruded into its pane has to shift the same way or it would disagree
+ * with the walls around it — and it cannot be real 3D, because the tape filter
+ * over a widget flattens everything under it. So the shift is worked out here:
+ * a point `d` pixels deep, `X` pixels from the middle, moves `X·d/P` towards it.
+ *
+ * Written as the shift per pixel of depth, so every extrusion multiplies it by
+ * however deep it is. Zero before the board has been measured.
+ */
+export function seatVars(
+  seat: Seat,
+  cols: number,
+  rows: number,
+  width: number,
+  height: number,
+): CSSProperties {
+  const reach = PERSPECTIVE * Math.max(width, height);
+  if (reach <= 0) return {};
+  const fromMiddleX = ((seat.x + seat.w / 2) / cols - 0.5) * width;
+  const fromMiddleY = ((seat.y + seat.h / 2) / rows - 0.5) * height;
+  return {
+    "--seat-x": -fromMiddleX / reach,
+    "--seat-y": -fromMiddleY / reach,
+  } as CSSProperties;
+}
+
+/**
+ * How far something one pixel behind the face moves, from the board's lean.
+ *
+ * Turned about the upright axis, a point behind the face swings the opposite
+ * way to the side that recedes; tipped about the horizontal, it drops as the top
+ * goes back. The small-angle part of each rotation, and at five degrees the rest
+ * is well under a pixel.
+ */
+export function leanShift(turned: Lean): { x: number; y: number } {
+  const radians = Math.PI / 180;
+  return {
+    x: -Math.sin(turned.y * radians),
+    y: Math.sin(turned.x * radians),
+  };
+}
+
+/**
+ * How much smaller something this many panes deep is drawn than the face.
+ *
+ * Perspective shrinks the back of a solid, and that is most of what separates a
+ * thick object from a copy of it laid behind: with every copy the same size the
+ * sides only ever showed on one edge, and a ring read as two rings. Shrunk, the
+ * back of a ring pulls in from the whole rim and its inner wall shows all round
+ * the hole. The screen is measured rather than the board, because the camera's
+ * distance and the pane's depth are both shares of the screen.
+ */
+export function farther(panes: number, width: number, height: number): number {
+  const reach = PERSPECTIVE * Math.max(width, height);
+  const thickness = panes * SLAB * Math.min(width, height);
+  return reach > 0 ? reach / (reach + thickness) : 1;
+}
