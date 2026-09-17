@@ -4,11 +4,12 @@ import type { MeshPayload, Wireframe } from "@/lib/schemas/board";
 import { ApiError } from "@/lib/api/client";
 import { getWireframe } from "@/lib/api/mesh";
 import {
-  BANDS,
   bandAt,
   bandFade,
+  BANDS,
   camera,
   colourFor,
+  heading,
   layout,
   phases,
   project,
@@ -274,7 +275,7 @@ function spin(
   const draw = (now: number) => {
     frame = requestAnimationFrame(draw);
     if (width <= 0 || height <= 0) return;
-    const angle = ((now - started) / 1000) * payload.spin * Math.PI * 2;
+    const angle = heading((now - started) / 1000, payload.spin, payload.sweep);
     const cam = camera(angle, payload.tilt, width, height, bounds);
 
     context.clearRect(0, 0, width, height);

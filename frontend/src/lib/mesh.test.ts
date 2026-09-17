@@ -11,6 +11,7 @@ import {
   colourFor,
   depthAt,
   fadeAt,
+  heading,
   layout,
   phases,
   project,
@@ -345,5 +346,37 @@ describe("colourFor", () => {
   it("says nothing when a widget names no colours at all", () => {
     expect(colourFor("embed", null)).toBeNull();
     expect(colourFor("embed", {})).toBeNull();
+  });
+});
+
+describe("heading", () => {
+  it("goes round when there is no sweep", () => {
+    expect(heading(0, 0.25, 0)).toBe(0);
+    expect(heading(2, 0.25, 0)).toBeCloseTo(Math.PI);
+    expect(heading(4, 0.25, 0)).toBeCloseTo(Math.PI * 2);
+  });
+
+  it("swings between the two ends of the sweep, and never past them", () => {
+    const limit = (60 * Math.PI) / 180;
+    for (let t = 0; t <= 40; t += 0.05) {
+      const a = heading(t, 0.05, 60);
+      expect(Math.abs(a)).toBeLessThanOrEqual(limit + 1e-9);
+    }
+    // One there-and-back per 1/spin seconds: 20s at 0.05.
+    expect(heading(0, 0.05, 60)).toBeCloseTo(-limit);
+    expect(heading(10, 0.05, 60)).toBeCloseTo(limit);
+    expect(heading(20, 0.05, 60)).toBeCloseTo(-limit);
+    expect(heading(5, 0.05, 60)).toBeCloseTo(0);
+  });
+
+  it("lingers at the ends and hurries through the middle", () => {
+    const near = Math.abs(heading(1, 0.05, 60) - heading(0, 0.05, 60));
+    const mid = Math.abs(heading(5.5, 0.05, 60) - heading(4.5, 0.05, 60));
+    expect(near).toBeLessThan(mid / 10);
+  });
+
+  it("swings the other way for a negative spin, and holds still at zero", () => {
+    expect(heading(10, -0.05, 60)).toBeCloseTo(-(60 * Math.PI) / 180);
+    expect(heading(10, 0, 60)).toBe(0);
   });
 });

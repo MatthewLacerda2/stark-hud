@@ -301,6 +301,29 @@ export function project(
   };
 }
 
+/**
+ * Where the model is pointing after `seconds`, in radians.
+ *
+ * With no sweep it goes round: `spin` turns per second, forever. With one it
+ * swings instead — out to `sweep` degrees one way, back through the middle to
+ * the same angle the other way, and again — because a model with a front (a
+ * diagram, a face) spends three quarters of a full turn showing something
+ * else. `spin` still sets the pace, as one there-and-back per 1/spin seconds.
+ *
+ * The swing is a triangle wave put through a smootherstep, so it eases into
+ * each end and lingers there — the way a turntable operator would slow the
+ * thing down to let the room look — and reverses without a jolt: the easing
+ * has zero velocity and zero acceleration at both ends.
+ */
+export function heading(seconds: number, spin: number, sweep: number): number {
+  if (sweep <= 0) return seconds * spin * Math.PI * 2;
+  if (spin === 0) return 0;
+  const cycle = (((seconds * Math.abs(spin)) % 1) + 1) % 1;
+  const there = cycle < 0.5 ? cycle * 2 : 2 - cycle * 2;
+  const eased = there * there * there * (there * (there * 6 - 15) + 10);
+  return Math.sign(spin) * ((sweep * Math.PI) / 180) * (eased * 2 - 1);
+}
+
 /** Where a depth falls between the back of the model (0) and the front (1). */
 export function depthAt(depth: number, reach: number): number {
   if (reach <= 0) return 1;

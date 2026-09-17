@@ -86,6 +86,12 @@ class MeshPayload(BaseModel):
     # seconds reads as a thing on a turntable, while anything brisk reads as a
     # loading spinner.
     spin: float = Field(default=0.08, ge=-2.0, le=2.0)
+    # How far the model swings each way, in degrees, instead of going round. At
+    # 0 it turns full circle. Anything else makes it sweep: it turns to this
+    # angle, slows into it, and comes back the other way, over and over — for a
+    # model with a front, which a full turn shows for a quarter of the time.
+    # ``spin`` still sets the pace: one there-and-back takes 1/spin seconds.
+    sweep: float = Field(default=0.0, ge=0.0, le=180.0)
     # How far the camera sits above the object, in degrees. Dead level is the
     # one angle at which a flat object is invisible for half its turn, so the
     # default is off-level: enough to see the top of the thing without the view

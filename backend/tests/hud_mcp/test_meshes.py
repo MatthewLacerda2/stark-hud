@@ -103,6 +103,18 @@ async def test_an_unknown_mode_is_refused(server: MCPServer) -> None:
     assert payload(item_id).wave is None
 
 
+async def test_a_model_can_be_set_to_swing_instead_of_turn(server: MCPServer) -> None:
+    item_id = await a_mesh(server)
+    assert payload(item_id).sweep == 0.0
+    said = await call(server, "set_mesh", target=item_id, sweep=60)
+    assert "sweep=60" in said
+    assert payload(item_id).sweep == 60.0
+    assert payload(item_id).spin == 0.08  # The pace is untouched.
+    said = await call(server, "set_mesh", target=item_id, sweep=200)
+    assert said.startswith("Not set")
+    assert payload(item_id).sweep == 60.0
+
+
 async def test_saying_nothing_changes_nothing(server: MCPServer) -> None:
     """And says which words would have worked."""
     said = await call(server, "color_mesh", target=await a_mesh(server))

@@ -56,6 +56,7 @@ def register(server: MCPServer) -> None:
         spin: float = 0.08,
         tilt: float = 16.0,
         explode: float = 0.0,
+        sweep: float = 0.0,
         x: float | None = None,
         y: float | None = None,
         w: float | None = None,
@@ -83,6 +84,12 @@ def register(server: MCPServer) -> None:
         brisk reads as a loading spinner. Negative turns the other way; zero
         holds it still.
 
+        `sweep`, in degrees, stops the model going round and swings it instead:
+        it turns that far one way, eases into the end, and comes back the other
+        way, over and over. For a model with a front — a diagram, a face —
+        which a full turn shows for a quarter of the time. `spin` still sets
+        the pace, as one there-and-back every 1/spin seconds; 0 keeps turning.
+
         `tilt` is how far above the model the camera sits, in degrees. `explode`
         pulls the model's parts apart along the line from its middle, where 0 is
         assembled and 1 is a full model-width of separation — and it only does
@@ -108,7 +115,7 @@ def register(server: MCPServer) -> None:
         always mounted, expect the widget to be gone after a reboot — a line in
         the inbox says which file it was.
         """
-        payload = MeshPayload(path=path, spin=spin, tilt=tilt, explode=explode)
+        payload = MeshPayload(path=path, spin=spin, tilt=tilt, explode=explode, sweep=sweep)
         return await add(payload, x, y, w, h, parent_id, description=description)
 
     @server.tool()
@@ -117,8 +124,12 @@ def register(server: MCPServer) -> None:
         spin: float | None = None,
         tilt: float | None = None,
         explode: float | None = None,
+        sweep: float | None = None,
     ) -> str:
         """Change how a model turns, leans, or comes apart.
+
+        `sweep` is degrees each way for a model that should swing rather than
+        go round (see add_mesh); 0 puts it back on the turntable.
 
         Everything is optional and only what you pass moves, the way set_style
         and set_media_mode work. `target` is the widget's id or its key.
@@ -131,10 +142,10 @@ def register(server: MCPServer) -> None:
         if found is None:
             return f"No mesh widget {target!r}. Call list_items to see what is there."
         item, model = found
-        asked = {"spin": spin, "tilt": tilt, "explode": explode}
+        asked = {"spin": spin, "tilt": tilt, "explode": explode, "sweep": sweep}
         given = {name: value for name, value in asked.items() if value is not None}
         if not given:
-            return "Nothing to set: pass at least one of spin, tilt or explode"
+            return "Nothing to set: pass at least one of spin, tilt, explode or sweep"
         said = ", ".join(f"{name}={value:g}" for name, value in given.items())
         return await _write(item, model.model_copy(update=given), said)
 
