@@ -7,6 +7,7 @@ import { BoardGrid } from "@/components/board/board-grid";
 import { CommandBar } from "@/components/board/command-bar";
 import { VhsFilter } from "@/components/board/vhs-filter";
 import { BloomFilter } from "@/components/board/bloom-filter";
+import { Stage } from "@/components/board/stage";
 import { useBoard } from "@/hooks/use-board";
 import { useSpeech } from "@/hooks/use-speech";
 import { onBoard } from "@/lib/groups";
@@ -14,6 +15,7 @@ import { maximisedIn } from "@/lib/maximised";
 import { inkVars } from "@/lib/ink";
 import { tapeFrom, tapeVars } from "@/lib/vhs";
 import { bloomFrom } from "@/lib/bloom";
+import { depthFrom } from "@/lib/depth";
 import { cn } from "@/lib/utils";
 
 // Read once, when the module loads. The board has exactly one route and no way
@@ -23,6 +25,8 @@ const TAPE = tapeFrom(window.location.search);
 // Read the same way and for the same reason: a television across the room, and a
 // number somebody can type instead of a rebuild for every guess.
 const BLOOM = bloomFrom(window.location.search);
+// And again: how much the board is glass in a room, and how much it leans.
+const DEPTH = depthFrom(window.location.search);
 
 /**
  * The board. This page is what the TV shows, so it is full-bleed, dark, and has
@@ -76,18 +80,21 @@ function BoardPage() {
       <div
         className={cn("relative size-full", TAPE.fringe > 0 && "vhs-fringe")}
       >
-        <BoardGrid
-          items={shown}
-          everything={items}
-          notifications={notifications}
-          wakes={wakes}
-          reloads={reloads}
-          origins={origins}
-          tape={TAPE}
-          bloom={BLOOM}
-          cols={cols}
-          rows={rows}
-        />
+        <Stage depth={DEPTH} still={covered}>
+          <BoardGrid
+            items={shown}
+            everything={items}
+            notifications={notifications}
+            wakes={wakes}
+            reloads={reloads}
+            origins={origins}
+            tape={TAPE}
+            bloom={BLOOM}
+            glass={DEPTH.glass > 0}
+            cols={cols}
+            rows={rows}
+          />
+        </Stage>
 
         {shown.length === 0 && connected ? (
           <p className="pointer-events-none absolute inset-0 flex items-center justify-center text-h1 text-muted-foreground">

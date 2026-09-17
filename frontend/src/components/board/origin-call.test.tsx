@@ -82,6 +82,7 @@ async function board(items: Item[], origins: Origin[]) {
         origins={origins}
         tape={NO_TAPE}
         bloom={NO_BLOOM}
+        glass={false}
         cols={32}
         rows={18}
       />,
