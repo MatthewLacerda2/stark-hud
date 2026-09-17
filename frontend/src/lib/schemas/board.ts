@@ -101,6 +101,8 @@ export interface MeshPayload {
   path: string;
   /** Turns per second about the upright axis. Negative goes the other way. */
   spin: number;
+  /** Degrees each way to swing instead of going round; 0 keeps turning. */
+  sweep: number;
   /** How far above the model the camera sits, in degrees. */
   tilt: number;
   /** 0 assembled, 1 a full model-width of separation between the parts. */
