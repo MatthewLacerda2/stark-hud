@@ -6,6 +6,7 @@ import { OriginCall } from "@/components/board/origin-call";
 import { WidgetControls } from "@/components/board/widget-controls";
 import { WidgetWake } from "@/components/board/widget-wake";
 import { Vhs } from "@/components/board/vhs";
+import { Slab } from "@/components/board/slab";
 import { useContainerSize } from "@/hooks/use-container-size";
 import { useEntrance } from "@/hooks/use-entrance";
 import { useLeaving } from "@/hooks/use-leaving";
@@ -128,6 +129,11 @@ function widgetVars(item: Item, alpha: number): React.CSSProperties {
  *
  * `tape` is the look, and it arrives here rather than being drawn over the
  * whole page because it belongs to the panes and not to the room behind them.
+ *
+ * `glass` makes each widget a pane with a thickness — see `slab.tsx`. The lean
+ * that shows the thickness off is the page's, in `stage.tsx`; all this file
+ * does is keep the 3D context alive from the board down to each widget, which
+ * is what `depth-carry` is on every element in between.
  */
 export function BoardGrid({
   items,
@@ -138,6 +144,7 @@ export function BoardGrid({
   origins,
   tape,
   bloom,
+  glass,
   cols,
   rows,
 }: {
@@ -153,6 +160,8 @@ export function BoardGrid({
   tape: Tape;
   /** How much light the widgets spill. One setting for the whole board. */
   bloom: Bloom;
+  /** Whether each widget is drawn as a pane of glass. */
+  glass: boolean;
   cols: number;
   rows: number;
 }) {
@@ -199,12 +208,12 @@ export function BoardGrid({
   const flightOf = useEntrance(items, onScreen, cols, rows);
 
   return (
-    <div className="relative size-full">
+    <div className="relative size-full depth-carry">
       {/* The coordinate space, inset by half a gutter so a widget against the
           wall sits as far from it as two widgets sit from each other. Percentages
           are measured against this box, and it is this box that is measured, so
           a pointer travelling one cell moves a widget exactly one cell. */}
-      <div ref={ref} className="absolute inset-1">
+      <div ref={ref} className="absolute inset-1 depth-carry">
         {onScreen.map((item) => {
           const rect = placed(item.id, rectOf(item));
           const going = leaving(item.id);
@@ -216,7 +225,7 @@ export function BoardGrid({
               // arithmetic above is what lets a widget's position be a plain
               // fraction of the board with nothing subtracted from it.
               className={cn(
-                "absolute p-1",
+                "absolute p-1 depth-carry",
                 holding === item.id ? "cursor-grabbing" : "cursor-grab",
                 // Not while a pointer is holding it: a widget easing towards
                 // where the hand already is lags behind the hand.
@@ -230,11 +239,14 @@ export function BoardGrid({
               onAnimationEnd={going ? () => forget(item.id) : undefined}
             >
               <div
-                className="@container relative size-full min-h-0 min-w-0"
+                className="@container relative size-full min-h-0 min-w-0 depth-carry"
                 style={widgetVars(item, alphaOf(item))}
                 onMouseEnter={() => show(item.id)}
                 onMouseLeave={hideSoon}
               >
+                {/* Not while something has the whole board: the others draw
+                    nothing then, and a pane with nothing on it is still glass. */}
+                {glass && !maximised ? <Slab /> : null}
                 {drawn(item, maximised) ? (
                   <>
                     <div className={cn("size-full", looked(item, tape, bloom))}>

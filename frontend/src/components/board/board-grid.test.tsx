@@ -147,6 +147,7 @@ async function grid(): Promise<{
           origins={[]}
           tape={NO_TAPE}
           bloom={NO_BLOOM}
+          glass={false}
           cols={32}
           rows={18}
         />,

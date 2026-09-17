@@ -113,6 +113,7 @@ async function board() {
         origins={[]}
         tape={NO_TAPE}
         bloom={NO_BLOOM}
+        glass={false}
         cols={COLS}
         rows={ROWS}
       />,

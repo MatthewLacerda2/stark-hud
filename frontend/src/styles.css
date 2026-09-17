@@ -882,3 +882,151 @@
     transform: translateY(min(0px, calc(100cqb - 100%)));
   }
 }
+
+/* --------------------------------------------------------------------------
+   Depth: the board as panes of glass in a room. See `lib/depth.ts`.
+
+   A 3D scene in CSS survives only as long as every element between the camera
+   and the thing being turned passes it along. `transform-style` is not
+   inherited, and `filter`, `opacity` below one and `overflow` other than visible
+   all flatten whatever is under them. So the chain is spelled out: the stage
+   holds the camera, the board turns, and every element from the board down to
+   a widget's own box carries `depth-carry`. The tape and bloom filters sit
+   inside the widget, below the glass, where being flat is exactly right — what
+   a widget draws is printed on the face of its pane.
+   -------------------------------------------------------------------------- */
+
+/* The camera. Measured against the longer side of the screen so a 4K television
+   and a laptop see the same lean rather than the same pixels of it. Close enough
+   that a pane near the edge of the board shows a sliver of wall at rest. */
+@utility depth-stage {
+  perspective: 75vmax;
+  perspective-origin: 50% 50%;
+  /* How deep a pane is, front to back. */
+  --slab: 1.6vmin;
+}
+
+@utility depth-board {
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* Nothing outside a depth board, so the flat board carries no 3D context at all. */
+@utility depth-carry {
+  .depth-board & {
+    transform-style: preserve-3d;
+  }
+}
+
+/* The face: nearly nothing. A sheen across one corner, the cut edge catching
+   light, and dirt.
+
+   Square-cornered, though the widgets inside are rounded. The walls are flat
+   planes and meet at square corners, so their front edges draw a square rim;
+   a rounded rim on the face drew a second border just inside the first. It never tints the widget — that is still the widget's own
+   colour at the widget's own opacity, drawn over this.
+
+   The dirt has a layer of its own because it needs an amount of its own. It is
+   the tape's picture of dirt, and the tape only ever lets a little over half of
+   it through, blended into what the widget drew. Laid on the glass at full
+   strength it read as snow on every pane rather than a pane nobody wipes. */
+@utility glass-face {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--glass, 0);
+  background-image: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--color-card-foreground) 10%, transparent) 0%,
+    transparent 38%,
+    transparent 70%,
+    color-mix(in oklab, var(--color-card-foreground) 5%, transparent) 100%
+  );
+  box-shadow: inset 0 0 0 1px
+    color-mix(in oklab, var(--color-card-foreground) 28%, transparent);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: var(--glass-dirt);
+    background-size: 256px 256px;
+    opacity: 0.12;
+  }
+}
+
+/* A wall: bright where it meets the face, gone by the back, the way light runs
+   down the edge of a thick pane. Each one is laid flat against its side of the
+   widget and swung back about that side, so it runs from the face into the
+   screen. */
+@utility glass-wall {
+  position: absolute;
+  pointer-events: none;
+  opacity: var(--glass, 0);
+  --glass-edge: color-mix(
+    in oklab,
+    var(--color-card-foreground) 30%,
+    transparent
+  );
+  --glass-back: color-mix(
+    in oklab,
+    var(--color-card-foreground) 3%,
+    transparent
+  );
+}
+
+@utility glass-wall-n {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--slab);
+  transform-origin: top;
+  transform: rotateX(-90deg);
+  background-image: linear-gradient(
+    to bottom,
+    var(--glass-edge),
+    var(--glass-back)
+  );
+}
+
+@utility glass-wall-s {
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: var(--slab);
+  transform-origin: bottom;
+  transform: rotateX(90deg);
+  background-image: linear-gradient(
+    to top,
+    var(--glass-edge),
+    var(--glass-back)
+  );
+}
+
+@utility glass-wall-w {
+  top: 0;
+  left: 0;
+  width: var(--slab);
+  height: 100%;
+  transform-origin: left;
+  transform: rotateY(90deg);
+  background-image: linear-gradient(
+    to right,
+    var(--glass-edge),
+    var(--glass-back)
+  );
+}
+
+@utility glass-wall-e {
+  top: 0;
+  right: 0;
+  width: var(--slab);
+  height: 100%;
+  transform-origin: right;
+  transform: rotateY(-90deg);
+  background-image: linear-gradient(
+    to left,
+    var(--glass-edge),
+    var(--glass-back)
+  );
+}
