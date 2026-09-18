@@ -2,14 +2,14 @@ import { useEffect, useState } from "react";
 import type { CSSProperties } from "react";
 
 /**
- * The call that made a widget, beside it, for about two seconds.
+ * The call that made a widget, beside it, for about four seconds.
  *
  * What a terminal gives away for free: Claude Code prints the command it is
  * about to run, and watching that scroll past is most of what makes a session
  * feel alive. The board had none of it — things simply appeared — so from the
  * sofa it changed by itself, which is accurate and a little dead.
  *
- * **Texture, not a log.** Nobody reads a line of JSON going past in two seconds
+ * **Texture, not a log.** Nobody reads a line of JSON going past in four seconds
  * from ten feet away, and nothing here is built as though they might. It is the
  * look of a machine being told what to do: small, dim, monospaced, over the
  * widgets and under everything that matters. Unreadable from the sofa is the
@@ -31,7 +31,7 @@ import type { CSSProperties } from "react";
  * runs: asked for stillness this element is never drawn, and something that
  * waited for an `animationend` in that case would wait for ever.
  */
-const ORIGIN_MS = 2000;
+const ORIGIN_MS = 4000;
 
 export function OriginCall({
   text,
@@ -55,7 +55,7 @@ export function OriginCall({
       className="origin-call pointer-events-none absolute overflow-hidden rounded-lg px-2 py-1"
       style={style}
     >
-      <div className="origin-call-line font-mono text-node-sm break-all text-muted-foreground">
+      <div className="origin-call-line font-mono text-origin break-all text-foreground">
         {text}
       </div>
     </div>

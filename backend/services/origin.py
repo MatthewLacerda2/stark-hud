@@ -36,7 +36,7 @@ from schemas.board import ItemRead
 
 # How long one of these is on screen. The frontend holds the same number as a
 # motion token; it is here because it is also the width of the window below.
-SECONDS = 2.0
+SECONDS = 4.0
 
 # How many may be in the air at once. `arrange` and a board being rebuilt both
 # create several widgets in one breath, and a tail of popups still appearing

@@ -22,8 +22,8 @@ type Board = { cols: number; rows: number };
  *
  * A share rather than a number of cells because the board's size is read from
  * the server and has already changed once: eight columns of thirty-two is a
- * quarter of the screen, and it should stay a quarter however many columns
- * there turn out to be.
+ * quarter of the screen — and the owner halved it to an eighth — and it should
+ * stay that share however many columns there turn out to be.
  *
  * Deliberately a little shorter than the text it holds. Two rows of eighteen is
  * about four lines of the small type, and the server cuts a call to roughly
@@ -32,7 +32,7 @@ type Board = { cols: number; rows: number };
  * everything would never move, and a thing that never moves on a board is a
  * label.
  */
-const WIDE = 1 / 4;
+const WIDE = 1 / 8;
 const TALL = 1 / 9;
 
 /** Keep `value` inside `[low, high]`. */

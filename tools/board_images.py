@@ -18,7 +18,8 @@ import urllib.request
 
 BOARD = "http://127.0.0.1:8000/api/v1"
 
-# The right-hand column, three tiles down it. Cells are square (32x18 on a 16:9
+# The right-hand column, a tile per sheet down it — still cut in thirds, so
+# the bottom third stays free. Cells are square (32x18 on a 16:9
 # screen), so w/h is the aspect each sheet is letterboxed to.
 COLUMN_X, COLUMN_W = 23.0, 9.0
 COLUMN_TOP, COLUMN_BOTTOM = 4.0, 18.0
@@ -41,12 +42,6 @@ SHEETS = (
         "Gradient norm against the clip, VRAM against the arena ceiling, f16 "
         "zero-gradient fraction, logit health. Gates, meant to look boring, and "
         "interesting only when one of them stops being boring.",
-    ),
-    (
-        "trm_speed",
-        "throughput_progress.png",
-        "Tokens per second end to end, and tokens against the run's budget. "
-        "Catches a crawling run or a crash-relaunch; a flat line is the good case.",
     ),
 )
 

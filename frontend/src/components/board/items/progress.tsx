@@ -48,17 +48,20 @@ export function Progress({
 
   return (
     <div
-      className="flex size-full items-center gap-[8cqmin] overflow-hidden rounded-xl widget-surface widget-edge px-[14cqmin] py-[10cqmin] widget-text"
+      className="flex size-full items-center gap-[6cqmin] overflow-hidden rounded-xl widget-surface widget-edge p-[6cqmin] widget-text"
       style={SIZED}
     >
       {payload.icon_side === "start" ? icon : null}
-      <div className="flex h-full min-w-0 flex-1 flex-col gap-[6cqmin] text-progress">
+      <div className="flex h-full min-w-0 flex-1 flex-col gap-[4cqmin] text-progress">
+        {/* The title gives way before the bar does: squashed flat, the widget
+            clips its title and keeps at least half its height for the bar,
+            because a progress bar with no bar is a label. */}
         {payload.title ? (
-          <span className="shrink-0 truncate font-semibold">
+          <span className="min-h-0 shrink truncate font-semibold">
             {payload.title}
           </span>
         ) : null}
-        <div className="flex min-h-0 flex-1 items-center gap-[8cqmin] font-semibold tabular-nums">
+        <div className="flex flex-[1_0_50%] items-center gap-[6cqmin] font-semibold tabular-nums">
           {near ? <span className="shrink-0">{near}</span> : null}
           <div
             className="relative h-full min-w-0 flex-1 overflow-hidden rounded-full"
