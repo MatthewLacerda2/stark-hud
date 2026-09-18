@@ -58,5 +58,8 @@
     "sway": "Sway",
     "glass": "Glass",
     "reset": "Reset"
+  },
+  "image": {
+    "fullscreen": "Look closer"
   }
 }
