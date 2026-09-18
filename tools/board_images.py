@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import datetime
 import json
+import math
 import pathlib
 import subprocess
 import urllib.error
@@ -21,7 +22,10 @@ BOARD = "http://127.0.0.1:8000/api/v1"
 # screen), so w/h is the aspect each sheet is letterboxed to.
 COLUMN_X, COLUMN_W = 23.0, 9.0
 COLUMN_TOP, COLUMN_BOTTOM = 4.0, 18.0
-TILE_H = (COLUMN_BOTTOM - COLUMN_TOP) / 3
+# Floored to 1e-4, not the exact third: the board stores positions to five
+# decimals, so a tile at 8.66667 tall 4.66667 reads back ending at 13.33334 and
+# the third sheet, placed at 13.3333, is refused as overlapping it.
+TILE_H = math.floor((COLUMN_BOTTOM - COLUMN_TOP) / 3 * 1e4) / 1e4
 
 SHEETS = (
     (
