@@ -59,6 +59,7 @@ gone. The board stores facts; the browser works out the readings.
 | `list` | A heading and entries: icon, title, description, each colourable. The general case — most of the others are it with fewer parts. |
 | `text` · `note` | One line of prose; the same on a tinted card. |
 | `chart` | `line`, `bar`, `area`, `pie`, `radial` gauges and `radar` shapes. Axes optional, colour thresholds optional, and its name costs no height. |
+| `progress` | A gauge laid flat: a bar filling from `min` to `max`, with the far end named and a title and icon if wanted. Fits a strip one row tall. |
 | `countdown` | How long until the next few things. Nothing writes to it; it counts down by itself. |
 | `gantt` | Named rows of bars over the next stretch of time, so two things at once have a shape. Nothing writes to it either; the scale re-tunes itself as the clock passes. |
 | `clock` | The time, with the date under it when there is room. |

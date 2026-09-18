@@ -8,6 +8,7 @@
 // The flow lives next door; the union below needs it by name as well as
 // re-exporting it, since a re-export binds nothing locally.
 import type { FlowPayload } from "@/lib/schemas/flow";
+import type { ProgressPayload } from "@/lib/schemas/progress";
 
 export type ChartKind = "line" | "bar" | "pie" | "area" | "radial" | "radar";
 /** Which axes a cartesian chart draws. The polar kinds have neither. */
@@ -32,6 +33,7 @@ export type {
   FlowPayload,
   FlowSide,
 } from "@/lib/schemas/flow";
+export type { IconSide, ProgressPayload } from "@/lib/schemas/progress";
 
 export interface NotePayload {
   kind: "note";
@@ -406,7 +408,8 @@ export type Payload =
   | GroupPayload
   | CountdownPayload
   | GanttPayload
-  | FlowPayload;
+  | FlowPayload
+  | ProgressPayload;
 
 export type ItemKind = Payload["kind"];
 

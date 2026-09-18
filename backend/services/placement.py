@@ -47,6 +47,9 @@ _DEFAULT_SIZES: dict[str, tuple[float, float]] = {
     # what kind of things are inside and that there are several, which is all it
     # ever says — so it is the same small size holding five or twenty.
     "group": (4, 3),
+    # A strip: long enough for the fill to read as a proportion, and one row
+    # and a bit for a title over the bar.
+    "progress": (8, 1.5),
 }
 
 # Two edges that ought to meet arrive as sums of decimals, and 0.1 + 0.2 is not

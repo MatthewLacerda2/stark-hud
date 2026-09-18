@@ -19,6 +19,7 @@ from schemas.gantt import GanttBar, GanttPayload, GanttRow
 from schemas.icon import Icon
 from schemas.media import MediaPayload, MediaTrack
 from schemas.mesh import MeshPayload
+from schemas.progress import IconSide, ProgressPayload
 
 
 class _Payload(BaseModel):
@@ -253,7 +254,8 @@ Payload = Annotated[
     | GroupPayload
     | CountdownPayload
     | GanttPayload
-    | FlowPayload,
+    | FlowPayload
+    | ProgressPayload,
     Field(discriminator="kind"),
 ]
 
@@ -281,6 +283,7 @@ __all__ = [
     "GanttRow",
     "GroupPayload",
     "GroupState",
+    "IconSide",
     "ImagePayload",
     "InboxPayload",
     "ListEntry",
@@ -290,5 +293,6 @@ __all__ = [
     "MeshPayload",
     "NotePayload",
     "Payload",
+    "ProgressPayload",
     "TextPayload",
 ]

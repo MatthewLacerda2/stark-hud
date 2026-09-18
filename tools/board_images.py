@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hanging pictures on the board, and taking them down.
+"""Hanging pictures on the board, and taking them down — and the bar beside them.
 
 Split from `trm_board.py` because it is the other half of the job: that one
 works out which training run deserves the wall, this one is the board's HTTP
@@ -44,6 +44,18 @@ SHEETS = (
         "Tokens per second end to end, and tokens against the run's budget. "
         "Catches a crawling run or a crash-relaunch; a flat line is the good case.",
     ),
+)
+
+# The progress bar, in the strip between the tasks list and the row of gauges
+# under it. Only where it first appears: after that it stays wherever it is put.
+PROGRESS_KEY = "trm_progress"
+PROGRESS_AT = {"x": 16.0, "y": 14.375, "w": 7.0, "h": 1.26}
+PROGRESS_NOTE = (
+    "How far the training run on the card is through its token budget: tokens "
+    "trained on (last step in metrics.csv times tokens per optimizer step) "
+    "against TRAIN_TOKEN_BUDGET, which is the number at the right end. Written "
+    "every minute by tools/trm_board.py and taken down with the sheets an hour "
+    "after the card goes quiet."
 )
 
 NOTE = (
@@ -147,9 +159,26 @@ def show(repo: pathlib.Path, run: pathlib.Path, cache: pathlib.Path) -> None:
     log(f"{run.name}: board updated")
 
 
+def measure(done: int, budget: int) -> None:
+    """Write the run's progress bar, putting it up the first time."""
+    payload = {
+        "kind": "progress",
+        "value": done,
+        "max": budget,
+        "title": "TRM",
+        # The gauges' own track, so the bar reads as one more of them.
+        "unfilled": "#ffffff80",
+    }
+    board(
+        "PUT",
+        f"/board/items/by-key/{PROGRESS_KEY}",
+        {"payload": payload, "description": PROGRESS_NOTE, **PROGRESS_AT},
+    )
+
+
 def clear() -> None:
     standing = by_key()
-    for key, _, _ in SHEETS:
+    for key in (*(sheet[0] for sheet in SHEETS), PROGRESS_KEY):
         if key in standing:
             board("DELETE", f"/board/items/{standing[key]['id']}")
     log("board cleared")

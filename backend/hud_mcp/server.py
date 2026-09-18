@@ -25,6 +25,7 @@ from hud_mcp import (
     media,
     meshes,
     notifications,
+    progress,
     speech,
     wake,
 )
@@ -133,6 +134,7 @@ def build_server() -> MCPServer:
     content.register(server)
     charts.register(server)
     countdowns.register(server)
+    progress.register(server)
     gantts.register(server)
     flows.register(server)
     layout.register(server)

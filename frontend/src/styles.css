@@ -137,6 +137,18 @@
   );
   --text-chart-mark--line-height: 1;
 
+  /* A progress bar is a strip, so everything in it is sized off its height —
+     `cqmin`, which on a strip is the height — rather than off the width that
+     would write a title taller than the widget. The title and the numbers at
+     either end are one size, so the bar reads as one line of type with a bar
+     in it. The mark is bigger: it stands beside the whole widget, not one row. */
+  --text-progress: calc(
+    clamp(0.6rem, 26cqmin, 2.4rem) * var(--widget-scale, 1)
+  );
+  --text-progress--line-height: 1.1;
+  --text-progress-mark: 42cqmin;
+  --text-progress-mark--line-height: 1;
+
   /* --- Motion. A closed, named set, exactly the way the colours are.
 
          Motion says a thing moved, and that is the whole of its job. It is over
@@ -1117,6 +1129,12 @@
     scale(var(--extrude-scale, 1));
 
   & .recharts-surface {
+    visibility: visible;
+  }
+
+  /* A mark that is not recharts' — the progress bar's track and its fill,
+     tagged with an attribute because the class list is an allowlist. */
+  & [data-extrude-mark] {
     visibility: visible;
   }
 

@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  BatteryMedium,
   Box,
   CalendarDays,
   Clock,
@@ -46,6 +47,8 @@ const GLYPH: Record<
   gantt: GanttChartSquare,
   flow: Workflow,
   feed: Rss,
+  // A bar part filled, which is all a progress bar is.
+  progress: BatteryMedium,
   // A group never holds a group, so this is only ever the fallback a folded
   // group draws for itself when it is holding nothing at all.
   group: Square,
