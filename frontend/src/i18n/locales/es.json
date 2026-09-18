@@ -63,5 +63,8 @@
     "sway": "Balanceo",
     "glass": "Vidrio",
     "reset": "Restablecer"
+  },
+  "image": {
+    "fullscreen": "Ver de cerca"
   }
 }

@@ -58,5 +58,8 @@
     "sway": "Balanço",
     "glass": "Vidro",
     "reset": "Restaurar"
+  },
+  "image": {
+    "fullscreen": "Ver de perto"
   }
 }
