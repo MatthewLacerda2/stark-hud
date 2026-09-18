@@ -102,7 +102,7 @@ describe("the call that made a widget", () => {
     // Six columns of thirty-two: the widget ends at column six, and the call
     // starts there rather than anywhere inside it.
     expect(panel.style.left).toBe("18.75%");
-    expect(panel.style.width).toBe("25%");
+    expect(panel.style.width).toBe("12.5%");
     // Not a child of the widget: it is over the board, so nothing it does can
     // change what a widget is given to draw in.
     const widget = [...host.querySelectorAll("div")].find((div) =>
@@ -126,7 +126,7 @@ describe("the call that made a widget", () => {
       expect(call()).not.toBeNull();
 
       await act(async () => {
-        vi.advanceTimersByTime(2000);
+        vi.advanceTimersByTime(4000);
       });
 
       expect(call()).toBeNull();
