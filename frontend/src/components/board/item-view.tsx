@@ -15,6 +15,7 @@ import { Mesh } from "@/components/board/items/mesh";
 import { Inbox } from "@/components/board/items/inbox";
 import { List } from "@/components/board/items/list";
 import { Note } from "@/components/board/items/note";
+import { Progress } from "@/components/board/items/progress";
 import { Text } from "@/components/board/items/text";
 
 /** Render one item by kind. The union is exhaustive, so a new kind will not compile. */
@@ -76,6 +77,13 @@ export function ItemView({
       return <Calendar />;
     case "countdown":
       return <Countdown id={item.id} payload={payload} />;
+    case "progress":
+      // Its bar runs back into the pane on a depth board, as a chart's marks do.
+      return (
+        <Extrusion>
+          <Progress id={item.id} payload={payload} />
+        </Extrusion>
+      );
     case "flow":
       // Its cells decide which way an unplaced flow runs and how long an arrow
       // really is, which is what a label asks before it drops.

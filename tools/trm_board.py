@@ -32,7 +32,7 @@ import subprocess
 import sys
 import time
 
-from board_images import clear, log, show
+from board_images import clear, log, measure, show
 
 POLL_SECONDS = 60  # how often the card is looked at
 IDLE_SECONDS = 3600  # how long it stays quiet before the widgets come down
@@ -137,6 +137,50 @@ def worth_watching(repo: pathlib.Path, run: pathlib.Path) -> tuple[bool, str]:
     return True, f"{budget / 1e6:.0f}M tokens at dim {width}"
 
 
+def tokens_per_step(repo: pathlib.Path, run: pathlib.Path) -> int:
+    """Tokens one optimizer step consumes, from what the run recorded.
+
+    The run's own parameters first, because the config file may have moved on
+    since it launched. `TOKENS_PER_OPT_STEP` is written in the config as a
+    product of these, which `constant` cannot evaluate, so it is multiplied out
+    here the way the config does it: two prediction windows per micro-step.
+    """
+    params = metadata(run).get("parameters", {})
+    parts = [
+        params.get(name) or constant(repo, "trm/config.py", name)
+        for name in ("ACCUMULATION_STEPS", "BATCH_SIZE", "MAX_SEQ_LEN")
+    ]
+    if all(isinstance(part, int) for part in parts):
+        accumulation, batch, window = parts
+        return accumulation * batch * 2 * window
+    return 131_072
+
+
+def last_step(metrics: pathlib.Path) -> int | None:
+    """The step on the last row of a run's metrics, or None if it has none."""
+    try:
+        lines = metrics.read_text().splitlines()
+        column = lines[0].split(",").index("step")
+        for line in reversed(lines[1:]):
+            cells = line.split(",")
+            if len(cells) > column and cells[column].isdigit():
+                return int(cells[column])
+    except (OSError, ValueError, IndexError):
+        pass
+    return None
+
+
+def progress(repo: pathlib.Path, run: pathlib.Path) -> tuple[int, int] | None:
+    """(tokens trained on so far, the run's token budget), or None if unknown."""
+    budget = metadata(run).get("parameters", {}).get("TRAIN_TOKEN_BUDGET") or constant(
+        repo, "trm/config.py", "TRAIN_TOKEN_BUDGET"
+    )
+    step = last_step(run / "metrics.csv")
+    if not isinstance(budget, (int, float)) or step is None:
+        return None
+    return step * tokens_per_step(repo, run), int(budget)
+
+
 def redraw_every(repo: pathlib.Path, run: pathlib.Path) -> int:
     """Seconds between redraws: about twenty over the run's whole life.
 
@@ -164,9 +208,8 @@ def redraw_every(repo: pathlib.Path, run: pathlib.Path) -> int:
         rows = 0
     if rows < 2 or first is None or last is None or last[1] <= first[1] or not budget:
         return FASTEST
-    tokens_per_step = constant(repo, "trm/config.py", "TOKENS_PER_OPT_STEP") or 131_072
     seconds_per_step = (last[0] - first[0]).total_seconds() / (last[1] - first[1])
-    whole_run = seconds_per_step * budget / tokens_per_step
+    whole_run = seconds_per_step * budget / tokens_per_step(repo, run)
     return int(min(SLOWEST, max(FASTEST, whole_run / REFRESHES_PER_RUN)))
 
 
@@ -210,6 +253,11 @@ def watch(repo: pathlib.Path, cache: pathlib.Path, once: bool = False) -> int:
 
         if run and worth:
             last_busy = time.time()
+            # Every pass rather than every redraw: a bar is one small write, and
+            # it is the one thing here that should look live.
+            done = progress(repo, run)
+            if done:
+                measure(*done)
             if run.name != showing or time.time() - drawn_at >= cadence:
                 cadence = redraw_every(repo, run)
                 log(f"{run.name}: {why} — drawing, next in {cadence // 60} min")
