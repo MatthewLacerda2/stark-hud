@@ -16,10 +16,9 @@ This is a picture hook.
     python3 tools/trm_board.py ~/Desktop/Repos/TinyRefinementModel
 
 It runs until stopped. Nobody has to point it at a run: it watches the card, so
-the widgets appear when a real run starts. An hour after the card goes quiet the
-progress bar comes down — there is nothing left to be in progress — and the
-sheets stay, showing the last run as it finished, until the next one redraws
-them.
+the widgets appear when a real run starts. When it ends everything stays: the
+sheets show the last run as it finished and the bar stands full, which is how
+the board says that run is done, until the next one redraws them.
 """
 
 from __future__ import annotations
@@ -34,10 +33,9 @@ import subprocess
 import sys
 import time
 
-from board_images import clear, log, lower_bar, measure, show
+from board_images import clear, log, measure, show
 
 POLL_SECONDS = 60  # how often the card is looked at
-IDLE_SECONDS = 3600  # how long it stays quiet before the bar comes down
 REFRESHES_PER_RUN = 20  # how many times a run is redrawn over its whole life
 FASTEST, SLOWEST = 300, 3600  # and the bounds on that, in seconds
 
@@ -247,14 +245,13 @@ def render(repo: pathlib.Path, run: pathlib.Path) -> bool:
 
 def watch(repo: pathlib.Path, cache: pathlib.Path, once: bool = False) -> int:
     showing: str | None = None
-    drawn_at, cadence, last_busy = 0.0, FASTEST, time.time()
+    drawn_at, cadence = 0.0, FASTEST
 
     while True:
         run = current_run()
         worth, why = worth_watching(repo, run) if run else (False, "card idle")
 
         if run and worth:
-            last_busy = time.time()
             # Every pass rather than every redraw: a bar is one small write, and
             # it is the one thing here that should look live.
             done = progress(repo, run)
@@ -268,10 +265,6 @@ def watch(repo: pathlib.Path, cache: pathlib.Path, once: bool = False) -> int:
                     showing, drawn_at = run.name, time.time()
         elif run:
             log(f"{run.name} is on the card but not worth watching: {why}")
-        elif showing and time.time() - last_busy >= IDLE_SECONDS:
-            log(f"card quiet for {IDLE_SECONDS // 60} minutes — lowering the bar")
-            lower_bar()
-            return 0
 
         if once:
             return 0
