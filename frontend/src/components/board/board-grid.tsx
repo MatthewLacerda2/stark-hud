@@ -1,11 +1,9 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback } from "react";
 import type { Item, Notification, Origin } from "@/lib/schemas/board";
 import { updateItem } from "@/lib/api/board";
 import { ItemView } from "@/components/board/item-view";
 import { OriginCall } from "@/components/board/origin-call";
-import { WidgetControls } from "@/components/board/widget-controls";
 import { WidgetWake } from "@/components/board/widget-wake";
-import { Vhs } from "@/components/board/vhs";
 import { Slab } from "@/components/board/slab";
 import { useContainerSize } from "@/hooks/use-container-size";
 import { useEntrance } from "@/hooks/use-entrance";
@@ -21,24 +19,6 @@ import { holographic, type Tape } from "@/lib/vhs";
 import { lit, type Bloom } from "@/lib/bloom";
 import { seatVars } from "@/lib/depth";
 
-// Long enough to move the pointer from the widget to the controls without them
-// vanishing on the way.
-const CONTROLS_LINGER_MS = 3000;
-
-/* A widget's background starts invisible, whatever its kind. The board sits on
-   a video and most widgets read better straight on top of it; the ones that
-   need a panel get one from the opacity slider, one widget at a time. */
-const DEFAULT_ALPHA = 0;
-
-/** The widget's background: what its kind implies. `item.color` is for its text. */
-function colourOf(item: Item): string | undefined {
-  // A widget told what it is made of wins. A note's own colour still works,
-  // because a sticky note that had one before this existed should keep it.
-  if (item.background) return item.background;
-  if (item.payload.kind === "note" && item.payload.color)
-    return item.payload.color;
-  return undefined;
-}
 /** Just the four numbers a gesture is allowed to touch.
  *
  * An `Item` is a `Rect` and a great deal else, and handing the whole thing to
@@ -85,11 +65,14 @@ function looked(item: Item, tape: Tape, bloom: Bloom): string | undefined {
   return undefined;
 }
 
-/** The CSS variables that say what one widget is made of. */
-function widgetVars(item: Item, alpha: number): React.CSSProperties {
+/**
+ * The CSS variables that say how one widget looks.
+ *
+ * There is no background among them. Every widget is drawn straight on the
+ * board's video; media and images cover it with their own picture.
+ */
+function widgetVars(item: Item): React.CSSProperties {
   return {
-    "--widget-alpha": alpha,
-    "--widget-colour": colourOf(item),
     "--widget-text": item.color ?? undefined,
     // Transparent rather than absent, so the line costs nothing when nobody
     // asked for one and the rule below needs no condition to express.
@@ -168,29 +151,6 @@ export function BoardGrid({
 }) {
   const { ref, width, height } = useContainerSize();
   const maximised = maximisedIn(items);
-  const [hovered, setHovered] = useState<string | null>(null);
-  const [preview, setPreview] = useState<Record<string, number>>({});
-  const linger = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-
-  const show = useCallback((id: string) => {
-    clearTimeout(linger.current);
-    setHovered(id);
-  }, []);
-
-  const hideSoon = useCallback(() => {
-    clearTimeout(linger.current);
-    linger.current = setTimeout(() => setHovered(null), CONTROLS_LINGER_MS);
-  }, []);
-
-  const alphaOf = useCallback(
-    (item: Item) => preview[item.id] ?? item.opacity ?? DEFAULT_ALPHA,
-    [preview],
-  );
-
-  const commitAlpha = useCallback((id: string, value: number) => {
-    void updateItem(id, { opacity: value }).catch(() => {});
-  }, []);
-
   // The socket delivers the result, so nothing here waits on the response for
   // anything but knowing when to stop holding the widget under the pointer.
   const persist = useCallback(
@@ -242,11 +202,9 @@ export function BoardGrid({
               <div
                 className="@container relative size-full min-h-0 min-w-0 depth-carry"
                 style={{
-                  ...widgetVars(item, alphaOf(item)),
+                  ...widgetVars(item),
                   ...seatVars(rect, cols, rows, width, height),
                 }}
-                onMouseEnter={() => show(item.id)}
-                onMouseLeave={hideSoon}
               >
                 {/* Not while something has the whole board: the others draw
                     nothing then, and a pane with nothing on it is still glass. */}
@@ -261,21 +219,8 @@ export function BoardGrid({
                         reload={reloads[item.id] ?? 0}
                       />
                     </div>
-                    <Vhs tape={tape} />
                     <WidgetWake nonce={wakes[item.id] ?? 0} />
                   </>
-                ) : null}
-                {hovered === item.id ? (
-                  <WidgetControls
-                    alpha={alphaOf(item)}
-                    onPreview={(value) =>
-                      setPreview((current) => ({
-                        ...current,
-                        [item.id]: value,
-                      }))
-                    }
-                    onCommit={(value) => commitAlpha(item.id, value)}
-                  />
                 ) : null}
                 {/* Invisible until the pointer is over the widget, and never on
                     the television, which has no pointer at all. */}
@@ -327,7 +272,7 @@ export function BoardGrid({
       {maximised ? (
         <div
           className="@container absolute inset-0 z-30 bg-background"
-          style={widgetVars(maximised, alphaOf(maximised))}
+          style={widgetVars(maximised)}
         >
           <div className={cn("size-full", looked(maximised, tape, bloom))}>
             <ItemView
@@ -338,7 +283,6 @@ export function BoardGrid({
               notifications={notifications}
             />
           </div>
-          <Vhs tape={tape} />
           <WidgetWake nonce={wakes[maximised.id] ?? 0} />
         </div>
       ) : null}

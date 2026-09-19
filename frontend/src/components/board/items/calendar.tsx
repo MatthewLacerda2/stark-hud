@@ -45,7 +45,7 @@ export function Calendar() {
   const today = now.getDate();
 
   return (
-    <div className="flex size-full flex-col gap-[3cqmin] rounded-xl widget-surface widget-edge p-[5cqmin] widget-text">
+    <div className="flex size-full flex-col gap-[3cqmin] rounded-xl widget-edge p-[5cqmin] widget-text">
       <div className="grid grid-cols-7 text-node-sm font-semibold opacity-50">
         {initials(i18n.language).map((letter, at) => (
           <span key={at} className="text-center">

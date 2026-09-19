@@ -40,7 +40,7 @@ async def test_a_swap_that_could_not_be_done_one_call_at_a_time(server: MCPServe
 async def test_the_batch_answers_with_the_board_it_produced(server: MCPServer) -> None:
     """Where you most want to know what you got, rather than having to ask."""
     ids = await _full(server)
-    message = await call(server, "arrange", changes=[{"target": ids[0], "opacity": 0.4}])
+    message = await call(server, "arrange", changes=[{"target": ids[0], "scale": 0.4}])
 
     for item_id in ids:
         assert item_id in message

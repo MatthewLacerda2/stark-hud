@@ -18,8 +18,6 @@ function item(
     id,
     key: null,
     description: null,
-    opacity: null,
-    background: null,
     color: null,
     border: null,
     scale: null,
@@ -35,7 +33,7 @@ function item(
   };
 }
 
-const note: Payload = { kind: "note", text: "x", color: null };
+const note: Payload = { kind: "note", text: "x" };
 const group = (state: GroupState): Payload => ({ kind: "group", state });
 
 describe("what is actually on the board", () => {

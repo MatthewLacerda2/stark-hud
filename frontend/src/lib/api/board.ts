@@ -22,8 +22,6 @@ export interface ItemCreate {
   payload: Payload;
   /** A note only sessions read; never drawn. See `Item.description`. */
   description?: string;
-  opacity?: number;
-  background?: string;
   color?: string;
   scale?: number;
   x?: number;

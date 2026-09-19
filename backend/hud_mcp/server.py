@@ -70,7 +70,8 @@ only sessions read. Put in it what a later session could not work out by looking
 any add_ tool, change or clear it with set_description, and read it back on the
 line list_items gives you.
 
-Widgets are dark by convention: this is a TV in a dim room and a pale one glares.
+Widgets have no background: each one is drawn straight on the video the board
+sits on, except media and images, which cover it with their own picture.
 On charts, pass `max` whenever the numbers have a ceiling — without it the axis
 fits the data and 21% draws as nearly full.
 

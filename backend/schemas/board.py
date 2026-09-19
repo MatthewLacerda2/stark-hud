@@ -122,9 +122,7 @@ class ItemCreate(BaseModel):
     payload: Payload
     key: str | None = None
     description: str | None = None
-    opacity: float | None = Field(default=None, ge=0, le=1)
     color: Colour | None = None
-    background: Colour | None = None
     border: Colour | None = None
     scale: float | None = Field(default=None, ge=0.25, le=4)
     x: float | None = Field(default=None, ge=0)
@@ -145,9 +143,7 @@ class ItemUpdate(BaseModel):
     # a wrong note, and adding a second "unset" sentinel for one field would
     # cost more than the rule does.
     description: str | None = None
-    opacity: float | None = Field(default=None, ge=0, le=1)
     color: Colour | None = None
-    background: Colour | None = None
     border: Colour | None = None
     scale: float | None = Field(default=None, ge=0.25, le=4)
     x: float | None = Field(default=None, ge=0)
@@ -184,9 +180,7 @@ class Change(BaseModel):
     y: float | None = Field(default=None, ge=0)
     w: float | None = Field(default=None, ge=MIN_SIZE)
     h: float | None = Field(default=None, ge=MIN_SIZE)
-    opacity: float | None = Field(default=None, ge=0, le=1)
     color: Colour | None = None
-    background: Colour | None = None
     border: Colour | None = None
     scale: float | None = Field(default=None, ge=0.25, le=4)
     # Which group this widget joins. ``None`` leaves it where it is, like every
@@ -217,21 +211,16 @@ class ItemRead(BaseModel):
     # ``x`` and ``y`` rather than inside the payload because a panel's payload is
     # rewritten whole every few seconds, which would erase it on the next pass.
     description: str | None = None
-    # The three things a widget can be told about itself. None means the default
-    # for its kind: a chart is barely there, prose needs something behind it.
-    opacity: float | None = None
+    # A widget has no background: the board's video runs behind every one of
+    # them, and a media or image widget covers it with its own picture. So the
+    # only things a widget can be told about its look are these three.
+    #
     # The colour of the widget's text.
     color: str | None = None
-    # What the widget's background is made of, shown at `opacity`. None means
-    # the card colour every other widget uses, which is the case needing no
-    # thought; this is for the one widget that should not look like the rest.
-    background: str | None = None
     # A line around the widget, at whatever colour is given. None is no line,
     # which is what almost every widget wants: a board of outlined rectangles is
-    # a form, not a view. This is the one style that ignores `opacity` — the
-    # point of it is a clear edge on a widget whose background has been turned
-    # right down, so fading it with the thing it is drawn around would defeat
-    # it. A colour carrying its own alpha is how you ask for a faint one.
+    # a form, not a view. A colour carrying its own alpha is how you ask for a
+    # faint one.
     border: str | None = None
     # Multiplies the text sizes inside this widget. The type still scales with the
     # widget, this just moves the whole range.

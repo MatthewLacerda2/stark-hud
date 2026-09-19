@@ -38,7 +38,6 @@ export type { IconSide, ProgressPayload } from "@/lib/schemas/progress";
 export interface NotePayload {
   kind: "note";
   text: string;
-  color: string | null;
 }
 
 export interface TextPayload {
@@ -423,15 +422,11 @@ export interface Item {
    * here so that a drag, which PATCHes the item, cannot drop it on the way back.
    */
   description: string | null;
-  /** How solid this widget's background is, 0 to 1. Null means its kind's default. */
-  opacity: number | null;
-  background: string | null;
-  /** The widget's background colour. Null means its kind's default. */
+  /** The widget's text colour. Null means the board's own. */
   color: string | null;
   /**
    * A line around the widget, at whatever colour is given. Null is no line,
-   * which is what almost every widget wants. The one style `opacity` does not
-   * touch: the point of it is a clear edge on a widget turned right down.
+   * which is what almost every widget wants.
    */
   border: string | null;
   /** Multiplies the text sizes inside the widget. Null means 1. */

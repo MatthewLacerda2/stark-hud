@@ -457,13 +457,6 @@
   }
 }
 
-/* A widget's background: one colour at one opacity, and nothing else.
-   No blur, no border, no shadow — those read as a widget even at zero opacity,
-   which is what made "fully transparent" still look like something was there.
-
-   `--widget-colour` is what it is made of and `--widget-alpha` how solid; both are
-   set per item. Declared as a utility rather than a plain class so it is a real
-   Tailwind utility, which is what the class allowlist checks against. */
 /* The colour of a widget's own text. Falls back to the card foreground, so a
    widget that was never told anything looks like every other widget. */
 @utility widget-text {
@@ -488,21 +481,7 @@
   src: url("/fonts/quicksand-700-latin.woff2") format("woff2");
 }
 
-@utility widget-surface {
-  background-color: color-mix(
-    in oklab,
-    var(--widget-colour, var(--color-card))
-      calc(var(--widget-alpha, 0.65) * 100%),
-    transparent
-  );
-}
-
 /* The line around a widget, when one was asked for.
-
-   Its own utility and not part of `widget-surface` above, which is not
-   fussiness: adding a second declaration there changed where Tailwind sorted
-   the whole utility, `bg-card` started winning the cascade, and every
-   transparent widget on the board went solid. One utility, one property.
 
    An outline rather than a border, because a border occupies layout — a
    transparent one on every widget that never asked for a line would still shift
@@ -519,11 +498,7 @@
    Two pixels. One disappears from a sofa and three reads as a frame around the
    widget rather than an edge to it. Not tunable: a board where every widget has
    its own line weight has stopped looking like one board, and the colour
-   already says which widget is meant to stand apart.
-
-   It does not fade with `--widget-alpha`, deliberately. The case this exists
-   for is the widget turned right down, and an edge that disappeared along with
-   the panel would leave exactly the problem it was added to solve. */
+   already says which widget is meant to stand apart. */
 @utility widget-edge {
   outline: 2px solid var(--widget-border, transparent);
   outline-offset: -2px;
@@ -791,20 +766,6 @@
 
 @utility bloom-holo {
   filter: url(#bloom) url(#vhs-tape);
-}
-
-/* The corners falling away. Last of the four, so it darkens the dirt and the
-   scanlines too rather than sitting under them. */
-@utility vhs-vignette {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: calc(var(--vhs-vignette, 0) * 0.5 * var(--widget-alpha, 1));
-  background-image: radial-gradient(
-    ellipse at center,
-    transparent 42%,
-    rgb(0 0 0 / 0.7) 100%
-  );
 }
 
 /* Colour separating at the edges of the letters.

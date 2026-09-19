@@ -69,7 +69,8 @@ gone. The board stores facts; the browser works out the readings.
 | `group` | A widget that holds widgets, in one of three states. Open, they are on the board. Folded, they come off and it draws a shelf of icons in their place. Away, they come off and nothing is drawn: a screen the board is not showing, which is how one board carries several full-board subjects and cuts between them. |
 | `box` | A frame drawn on the board. Decoration, and nothing else. |
 
-Every widget carries its own colour, text scale, background and opacity, sits at
+Every widget is drawn straight on the board's video — no panel behind it — except
+media and images, which are pictures. Each carries its own text colour and scale, sits at
 fractional coordinates, and can be dragged anywhere it fits. Each also has a
 `description` that is never drawn — a note for whoever drives the board next.
 

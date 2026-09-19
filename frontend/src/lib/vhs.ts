@@ -29,8 +29,6 @@ export type Tape = {
    * tape was worn rather than that the glass was dirty.
    */
   dirt: number;
-  /** Corners going dark, the way a lens does. */
-  vignette: number;
   /** Colour separating at the edges of text. */
   fringe: number;
 };
@@ -39,7 +37,6 @@ export type Tape = {
 export const NO_TAPE: Tape = {
   scanlines: 0,
   dirt: 0,
-  vignette: 0,
   fringe: 0,
 };
 
@@ -47,7 +44,6 @@ export const NO_TAPE: Tape = {
 const FULL: Tape = {
   scanlines: 1,
   dirt: 1,
-  vignette: 1,
   fringe: 1,
 };
 
@@ -88,7 +84,6 @@ export function tapeVars(tape: Tape): CSSProperties {
   return {
     "--vhs-scanlines": tape.scanlines,
     "--vhs-dirt": tape.dirt,
-    "--vhs-vignette": tape.vignette,
     "--vhs-fringe": tape.fringe,
   } as CSSProperties;
 }

@@ -29,11 +29,10 @@ class _Payload(BaseModel):
 
 
 class NotePayload(_Payload):
-    """A sticky note: short body text on a tinted card."""
+    """A sticky note: short body text, straight on the board."""
 
     kind: Literal["note"] = "note"
     text: str
-    color: Colour | None = None
 
 
 # The sizes bare text comes in. Named like every other closed set here, so a

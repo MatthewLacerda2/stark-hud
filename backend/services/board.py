@@ -183,9 +183,7 @@ def create(data: ItemCreate) -> ItemRead:
         data.key,
         # These were accepted by the schema and then dropped here, so a widget
         # created with a colour came out with none until something updated it.
-        opacity=data.opacity,
         color=data.color,
-        background=data.background,
         border=data.border,
         scale=data.scale,
         description=_described(data, None),
@@ -206,9 +204,7 @@ def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
                 "h": place.h,
                 "key": data.key if data.key is not None else item.key,
                 "description": _described(data, item),
-                "opacity": data.opacity if data.opacity is not None else item.opacity,
                 "color": data.color if data.color is not None else item.color,
-                "background": data.background if data.background is not None else item.background,
                 "border": data.border if data.border is not None else item.border,
                 "scale": data.scale if data.scale is not None else item.scale,
                 "parent_id": data.parent_id if data.parent_id is not None else item.parent_id,

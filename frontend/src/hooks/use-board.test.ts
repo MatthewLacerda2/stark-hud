@@ -31,12 +31,10 @@ function note(id: string, text: string): Item {
     id,
     key: null,
     description: null,
-    opacity: null,
-    background: null,
     color: null,
     border: null,
     scale: null,
-    payload: { kind: "note", text, color: null },
+    payload: { kind: "note", text },
     playback: null,
     x: 0,
     y: 0,
@@ -78,7 +76,6 @@ describe("a widget told work is coming", () => {
     expect(state.items[0].payload).toEqual({
       kind: "note",
       text: "hello",
-      color: null,
     });
   });
 

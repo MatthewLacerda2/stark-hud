@@ -42,7 +42,6 @@ def test_anything_else_is_refused(colour):
 def test_alpha_survives_everywhere_a_colour_is_taken():
     translucent = "#00ff8840"
 
-    assert NotePayload(text="x", color=translucent).color == translucent
     assert BoxPayload(fill=translucent, stroke=translucent).stroke == translucent
     widget = ListPayload(title_color=translucent, icon_color=translucent, item_color=translucent)
     assert widget.item_color == widget.icon_color == translucent

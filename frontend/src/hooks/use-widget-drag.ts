@@ -46,8 +46,8 @@ export function useWidgetDrag(
 
   const grab = useCallback(
     (event: React.PointerEvent, id: string, rect: Rect, grip: Grip) => {
-      // Only the left button, and never over the controls: reaching for the
-      // opacity slider should not take the widget with it.
+      // Only the left button, and never over anything marked `no-drag`: a
+      // control inside a widget should not take the widget with it.
       if (event.button !== 0) return;
       if ((event.target as HTMLElement).closest(".no-drag")) return;
       event.preventDefault();
