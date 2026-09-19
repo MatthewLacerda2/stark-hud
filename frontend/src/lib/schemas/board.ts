@@ -352,11 +352,8 @@ export interface GanttPayload {
   empty: string | null;
 }
 
-/**
- * What a group is doing with the room it holds. One field, three values: a group
- * that is both open and not showing is not a board anybody can draw.
- */
-export type GroupState = "open" | "folded" | "away";
+/** What a group is doing with the room it holds: nothing, or its widgets'. */
+export type GroupState = "open" | "folded";
 
 /**
  * A widget that holds widgets. Membership is `parent_id` on the widgets.
@@ -368,9 +365,8 @@ export type GroupState = "open" | "folded" | "away";
  * twenty, because what it says is what kind of things are in here and that there
  * are several.
  *
- * Away, the widgets come off and nothing is drawn at all: a screen that is not
- * showing. That is what lets several full-board groups exist at once, and the
- * board cut from one to the next.
+ * A group is a handful of widgets on one page. A whole board's worth of layout
+ * is a page instead — see `lib/pages.ts`.
  */
 export interface GroupPayload {
   kind: "group";
@@ -439,6 +435,12 @@ export interface Item {
    * payload so that rewriting the widget does not erase it.
    */
   playback: Playback | null;
+  /**
+   * The page this widget is on. Every widget is sent, whatever page it is on,
+   * and only the ones on the showing page are drawn — a widget elsewhere takes
+   * no room and goes on taking writes by key, so its page comes back current.
+   */
+  page: string;
   x: number;
   y: number;
   w: number;
@@ -474,12 +476,17 @@ export interface Ink {
 
 export interface BoardSnapshot {
   items: Item[];
+  /** Which page the board is turned to. See `Item.page` and `lib/pages.ts`. */
+  showing: string;
   background: Background | null;
   ink: Ink | null;
   notifications: Notification[];
 }
 
 export interface BoardStatus {
+  /** The page these numbers are about, and every page the board carries. */
+  showing: string;
+  pages: string[];
   cols: number;
   rows: number;
   cells_total: number;
@@ -515,8 +522,10 @@ export type BoardEvent =
   | { event: "ink.changed"; data: Ink | null }
   | { event: "board.cleared"; data: { removed: number } }
   /* A rearrangement: several widgets changed at once and the board is sent
-     whole, so folding a group is one render rather than a widget at a time. */
-  | { event: "board.arranged"; data: { items: Item[] } }
+     whole, so folding a group is one render rather than a widget at a time.
+     Turning the page rides on this rather than an event of its own, because
+     from here it is the same thing: the screen is replaced in one frame. */
+  | { event: "board.arranged"; data: { items: Item[]; showing: string } }
   | { event: "item.created"; data: Item }
   | { event: "item.updated"; data: Item }
   /* Work is coming for this widget; nothing about it has changed yet. Sent by

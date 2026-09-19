@@ -15,6 +15,7 @@ os.environ.setdefault("STATE_FILE", "")
 import pytest
 
 from repositories import board, notifications
+from schemas.board import DEFAULT_PAGE
 from services import origin
 
 
@@ -27,12 +28,15 @@ def clean_board() -> None:
     decide how many the next test is allowed to announce.
     """
     origin.burst.clear()
-    board.clear()
-    board.set_background(None)
-    board.set_ink(None)
-    notifications.clear()
+    _empty()
     yield
+    _empty()
+
+
+def _empty() -> None:
+    """The board as a fresh process finds it: no widgets, no look, page one."""
     board.clear()
     board.set_background(None)
     board.set_ink(None)
+    board.set_showing(DEFAULT_PAGE)
     notifications.clear()

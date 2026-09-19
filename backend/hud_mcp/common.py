@@ -11,9 +11,9 @@ from mcp_types import ToolAnnotations
 
 from core.hub import hub
 from repositories import board as repo
-from schemas.board import ItemCreate, ItemRead, Payload
+from schemas.board import BoardArranged, ItemCreate, ItemRead, Payload
 from services import board as service
-from services import groups, origin
+from services import groups, origin, pages
 from services.board import SlotTakenError
 from services.placement import BoardFullError, cells, size
 
@@ -58,17 +58,14 @@ def describe(item: ItemRead) -> str:
     if item.key:
         named = f"{named} keyed {item.key!r}"
     line = f"{named} at ({cells(item.x)},{cells(item.y)}) size {size(item.w, item.h)}"
-    line = f"{line}{_grouping(item)}"
+    line = f"{line}{_grouping(item)}{_elsewhere(item)}"
     if item.playback is not None:
         line = f"{line} [{_playing(item)}]"
     return f"{line} — {item.description}" if item.description else line
 
 
-# How each state of a group reads on the one line a session gets back. Away is
-# the one that most needs saying: it draws nothing, so a board of twenty widgets
-# showing six is a screen rather than a fault, and nothing else on this line
-# would tell anybody that.
-_STATES = {"open": "group", "folded": "folded group", "away": "group that is away"}
+# How each state of a group reads on the one line a session gets back.
+_STATES = {"open": "group", "folded": "folded group"}
 
 
 def _grouping(item: ItemRead) -> str:
@@ -85,28 +82,45 @@ def _grouping(item: ItemRead) -> str:
     parent = repo.get(item.parent_id)
     if parent is None or parent.payload.kind != "group" or parent.payload.state == "open":
         return f" [in group {item.parent_id}]"
-    if parent.payload.state == "folded":
-        return f" [folded away inside {item.parent_id}]"
-    return f" [off the board with {item.parent_id}, which is away]"
+    return f" [folded away inside {item.parent_id}]"
 
 
-def screens() -> str:
-    """The groups that are away, as a sentence, or nothing at all when none is.
+def _elsewhere(item: ItemRead) -> str:
+    """Says so when this widget is on a page the board is not showing.
 
-    board_status counts what takes room, and a group that is away takes none —
-    so a board carrying four screens and showing one reports the room of the
-    one. That is true, and it reads as three screens having vanished unless the
-    report says where they went and what to call them.
+    Every widget is listed whatever page it is on — a panel has to be findable
+    by the thing that writes to it, and it is still taking writes — so without
+    this a board of forty widgets showing twelve reads as a board that is broken.
     """
-    hidden = groups.away(repo.list_items())
-    if not hidden:
-        return ""
-    named = ", ".join(f"{i.id} ({len(groups.members(i))} widgets)" for i in hidden)
-    plural = "group is" if len(hidden) == 1 else "groups are"
-    return (
-        f" {len(hidden)} {plural} away and taking no room: {named}. "
-        f"show_group turns the board to one of them."
-    )
+    return "" if item.page == pages.showing() else f" [on page {item.page!r}, not showing]"
+
+
+def carried() -> str:
+    """Which page is showing and what else this board is holding, as a sentence.
+
+    board_status counts what takes room on one page, because each page has the
+    whole grid to itself. That is true, and it reads as half the board having
+    vanished unless the report says where the rest of it is and what to call it.
+    """
+    everything = repo.list_items()
+    counts = {name: 0 for name in pages.names(everything)}
+    for item in everything:
+        counts[item.page] = counts.get(item.page, 0) + 1
+    showing = pages.showing()
+    rest = ", ".join(f"{name!r} ({held})" for name, held in counts.items() if name != showing)
+    line = f" Showing page {showing!r}."
+    return line if not rest else f"{line} Also here, drawn by nothing until you turn to it: {rest}."
+
+
+def arranged(items: list[ItemRead] | None = None) -> dict:
+    """The whole board and the page it is turned to, for one ``board.arranged``.
+
+    Sent whole, and sent by everything that changes several widgets at once: a
+    fold, a regrouping, a page turn. Ten ``item.updated`` would render ten
+    times, and the change would crawl across the television a widget at a time.
+    """
+    board = items if items is not None else repo.list_items()
+    return BoardArranged(items=board, showing=pages.showing()).model_dump(mode="json")
 
 
 async def add(

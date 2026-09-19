@@ -73,6 +73,7 @@ function note(): Item {
     y: 2,
     w: 8,
     h: 6,
+    page: "main",
     parent_id: null,
     pinned: false,
     created_at: "2026-09-01T00:00:00Z",

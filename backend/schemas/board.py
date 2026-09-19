@@ -97,6 +97,11 @@ __all__ = [
 # refusing to let anything overlap it. Zero is not the floor for that reason.
 MIN_SIZE = 0.25
 
+# The page a board starts on, and the one a file written before pages had names
+# comes back onto. A page is nothing but a name its widgets carry, so this is
+# also what "no page in particular" is spelled as.
+DEFAULT_PAGE = "main"
+
 
 class Placement(BaseModel):
     """Where an item sits, in columns and rows. Never pixels.
@@ -150,8 +155,12 @@ class ItemUpdate(BaseModel):
     y: float | None = Field(default=None, ge=0)
     w: float | None = Field(default=None, ge=MIN_SIZE)
     h: float | None = Field(default=None, ge=MIN_SIZE)
-    parent_id: str | None = None
     pinned: bool | None = None
+    # No ``parent_id`` and no ``page``. Both say which widgets are drawn beside
+    # which, and both are a trade — a widget joining a folded group leaves the
+    # board with nothing taking its place. ``services.groups`` and
+    # ``services.pages`` make those trades whole; a PATCH that wrote either
+    # field straight through skipped every check they make.
 
 
 class Change(BaseModel):
@@ -183,9 +192,6 @@ class Change(BaseModel):
     color: Colour | None = None
     border: Colour | None = None
     scale: float | None = Field(default=None, ge=0.25, le=4)
-    # Which group this widget joins. ``None`` leaves it where it is, like every
-    # other field here; ``remove_from_group`` is how one leaves a group.
-    parent_id: str | None = None
 
 
 class Arrangement(BaseModel):
@@ -233,6 +239,11 @@ class ItemRead(BaseModel):
     # the payload for the same reason that does — a payload is rewritten whole
     # by whoever owns it, and this is not theirs to overwrite.
     playback: Playback | None = None
+    # The page this widget is on. Exactly one, and the board shows one page at
+    # a time: a widget on any other takes no room, is not drawn, and goes on
+    # taking writes by ``key`` the whole time, so a page comes back current
+    # rather than rebuilt. Changed through ``services.pages``, never by a PATCH.
+    page: str = DEFAULT_PAGE
     x: float
     y: float
     w: float
@@ -282,14 +293,39 @@ class BoardSnapshot(BaseModel):
     """Everything a client needs on connect."""
 
     items: list[ItemRead]
+    # Which page the board is turned to. Every widget is sent, whatever page it
+    # is on, and the page decides which of them the television draws — the same
+    # rule the server keeps, so the two cannot disagree about what is up.
+    showing: str
     background: Background | None
     ink: Ink | None
     notifications: list[Notification]
 
 
-class BoardStatus(BaseModel):
-    """Occupancy summary, so a caller can look before it leaps."""
+class BoardArranged(BaseModel):
+    """The board whole, as the one event a rearrangement sends.
 
+    Turning the page rides on this rather than on an event of its own, because
+    it is the same thing from the television's side: the widgets on screen are
+    replaced in a single frame. Sent whole so the TV cuts instead of dealing
+    them out one at a time.
+    """
+
+    items: list[ItemRead]
+    showing: str
+
+
+class BoardStatus(BaseModel):
+    """Occupancy summary of the page that is showing, so a caller can look
+    before it leaps.
+
+    Judged against one page: each page has the whole grid to itself, so a board
+    carrying four of them reports the room on the one that is up.
+    """
+
+    # The page these numbers are about, and every page this board carries.
+    showing: str
+    pages: list[str]
     cols: int
     rows: int
     cells_total: float

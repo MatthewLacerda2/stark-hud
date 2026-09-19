@@ -6,7 +6,7 @@ from mcp.server.mcpserver import MCPServer
 from pydantic import ValidationError
 
 from core.hub import hub
-from hud_mcp.common import DESTRUCTIVE, describe, screens
+from hud_mcp.common import DESTRUCTIVE, carried, describe
 from repositories import board as repo
 from schemas.board import Arrangement, Change, ItemUpdate
 from services import arrange as arrange_service
@@ -51,7 +51,13 @@ def register(server: MCPServer) -> None:
         "h": 3}`. Anything left out is left alone, so a change says only what
         changes. `{"target": "...", "remove": true}` takes a widget off the
         board — the one verb here, because being gone is not a place. `color`,
-        `border`, `scale` and `parent_id` are accepted too. There is no add: a new widget has no id to name yet.
+        `color`, `border` and `scale` are accepted too. There is no add: a new
+        widget has no id to name yet, and no `parent_id` or page — which group
+        and which page a widget is on are trades, made by `add_to_group` and
+        `move_to_page`, not fields an arrangement writes.
+
+        An arrangement may name widgets on a page that is not showing, and each
+        page it touches has to end up a board somebody could turn back to.
 
         Name each widget once. Two entries for one widget is two answers to
         where it ends up.
@@ -159,14 +165,23 @@ def register(server: MCPServer) -> None:
 
     @server.tool(annotations=DESTRUCTIVE)
     async def clear_board() -> str:
-        """Remove everything. There is no undo and nothing is saved."""
+        """Remove every widget on every page. There is no undo and nothing is saved.
+
+        The whole board, not the page that is showing: a page is where a widget
+        is, not a board of its own to be emptied.
+        """
         removed = repo.clear()
         await hub.broadcast("board.cleared", {"removed": removed})
         return f"Cleared the board ({removed} items removed)"
 
     @server.tool()
     async def list_items() -> str:
-        """List everything on the board, oldest first."""
+        """List every widget, oldest first, whatever page it is on.
+
+        A widget on a page that is not showing says so on its line. It is listed
+        anyway because it still exists and still takes writes by key — a panel
+        has to be findable by whatever feeds it, wherever the board is turned.
+        """
         items = repo.list_items()
         if not items:
             return "The board is empty."
@@ -187,8 +202,10 @@ def register(server: MCPServer) -> None:
             f"Board {size(status.cols, status.rows)}, {status.item_count} items. "
             f"{cells(status.cells_used)}/{cells(status.cells_total)} cells used, "
             f"{cells(status.cells_free)} free. Largest free rectangle: {largest}."
-            # What is counted is what takes room, and a group that is away takes
-            # none. Saying so here is the difference between a board with space
-            # and a board with a screen you have not looked at.
-            f"{screens()}"
+            # Counted on the page that is showing, because that is the board:
+            # every other page has the whole grid to itself and takes none of
+            # this one. Saying which page, and what else is here, is the
+            # difference between a board with space and a board you have not
+            # turned to yet.
+            f"{carried()}"
         )

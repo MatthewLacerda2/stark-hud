@@ -30,9 +30,11 @@ from repositories import notifications as notifications_repo
 from schemas.board import BoardSnapshot
 from services import persistence
 from services.arrange import RepeatedTargetError, UnknownTargetError
-from services.board import KeyTakenError, MissingFileError, SlotTakenError
+from services.board import KeyTakenError, MissingFileError, NotByPatchError, SlotTakenError
+from services.groups import NotAGroupError
 from services.mesh import BadMeshError, MeshTooBigError
 from services.notifications import BadIconError
+from services.pages import GroupSplitError
 from services.placement import BoardFullError, NoRoomError
 
 APP_NAME = "stark-hud"
@@ -142,6 +144,12 @@ def create_app() -> FastAPI:
     app.add_exception_handler(SlotTakenError, _slot_taken_handler)
     app.add_exception_handler(KeyTakenError, _key_taken_handler)
     app.add_exception_handler(NoRoomError, _no_room_handler)
+    # All three are the board refusing a change it cannot make whole: a group
+    # that will not hold this, a page that will not take it, a field that is not
+    # a PATCH's to write. Same 409 and the same sentence saying why.
+    app.add_exception_handler(NotAGroupError, _no_room_handler)
+    app.add_exception_handler(GroupSplitError, _no_room_handler)
+    app.add_exception_handler(NotByPatchError, _no_room_handler)
     app.add_exception_handler(RepeatedTargetError, _no_room_handler)
     app.add_exception_handler(UnknownTargetError, _unknown_target_handler)
     app.add_exception_handler(MissingFileError, _missing_file_handler)
@@ -192,6 +200,7 @@ def _register_socket(app: FastAPI) -> None:
         try:
             snapshot = BoardSnapshot(
                 items=repo.list_items(),
+                showing=repo.showing(),
                 background=repo.get_background(),
                 ink=repo.get_ink(),
                 notifications=notifications_repo.list_all(),

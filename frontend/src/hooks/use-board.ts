@@ -40,6 +40,12 @@ const ORIGINS_KEPT = 4;
 
 interface BoardState {
   items: Item[];
+  /**
+   * Which page the board is turned to. Every widget is here whatever page it
+   * is on — one of them may be a panel something is still writing to — and this
+   * is what decides which of them the board draws. See `lib/pages.ts`.
+   */
+  showing: string;
   background: Background | null;
   ink: Ink | null;
   notifications: Notification[];
@@ -92,6 +98,7 @@ interface BoardState {
 
 const EMPTY: BoardState = {
   items: [],
+  showing: "",
   background: null,
   ink: null,
   notifications: [],
@@ -117,6 +124,7 @@ export function reduceBoard(
     case "board.snapshot":
       return {
         items: message.data.items,
+        showing: message.data.showing,
         background: message.data.background,
         ink: message.data.ink,
         notifications: message.data.notifications,
@@ -146,7 +154,13 @@ export function reduceBoard(
       // One event for a change that moved several widgets. Sent whole rather
       // than as a burst of updates so that folding a group is one render on the
       // television, instead of a fold crawling across it a widget at a time.
-      return { ...state, items: message.data.items };
+      // Turning the page arrives here too, and for the same reason: one frame
+      // in which the old page's widgets go and the new one's appear.
+      return {
+        ...state,
+        items: message.data.items,
+        showing: message.data.showing,
+      };
     case "background.changed":
       return { ...state, background: message.data };
     case "ink.changed":

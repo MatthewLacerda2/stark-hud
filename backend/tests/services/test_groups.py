@@ -1,9 +1,10 @@
 """Groups: the trade of room that folding makes, and what it refuses.
 
-A group is the answer to holding more than one subject, and the thing pages
-never managed. What matters is that folding is a trade — the widgets come off
-the board and the group takes their place — and that either half of it can be
-refused rather than shoved through.
+A group is a handful of widgets on one page that fold away together. What
+matters is that folding is a trade — the widgets come off the board and the
+group takes their place — and that either half of it can be refused rather than
+shoved through. Holding more than one screenful is a page's job, and lives in
+``test_pages.py``.
 """
 
 import pytest
@@ -11,7 +12,7 @@ import pytest
 from repositories import board as repo
 from schemas.board import GroupPayload, ItemCreate, ItemUpdate, NotePayload
 from services import board as service
-from services import groups
+from services import groups, pages
 from services.groups import NestedGroupError, NoRoomError
 
 
@@ -113,66 +114,37 @@ def test_removing_a_group_gives_its_widgets_back():
     assert [i.id for i in groups.on_board(repo.list_items())] == [note.id]
 
 
-def test_a_group_that_is_away_occupies_nothing():
-    """A screen that is not showing: no widgets, no shelf, no room taken."""
-    note = _note(0, 0, 8, 6)
-    group = _group(note)
-    groups.show(None)
+def test_a_group_is_folded_against_its_own_page():
+    """The only board a fold can disturb is the one its widgets are on."""
+    group = groups.fold(_group(_note(0, 0, 32, 18)))
+    pages.send([repo.get(group.id)], "planning")
+    _note(0, 0, 32, 18)  # the whole of the default page, where the group was
 
-    assert repo.get(group.id).payload.state == "away"
-    assert groups.on_board(repo.list_items()) == []
-    assert service.status().item_count == 0
-    assert service.status().cells_used == 0
-
-    # And the room its widgets are holding is somebody else's now.
-    squatter = _note(0, 0, 8, 6)
-    assert [i.id for i in groups.on_board(repo.list_items())] == [squatter.id]
+    # The fold comes back on the page it went to, which has nothing else on it.
+    groups.unfold(repo.get(group.id))
+    assert [i.page for i in groups.on_board(pages.on(repo.list_items(), "planning"))] == [
+        "planning"
+    ]
 
 
-def test_showing_swaps_one_full_board_for_another():
-    """The whole reason this is one call: each screen wants the room the other has."""
-    first = _group(_note(0, 0, 32, 18))
-    groups.show(None)
-    second = _group(_note(0, 0, 32, 18))
+def test_joining_a_group_brings_a_widget_onto_its_page():
+    """A group and its widgets are one thing on one board."""
+    group = service.create(ItemCreate(payload=GroupPayload()))
+    pages.show("planning")
+    elsewhere = _note(0, 0)
 
-    # One at a time is not slow, it is impossible: the room is still the other's.
+    groups.gather(repo.get(group.id), [elsewhere])
+
+    assert repo.get(elsewhere.id).page == "main"
+
+
+def test_a_widget_is_not_grouped_onto_a_page_with_no_room_for_it():
+    """It really does move, so it is checked like anything else that moves."""
+    group = service.create(ItemCreate(payload=GroupPayload()))
+    _note(0, 0, 8, 6)
+    pages.show("planning")
+    elsewhere = _note(0, 0, 8, 6)
+
     with pytest.raises(NoRoomError):
-        groups.unfold(repo.get(first.id))
-
-    groups.show(repo.get(first.id))
-    assert [i.parent_id for i in groups.on_board(repo.list_items())] == [first.id]
-    assert repo.get(second.id).payload.state == "away"
-
-
-def test_showing_a_group_puts_a_folded_one_away_too():
-    """One screen at a time, whatever the others were doing a moment ago."""
-    shelf = groups.fold(_group(_note(0, 0)))
-    other = _group(_note(10, 4))
-    groups.show(repo.get(other.id))
-
-    assert repo.get(shelf.id).payload.state == "away"
-    assert [i.id for i in groups.away(repo.list_items())] == [shelf.id]
-
-
-def test_a_widget_on_a_screen_that_is_not_showing_is_still_writable():
-    """Away is weightless, not asleep — which is what makes a switch back a cut."""
-    note = _note(0, 0)
-    group = _group(note)
-    groups.show(None)
-
-    written = service.update(repo.get(note.id), ItemUpdate(payload=NotePayload(text="current")))
-
-    assert written.payload.text == "current"
-    assert groups.on_board(repo.list_items()) == []
-    assert repo.get(group.id).payload.state == "away"
-
-
-def test_a_group_that_is_away_will_not_take_a_widget():
-    """Membership changes while a group is open, which is when the room can see it."""
-    group = _group(_note(0, 0))
-    groups.show(None)
-    loose = _note(10, 4)
-
-    with pytest.raises(NoRoomError) as excinfo:
-        groups.gather(repo.get(group.id), [loose])
-    assert "away" in str(excinfo.value)
+        groups.gather(repo.get(group.id), [elsewhere])
+    assert repo.get(elsewhere.id).page == "planning"

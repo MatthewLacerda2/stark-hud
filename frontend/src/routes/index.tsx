@@ -14,6 +14,7 @@ import { useBoard } from "@/hooks/use-board";
 import { useLook } from "@/hooks/use-look";
 import { useSpeech } from "@/hooks/use-speech";
 import { onBoard } from "@/lib/groups";
+import { onPage } from "@/lib/pages";
 import { maximisedIn } from "@/lib/maximised";
 import { inkVars } from "@/lib/ink";
 import { tapeVars } from "@/lib/vhs";
@@ -29,6 +30,7 @@ function BoardPage() {
   const { t } = useTranslation();
   const {
     items,
+    showing,
     background,
     ink,
     notifications,
@@ -55,10 +57,10 @@ function BoardPage() {
   const cols = status.data?.cols ?? 12;
   const rows = status.data?.rows ?? 8;
 
-  // What is actually on the board. A widget in a group that is folded or away is
-  // not, and neither is an open group, which is a bracket rather than a pane —
-  // nor a group that is away, which is a screen this board is not showing.
-  const shown = onBoard(items);
+  // What is actually on the board: the page that is showing, less whatever is
+  // folded away inside a group on it. An open group is a bracket rather than a
+  // pane, so it draws nothing either.
+  const shown = onBoard(onPage(items, showing));
   // The background is behind everything, so a widget given the whole board hides
   // it completely — and a hidden video is still a video the machine decodes.
   const covered = maximisedIn(shown) !== undefined;

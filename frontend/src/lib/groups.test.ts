@@ -4,6 +4,8 @@
  * Both sides have to agree or the television draws a board the server does not
  * think exists — a widget in a folded group would be on screen and refuse to be
  * placed anywhere, which is the worst of both.
+ *
+ * One page's worth of widgets: taking the page off is `lib/pages.test.ts`.
  */
 import { describe, expect, it } from "vitest";
 import type { GroupState, Item, Payload } from "@/lib/schemas/board";
@@ -27,6 +29,7 @@ function item(
     y: 0,
     w: 4,
     h: 3,
+    page: "main",
     parent_id: parent,
     pinned: false,
     created_at: "2026-09-01T00:00:00Z",
@@ -47,24 +50,15 @@ describe("what is actually on the board", () => {
     expect(onBoard(board).map((i) => i.id)).toEqual(["g"]);
   });
 
-  it("draws neither a group that is away nor anything inside it", () => {
-    // A screen that is not showing. The one widget here that exists, is folded
-    // inside nothing, and is still not on the television.
-    const board = [item("g", group("away")), item("a", note, "g")];
-    expect(onBoard(board)).toEqual([]);
-  });
-
-  it("shows one screen at a time and everything outside them", () => {
-    // The switch, as the television sees it: two full-board groups, one open
-    // and one away, and the widgets that are in neither stay where they are.
+  it("leaves the widgets of a second, open group alone", () => {
     const board = [
-      item("g", group("open")),
+      item("g", group("folded")),
       item("a", note, "g"),
-      item("h", group("away")),
+      item("h", group("open")),
       item("b", note, "h"),
       item("c", note),
     ];
-    expect(onBoard(board).map((i) => i.id)).toEqual(["a", "c"]);
+    expect(onBoard(board).map((i) => i.id)).toEqual(["g", "b", "c"]);
   });
 
   it("leaves everything outside a group alone", () => {

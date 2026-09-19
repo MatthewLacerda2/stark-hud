@@ -2,7 +2,9 @@
 
 from httpx import AsyncClient
 
-from schemas.board import ItemUpdate
+from repositories import board as repo
+from schemas.board import DEFAULT_PAGE, ItemUpdate
+from services import groups
 
 NOTE = {"payload": {"kind": "note", "text": "hello"}}
 ITEMS = "/api/v1/board/items"
@@ -26,12 +28,10 @@ NOT_STYLE = {
     "payload",
     "key",
     "description",
-    "page",
     "x",
     "y",
     "w",
     "h",
-    "parent_id",
     "pinned",
 }
 
@@ -57,14 +57,27 @@ async def test_update_moves_and_rewrites_payload(client: AsyncClient) -> None:
     assert updated["payload"]["text"] == "changed"
 
 
-async def test_removing_a_box_orphans_its_children(client: AsyncClient) -> None:
+async def test_removing_a_group_orphans_its_children(client: AsyncClient) -> None:
     """Losing a container must never silently delete its content."""
-    box = (await client.post(ITEMS, json={"payload": {"kind": "box", "label": "group"}})).json()
-    child = (await client.post(ITEMS, json={**NOTE, "parent_id": box["id"]})).json()
-    await client.delete(f"{ITEMS}/{box['id']}")
+    group = (await client.post(ITEMS, json={"payload": {"kind": "group"}})).json()
+    child = (await client.post(ITEMS, json={**NOTE, "parent_id": group["id"]})).json()
+    await client.delete(f"{ITEMS}/{group['id']}")
     survivors = (await client.get(ITEMS)).json()
     assert [i["id"] for i in survivors] == [child["id"]]
     assert survivors[0]["parent_id"] is None
+
+
+async def test_only_a_group_takes_a_widget(client: AsyncClient) -> None:
+    """A box is a line drawn on the board, not somewhere a widget can live.
+
+    ``parent_id`` is membership of a group and nothing else, so the one check
+    ``add_to_group`` makes is made here too — a widget parented to a box would
+    be drawn and never folded, which reads as a group that does not work.
+    """
+    box = (await client.post(ITEMS, json={"payload": {"kind": "box", "label": "frame"}})).json()
+    refused = await client.post(ITEMS, json={**NOTE, "parent_id": box["id"]})
+    assert refused.status_code == 409
+    assert "not a group" in refused.json()["detail"]
 
 
 async def test_clear_reports_how_many_it_dropped(client: AsyncClient) -> None:
@@ -136,3 +149,44 @@ async def test_a_style_set_later_sticks(client: AsyncClient) -> None:
     item = (await client.post(ITEMS, json=NOTE)).json()
     updated = (await client.patch(f"{ITEMS}/{item['id']}", json=STYLES)).json()
     assert {name: updated[name] for name in STYLES} == STYLES
+
+
+async def test_a_patch_cannot_open_a_group(client: AsyncClient) -> None:
+    """Folding is a trade, and a PATCH did the half that is a field.
+
+    Writing ``state`` straight through put a group's widgets back on the board
+    without the room check ``unfold_group`` makes, so two of them could end up
+    in the same place — an overlap nothing else on this board allows.
+    """
+    group = (await client.post(ITEMS, json={"payload": {"kind": "group"}})).json()
+    await client.post(ITEMS, json={**NOTE, "parent_id": group["id"]})
+    folded = groups.fold(repo.get(group["id"]))
+    await client.post(ITEMS, json={**NOTE, "x": folded.x, "y": folded.y})
+
+    refused = await client.patch(
+        f"{ITEMS}/{group['id']}", json={"payload": {"kind": "group", "state": "open"}}
+    )
+    assert refused.status_code == 409
+    assert repo.get(group["id"]).payload.state == "folded"
+
+
+async def test_a_patch_cannot_change_which_group_a_widget_is_in(client: AsyncClient) -> None:
+    """``parent_id`` is not on an update at all, so it is ignored rather than obeyed."""
+    group = (await client.post(ITEMS, json={"payload": {"kind": "group"}})).json()
+    loose = (await client.post(ITEMS, json=NOTE)).json()
+
+    patched = await client.patch(f"{ITEMS}/{loose['id']}", json={"parent_id": group["id"]})
+
+    assert patched.status_code == 200
+    assert patched.json()["parent_id"] is None
+    assert "parent_id" not in ItemUpdate.model_fields
+
+
+async def test_a_patch_cannot_move_a_widget_to_another_page(client: AsyncClient) -> None:
+    """The same hole, one field along: a page is a trade too, made by move_to_page."""
+    item = (await client.post(ITEMS, json=NOTE)).json()
+
+    patched = await client.patch(f"{ITEMS}/{item['id']}", json={"page": "planning"})
+
+    assert patched.json()["page"] == DEFAULT_PAGE
+    assert "page" not in ItemUpdate.model_fields

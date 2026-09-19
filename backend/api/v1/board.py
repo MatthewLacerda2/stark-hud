@@ -9,6 +9,7 @@ from repositories import board as repo
 from schemas.board import (
     Arrangement,
     Background,
+    BoardArranged,
     BoardStatus,
     Ink,
     ItemCreate,
@@ -19,7 +20,7 @@ from schemas.board import (
 from services import arrange as arrange_service
 from services import board as service
 from services import media as media_service
-from services import origin
+from services import origin, pages
 
 
 async def _telling(request: Request) -> AsyncIterator[None]:
@@ -160,7 +161,8 @@ async def arrange(payload: Arrangement) -> list[ItemRead]:
     simultaneous rearrangement crawl across the television one widget at a time.
     """
     items = arrange_service.rearrange(payload.changes)
-    await hub.broadcast("board.arranged", {"items": [i.model_dump(mode="json") for i in items]})
+    arranged = BoardArranged(items=items, showing=pages.showing())
+    await hub.broadcast("board.arranged", arranged.model_dump(mode="json"))
     return items
 
 

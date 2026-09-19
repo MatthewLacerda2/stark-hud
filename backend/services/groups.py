@@ -4,26 +4,30 @@ A group is a widget that holds widgets, and membership is ``parent_id`` on the
 widgets themselves. Nothing is laid out inside a group and nothing moves into
 one — the edge is the whole mechanism.
 
-What a group has that no other widget has is three states, and what they do with
+What a group has that no other widget has is two states, and what they do with
 the room the group holds:
 
 - **Open**, the group occupies nothing and its widgets are on the board exactly
   where they always were.
 - **Folded**, its widgets come off the board and the group takes their place.
-- **Away**, its widgets come off the board and nothing takes their place. That
-  is a screen which is not showing, and it is what lets several full-board
-  groups exist at once.
 
-That trade is why every one of these is a service rather than a field somebody
-sets. Both halves have to happen at once or the board is briefly illegal, and
-either half can be refused: a fold has to land somewhere free, and an unfold has
-to find the room its widgets left still empty. Nothing is shoved aside to make
+That trade is why each of these is a service rather than a field somebody sets.
+Both halves have to happen at once or the board is briefly illegal, and either
+half can be refused: a fold has to land somewhere free, and an unfold has to
+find the room its widgets left still empty. Nothing is shoved aside to make
 either work, which is the answer the board gives everywhere else.
 
-``show`` is the same argument made across several groups at once. One group's
-layout fills the board, so the room the next one wants is held by the one that
-has it until the same change takes it — which is why turning the board from one
-screen to another is one call and could not be several.
+A group is a handful of widgets on one page, not a page of its own. A whole
+board's worth of layout is a page — see ``services.pages`` — and a group lives
+on one, folds on one, and moves between them with its widgets. There was a
+third state here once, ``away``, which was a group doing a page's job badly: it
+could not hold the widgets that were in no group, so the ordinary board came
+back in three calls with the television watching it assemble.
+
+Everything here is judged against one page's worth of widgets, because that is
+what a board is. The filtering is a comparison on ``item.page`` rather than a
+call into ``services.pages``: that module reaches back into this one for what a
+fold is doing with the room, and one of the two has to be the plain half.
 """
 
 from core.config import get_settings
@@ -38,15 +42,14 @@ __all__ = [
     # rectangles, and is named here because this is where callers meet it.
     "NoRoomError",
     "NotAGroupError",
-    "away",
     "disband",
     "fold",
     "gather",
     "is_group",
+    "joining",
     "members",
     "on_board",
     "scatter",
-    "show",
     "unfold",
     "weightless",
 ]
@@ -94,63 +97,41 @@ def _as_group(item: ItemRead) -> GroupPayload | None:
     return item.payload if isinstance(item.payload, GroupPayload) else None
 
 
-def _held(items: list[ItemRead]) -> list[tuple[ItemRead, GroupPayload]]:
-    """Every group among these widgets, with the payload that says what it is doing."""
-    return [(i, held) for i in items if (held := _as_group(i)) is not None]
+def _folded(items: list[ItemRead]) -> set[str]:
+    """The ids of the groups that are closed.
 
-
-def _closed(items: list[ItemRead]) -> set[str]:
-    """The ids of the groups whose widgets are off the board.
-
-    Folded and away both take the widgets off. What separates them is what
-    happens to the room, and that is the next question, not this one.
+    One set answers both halves of the trade, which is what having two states
+    rather than three buys: a folded group is exactly the one that is drawn,
+    and exactly the one whose widgets are not.
     """
-    return {i.id for i, held in _held(items) if held.state != "open"}
-
-
-def _shelved(items: list[ItemRead]) -> set[str]:
-    """The ids of the groups that are themselves drawn: the folded ones.
-
-    A group away draws nothing. It is the one widget on this board that exists,
-    is not folded inside anything, and is still not on the screen.
-    """
-    return {i.id for i, held in _held(items) if held.state == "folded"}
-
-
-def away(items: list[ItemRead]) -> list[ItemRead]:
-    """The groups that are not showing, oldest first.
-
-    Read by the tools rather than by the board: a caller that cannot see the
-    television has no other way to learn that the room it was told is free
-    belongs to a screen it could turn to.
-    """
-    return [i for i, held in _held(items) if held.state == "away"]
+    return {i.id for i in items if (held := _as_group(i)) is not None and held.state == "folded"}
 
 
 def on_board(items: list[ItemRead]) -> list[ItemRead]:
-    """The widgets actually taking up room, out of everything that exists.
+    """The widgets actually taking up room, out of one page's worth of them.
 
     An open group is a bracket rather than a pane, so it takes up nothing and
     its widgets take up what they always did. A folded group is the other way
-    round. A group that is away is neither: nothing of it is here at all.
-    Everything not in a group is simply on the board.
+    round. Everything not in a group is simply on the board.
+
+    Callers pass the page they mean; ``services.pages.drawn`` is the two rules
+    together and is what the rest of the backend actually calls.
     """
-    closed, shelved = _closed(items), _shelved(items)
-    return [i for i in items if i.parent_id not in closed and (not is_group(i) or i.id in shelved)]
+    folded = _folded(items)
+    return [i for i in items if i.parent_id not in folded and (not is_group(i) or i.id in folded)]
 
 
 def weightless(payload: Payload, parent_id: str | None, items: list[ItemRead]) -> bool:
     """Whether a widget of this description takes up no room at all.
 
-    Two things do not: a group that is not folded, and anything inside a group
-    that is not open. Neither can collide with anything, so neither has a slot
-    found for it or its coordinates checked — a put-away widget's position is a
-    note of where it comes back to, and the unfold or the switch back is where
-    that is finally tested.
+    Two things do not: a group that is open, and anything inside a group that is
+    folded. Neither can collide with anything, so neither has a slot found for
+    it or its coordinates checked — a put-away widget's position is a note of
+    where it comes back to, and the unfold is where that is finally tested.
     """
     if payload.kind == "group":
-        return payload.state != "folded"
-    return parent_id in _closed(items)
+        return payload.state == "open"
+    return parent_id in _folded(items)
 
 
 def members(group: ItemRead, items: list[ItemRead] | None = None) -> list[ItemRead]:
@@ -158,13 +139,6 @@ def members(group: ItemRead, items: list[ItemRead] | None = None) -> list[ItemRe
     return [
         i for i in (items if items is not None else repo.list_items()) if i.parent_id == group.id
     ]
-
-
-def _refuse(arrangement: list[ItemRead], doing: str) -> None:
-    """Raise unless this arrangement is a board that could actually be drawn."""
-    why = illegal(arrangement, *_grid())
-    if why is not None:
-        raise NoRoomError(f"Not {doing}: {why}")
 
 
 def _where_it_folds(group: ItemRead, inside: list[ItemRead]) -> Placement:
@@ -184,7 +158,11 @@ def _where_it_folds(group: ItemRead, inside: list[ItemRead]) -> Placement:
 
 
 def _turn(group: ItemRead, state: GroupState, place: Placement | None = None) -> ItemRead:
-    """Fold or unfold, but only if the arrangement it produces is a legal board."""
+    """Fold or unfold, but only if the arrangement it produces is a legal board.
+
+    Legal on the group's own page, which is the only board this can disturb: a
+    group folds where its widgets are, and they are all on that page with it.
+    """
     if not is_group(group):
         raise NotAGroupError(group)
     changed: dict[str, object] = {"payload": group.payload.model_copy(update={"state": state})}
@@ -192,8 +170,10 @@ def _turn(group: ItemRead, state: GroupState, place: Placement | None = None) ->
         changed |= {"x": place.x, "y": place.y, "w": place.w, "h": place.h}
     turned = group.model_copy(update=changed)
 
-    after = on_board([turned if i.id == group.id else i for i in repo.list_items()])
-    _refuse(after, "unfolded" if state == "open" else "folded")
+    board = [turned if i.id == group.id else i for i in repo.list_items()]
+    why = illegal(on_board([i for i in board if i.page == group.page]), *_grid())
+    if why is not None:
+        raise NoRoomError(f"Not {'unfolded' if state == 'open' else 'folded'}: {why}")
     return repo.replace(turned)
 
 
@@ -209,76 +189,70 @@ def unfold(group: ItemRead) -> ItemRead:
     return _turn(group, "open")
 
 
-def _screened(item: ItemRead, showing: str | None) -> ItemRead:
-    """This widget as it stands once the board has been turned to ``showing``.
-
-    Anything that is not a group is untouched: a switch changes which widgets
-    are drawn, never where any of them is. The layout a screen comes back to is
-    the one it left.
-    """
-    held = _as_group(item)
-    if held is None:
-        return item
-    state: GroupState = "open" if item.id == showing else "away"
-    return item.model_copy(update={"payload": held.model_copy(update={"state": state})})
-
-
-def show(group: ItemRead | None) -> list[ItemRead]:
-    """Turn the board to one group: it opens, and every other group goes away.
-
-    Each group carries a whole board's worth of layout, so the room this one
-    wants is held by the one that has it until the same change takes it away.
-    One group opened at a time would be refused every time, exactly as a swap of
-    two widgets is: what has to be legal is the arrangement this produces, not
-    any moment inside it.
-
-    Nothing is drawn for the screens that leave and nothing is rebuilt for the
-    one that arrives — the widgets kept taking writes while they were away — so
-    the board cuts to a screen that is already current.
-
-    ``None`` shows none of them, leaving the board with whatever is in no group.
-    Returns the board whole, because the one event this sends carries it whole.
-    """
-    if group is not None and not is_group(group):
-        raise NotAGroupError(group)
-    showing = group.id if group is not None else None
-    board = [_screened(i, showing) for i in repo.list_items()]
-    _refuse(on_board(board), "shown")
-    return repo.swap(board)
-
-
 def _open_enough(item: ItemRead, items: list[ItemRead]) -> None:
     """Raise if this widget is off the board, so its membership cannot change.
 
-    Moving a widget into or out of a group that is not open would be half of the
+    Moving a widget into or out of a group that is folded would be half of the
     trade folding makes: it would vanish from the board with nothing taking its
     place, or appear on it with nothing having made way. Membership changes
-    while a group is showing, which is also the only time anybody can see what
+    while a group is open, which is also the only time anybody can see what
     they did.
     """
-    if item.parent_id in _closed(items):
+    if item.parent_id in _folded(items):
         raise NoRoomError(
-            f"Not regrouped: {item.id} is inside {item.parent_id}, which is not open. "
-            f"Show or unfold that group first."
+            f"Not regrouped: {item.id} is inside {item.parent_id}, which is folded. "
+            f"Unfold that group first."
         )
 
 
+def joining(parent_id: str) -> ItemRead:
+    """The group a widget is about to be put into, or a refusal saying why not.
+
+    The one check ``create`` makes that ``gather`` also makes, because a widget
+    created straight into a group never passes through ``gather`` at all — and a
+    ``parent_id`` pointing at a note, or at a group on another page, is a widget
+    nothing will ever draw.
+    """
+    parent = repo.get(parent_id)
+    if parent is None:
+        raise NoRoomError(f"No item {parent_id} to put this in.")
+    held = _as_group(parent)
+    if held is None:
+        raise NotAGroupError(parent)
+    if held.state != "open":
+        raise NoRoomError(f"Not grouped: {parent_id} is folded, not open. Unfold it first.")
+    return parent
+
+
 def gather(group: ItemRead, items: list[ItemRead]) -> list[ItemRead]:
-    """Put these widgets in this group, and return them as they now stand."""
+    """Put these widgets in this group, and return them as they now stand.
+
+    Everything joins the group's page as it joins the group: a group and its
+    widgets are one thing on one board.
+    """
     held = _as_group(group)
     if held is None:
         raise NotAGroupError(group)
     if held.state != "open":
         raise NoRoomError(
-            f"Not grouped: {group.id} is {held.state}, not open. "
-            f"Show or unfold it, then put things in it."
+            f"Not grouped: {group.id} is folded, not open. Unfold it, then put things in it."
         )
     everything = repo.list_items()
     for item in items:
         if is_group(item):
             raise NestedGroupError(item)
         _open_enough(item, everything)
-    return [repo.replace(i.model_copy(update={"parent_id": group.id})) for i in items]
+    joined = [i.model_copy(update={"parent_id": group.id, "page": group.page}) for i in items]
+    # Grouping moves nothing when everything is already on the group's page,
+    # which is the ordinary case and passes this without doing anything. A
+    # widget arriving from another page does move, though — onto a board that
+    # may already have something where it thinks it is — so the arrangement is
+    # checked, the same as a fold is.
+    board = {i.id: i for i in repo.list_items()} | {i.id: i for i in joined}
+    why = illegal(on_board([i for i in board.values() if i.page == group.page]), *_grid())
+    if why is not None:
+        raise NoRoomError(f"Not grouped: {why}")
+    return [repo.replace(i) for i in joined]
 
 
 def scatter(items: list[ItemRead]) -> list[ItemRead]:
@@ -293,7 +267,7 @@ def disband(group: ItemRead) -> None:
     """Remove a group, putting its widgets back on the board first.
 
     Losing a container never silently takes its contents with it, so a group
-    that is not open can only be removed while there is still room for what is
+    that is folded can only be removed while there is still room for what is
     inside it.
     """
     held = _as_group(group)
