@@ -8,8 +8,9 @@
 #   docker compose logs -f           follow
 #   docker compose down              stop and remove
 #
-# The stats pusher stays on the host on purpose: it reads /proc, nvidia-smi and
-# tmux, none of which mean anything from inside a container.
+# The agent — tools/agent.py, which feeds the panels — stays on the host on
+# purpose: it reads /proc, nvidia-smi and tmux, none of which mean anything from
+# inside a container, and it runs the commands in state/sources.toml.
 
 services:
   backend:
@@ -51,7 +52,10 @@ services:
       # own, so it can be backed up, edited or swapped for another board.
       STATE_FILE: /data/board.hud
     volumes:
-      # Read-write, unlike the rest: this is the one thing the backend owns.
+      # Read-write, unlike the rest: the board file and the spoken lines are
+      # what the backend owns. The same directory is where this instance's own
+      # data lives — sources.toml and the scripts it names — which the agent
+      # reads on the host and the backend never looks at.
       - ./state:/data
       # Media items hold absolute paths, so the same path has to resolve inside
       # the container. Read-only: the board shows files, it never writes them.

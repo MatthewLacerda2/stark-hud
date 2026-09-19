@@ -7,7 +7,7 @@ this text, produce these rows — which is why each collector now has a `parse`
 or a `row` beside the part that goes out and gets it.
 """
 
-from tools.collectors import alerts, cpu, github_commits, gpu, mem, temps, tmux_sessions
+from collectors import alerts, cpu, github_commits, gpu, mem, tmux_sessions
 
 PROC_STAT = """\
 cpu  100 0 100 800 0 0 0 0 0 0
@@ -80,15 +80,22 @@ def test_the_gpu_gauge_says_what_it_was_asked_for():
     }
 
 
-def test_a_temperature_that_could_not_be_read_is_left_out():
-    """A zero on this chart is a cold CPU, which is a lie; a gap is the truth."""
-    assert temps.row(51.0, None, "12:00:00") == {"t": "12:00:00", "cpu": 51.0}
-    assert temps.row(None, None, "12:00:00") == {"t": "12:00:00"}
+def test_only_one_nvidia_smi_at_a_time(tmp_path):
+    """Everything on this machine that runs nvidia-smi takes this one lock.
 
+    A timeout is not enough: a wedged driver leaves the process in
+    uninterruptible sleep, where the kill is queued and never lands. Sixty of
+    those is the load average past sixty, which is felt as the screen freezing.
+    Its own path here, because the real one is held by the live gauges.
+    """
+    lock = tmp_path / "nvidia-smi.lock"
+    first = gpu.take(lock)
 
-def test_hwmon_reports_thousandths_of_a_degree():
-    """51000 is 51 degrees, and printing it raw once put the board in the sun."""
-    assert temps.milli("51000\n") == 51.0
+    assert first is not None
+    assert gpu.take(lock) is None
+
+    first.close()
+    assert gpu.take(lock) is not None
 
 
 def test_no_tmux_sessions_is_an_empty_list_and_not_a_blank_line():

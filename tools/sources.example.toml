@@ -1,16 +1,33 @@
-# What keeps the board moving.
+# What keeps the board moving — the example a fresh clone runs from.
 #
-# Each source says three things and nothing else: where the data comes from,
-# how often to ask, and which panel it lands in.
+# The live one is `state/sources.toml`, which this repository does not carry:
+# which panels a board has and what feeds them is one instance's data, not the
+# board's code. Copy this across to start, edit it there, and never edit it
+# here. The agent re-reads that file whenever it changes, so a new panel or a
+# different command is a save, not a restart of anything.
+#
+# Each source says where the data comes from, how often to ask, and what to do
+# with it:
 #
 #   command / url   where. A command prints JSON on stdout; a URL returns JSON.
-#                   {collectors} expands to tools/collectors.
+#                   {collectors} expands to tools/collectors, {state} to the
+#                   directory this file is in — so nothing here has to know
+#                   where the repository was checked out to.
 #   every           seconds between runs.
+#   timeout         optional. Seconds a command gets before it is given up on.
 #   history         optional. Keeps the last N rows, so a source that prints one
 #                   reading becomes a series without remembering anything itself.
 #   json_path       optional, for URLs: a dotted path to dig into the response.
 #   panel           the item to write. Anything the board accepts.
 #   place           optional x/y/w/h in grid cells; omit to let the board choose.
+#
+# What a source leaves out decides what it is. With a `panel` it is one widget,
+# rewritten each time it runs — and with no command either, a widget that only
+# has to exist and stay put. With `notifications = true` the rows go to the
+# inbox instead. With a command and no panel it is a job: the agent starts it,
+# does not wait for it, and does not start a second one while the first is
+# running, which is how a watcher that draws its own widgets gets to live in
+# `state/` rather than in this repository. See the commented example at the end.
 #
 # Commands live here rather than on the board on purpose: the board is open to
 # the whole LAN, and a display should not be a way to run code on this machine.
@@ -44,8 +61,6 @@ every = 5
 place = { x = 12, y = 0, w = 5, h = 5 }
 panel = { kind = "chart", chart = "radial", title = "RAM", x_key = "label", series = ["use"], max = 100, colors = ["#ffffffa6"], unfilled = "#ffffff80", thresholds = [{ at = 77, color = "#ff5c33" }] }
 
-# A darker green than the CPU's, because it is the other vendor's chip. Not a
-# warning colour: orange and red on a dashboard mean something is wrong.
 [[source]]
 name = "gpu"
 command = "python3 {collectors}/gpu.py util"
@@ -60,8 +75,6 @@ every = 3
 place = { x = 22, y = 0, w = 5, h = 5 }
 panel = { kind = "chart", chart = "radial", title = "VRAM", x_key = "label", series = ["pct"], max = 100, colors = ["#ffffffa6"], unfilled = "#ffffff80" }
 
-# One reading each time; `history` turns it into four minutes of line.
-# 90 °C is the ceiling we chose to draw against, not a hardware limit.
 [[source]]
 name = "tmux"
 command = "python3 {collectors}/tmux_sessions.py"
@@ -105,3 +118,14 @@ name = "alerts"
 command = "python3 {collectors}/alerts.py"
 every = 300
 notifications = true
+
+# A job: a command with no panel. The agent runs it on this cadence, beside
+# itself, and whatever it prints lands in the agent's log — it writes to the
+# board itself, with `from agent import Board` (the agent puts its own directory
+# in $STARK_HUD_TOOLS for exactly that). This is where an instance's own project
+# goes: a watcher in `state/`, not a script in this repository.
+#
+# [[source]]
+# name = "myproject"
+# command = "python3 {state}/myproject_watch.py"
+# every = 60
