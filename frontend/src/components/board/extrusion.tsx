@@ -38,6 +38,22 @@ const LIT_NEAR = 0.6;
 const LIT_FAR = 0.2;
 
 /**
+ * What a copy actually shows, and therefore the only part of it that has to
+ * keep up: a recharts drawing surface, and anything a widget has tagged as a
+ * mark of its own. The stylesheet hides everything else in a copy — see
+ * `extrude-copy` — so the words, the axes and the boxes around them are copied
+ * for the room they take up and then left alone.
+ */
+const MARKS = ".recharts-surface, [data-extrude-mark]";
+
+/** The element a mutation landed on, or the one holding the text that changed. */
+function elementOf(node: Node): Element | null {
+  return node.nodeType === Node.ELEMENT_NODE
+    ? (node as Element)
+    : node.parentElement;
+}
+
+/**
  * A chart with a thickness: its marks copied back into the pane behind it.
  *
  * The chart itself is untouched and stays on the face. Behind it, `LAYERS`
@@ -47,9 +63,18 @@ const LIT_FAR = 0.2;
  * deeper and in a little less light. Clones keep the marks' own colours, which a drop
  * shadow cannot: a red bar has red sides.
  *
- * The copies follow the chart. A MutationObserver re-clones whenever the chart
- * changes, at most once a frame, so a gauge that moves or animates in carries
- * its sides with it.
+ * The copies follow the chart. A MutationObserver re-takes them whenever the
+ * chart changes, at most once a frame, so a gauge that moves or animates in
+ * carries its sides with it.
+ *
+ * **What it re-takes is the whole of the cost.** A mark that moves moves every
+ * frame it is moving, and eight deep clones of a whole widget per frame put
+ * `cloneNode` and `replaceChildren` at the top of the board's profile and threw
+ * away the page's style for the document on each one. So a change that lands
+ * inside a mark swaps only the marks into copies that are already standing;
+ * the scaffolding around them — the card, the container, the words a copy hides
+ * anyway — is built once. A change that lands anywhere else could have moved
+ * the copy's layout, and takes the whole copy again.
  *
  * Off a depth board this draws the chart and nothing else: there is no pane for
  * the marks to run back into.
@@ -63,9 +88,11 @@ export function Extrusion({ children }: { children: ReactNode }) {
     const target = back.current;
     if (!source || !target || !source.closest(".depth-board")) return;
 
-    let frame = 0;
-    const copy = () => {
-      frame = 0;
+    /** Where each standing copy keeps its marks, so a refresh need not look. */
+    let standing: Element[][] = [];
+
+    /** Take all eight copies again, scaffolding and marks together. */
+    const build = () => {
       const layers = Array.from({ length: LAYERS }, (_, at) => {
         // Deepest first, so each nearer copy paints over the one behind it.
         const depth = (LAYERS - at) / LAYERS;
@@ -85,21 +112,74 @@ export function Extrusion({ children }: { children: ReactNode }) {
         return layer;
       });
       target.replaceChildren(...layers);
-    };
-    const soon = () => {
-      if (!frame) frame = requestAnimationFrame(copy);
+      standing = layers.map((layer) => [...layer.querySelectorAll(MARKS)]);
     };
 
-    const observer = new MutationObserver(soon);
+    /**
+     * Swap fresh marks into the copies that are already there.
+     *
+     * A mark that has appeared or gone is a change of shape rather than of
+     * value — the copies no longer line up with the chart — so that falls back
+     * to taking them whole.
+     */
+    const refresh = () => {
+      const marks = source.querySelectorAll(MARKS);
+      const lined =
+        standing.length === LAYERS &&
+        standing.every((found) => found.length === marks.length);
+      if (!lined) {
+        build();
+        return;
+      }
+      for (const found of standing)
+        marks.forEach((mark, at) => {
+          const fresh = mark.cloneNode(true) as Element;
+          found[at].replaceWith(fresh);
+          found[at] = fresh;
+        });
+    };
+
+    let whole = true;
+    let frame = 0;
+    const draw = () => {
+      frame = 0;
+      if (whole) build();
+      else refresh();
+      whole = false;
+    };
+    const soon = () => {
+      if (!frame) frame = requestAnimationFrame(draw);
+    };
+
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        if (!elementOf(record.target)?.closest(MARKS)) {
+          whole = true;
+          break;
+        }
+      }
+      soon();
+    });
     observer.observe(source, {
       subtree: true,
       childList: true,
       attributes: true,
       characterData: true,
     });
+
+    // How much smaller a copy is drawn is worked out from the screen, so a
+    // window that changes size has to be measured again. It is the one thing
+    // here that no mutation of the chart would report.
+    const remeasure = () => {
+      whole = true;
+      soon();
+    };
+    window.addEventListener("resize", remeasure);
+
     soon();
     return () => {
       observer.disconnect();
+      window.removeEventListener("resize", remeasure);
       cancelAnimationFrame(frame);
       target.replaceChildren();
     };
