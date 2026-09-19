@@ -13,13 +13,15 @@ from pydantic import BaseModel, ConfigDict, Field
 
 # The models a prompt may be sent to, as the Gemini docs read on 2026-09-13.
 #
-# Three, and all of them Flash: the whole reason this path exists beside Claude
-# is that a small imperative change should not cost a large model's turn. Prices
-# are per million tokens, input / output.
+# Two, and both Flash: the whole reason this path exists beside Claude is that a
+# small imperative change should not cost a large model's turn. Prices are per
+# million tokens, input / output.
 #
-#   gemini-2.5-flash-lite   $0.10 / $0.40   cheapest by a distance
 #   gemini-3.5-flash-lite   $0.30 / $2.50   the default
-#   gemini-3.8-flash        $0.75 / $3.75   for a sentence the small ones get wrong
+#   gemini-3.8-flash        $0.75 / $3.75   for a sentence the small one gets wrong
+#
+# 2.5 Flash Lite was on this menu and came off it: cheapest, but nobody picked
+# it, and a menu of two is a quicker choice at a keyboard.
 #
 # The Live API is deliberately not here. It is a stateful WebSocket built for
 # real-time audio, its tool calls have to be answered by hand, and it costs more
@@ -27,15 +29,19 @@ from pydantic import BaseModel, ConfigDict, Field
 # should be talked to rather than typed at, it is the right answer and it is its
 # own piece of work.
 CommandModel = Literal[
-    "gemini-2.5-flash-lite",
     "gemini-3.5-flash-lite",
     "gemini-3.8-flash",
 ]
 
-# The models that stop and think before answering, and so have to be told not
-# to. A thinking model on a menu whose entire purpose is speed is the slowest
-# thing on it unless its dial is turned down.
-THINKS = frozenset({"gemini-3.8-flash"})
+# How little each model may be asked to think. Both think before answering, and
+# on a menu whose entire purpose is speed the dial goes as low as it turns — but
+# how low that is differs per model, and Google refuses a request below the
+# floor with a 400 rather than rounding up. 3.8 Flash stops at LOW; asking it
+# for MINIMAL is exactly that refusal.
+LEAST_THINKING: dict[str, Literal["MINIMAL", "LOW"]] = {
+    "gemini-3.5-flash-lite": "MINIMAL",
+    "gemini-3.8-flash": "LOW",
+}
 
 
 class CommandRequest(BaseModel):
