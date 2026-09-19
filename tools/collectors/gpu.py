@@ -40,12 +40,27 @@ def row(reading: str, mode: str) -> dict[str, object]:
     return {"label": "", "pct": util}
 
 
-def held() -> object:
-    """Take the lock, or give up. Returned so the caller keeps it open."""
-    lock = LOCK.open("w")
+def take(path: Path = LOCK) -> object | None:
+    """The lock, or None if somebody else has it.
+
+    Returned rather than released so the caller keeps it open: an open file is
+    the lock. Anything else on this machine that is about to run nvidia-smi
+    takes this one, which is the point of it being here rather than private to
+    the gauges.
+    """
+    lock = path.open("w")
     try:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError:
+        lock.close()
+        return None
+    return lock
+
+
+def held() -> object:
+    """Take the lock, or give up — which for a one-shot gauge means saying so."""
+    lock = take()
+    if lock is None:
         sys.exit("nvidia-smi is already running and has not come back")
     return lock
 
