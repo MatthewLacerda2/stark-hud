@@ -53,15 +53,16 @@ PROGRESS_NOTE = (
     "How far the training run on the card is through its token budget: tokens "
     "trained on (last step in metrics.csv times tokens per optimizer step) "
     "against TRAIN_TOKEN_BUDGET, which is the number at the right end. Written "
-    "every minute by tools/trm_board.py and taken down with the sheets an hour "
-    "after the card goes quiet."
+    "every minute by tools/trm_board.py and taken down an hour after the card "
+    "goes quiet. The sheets beside it stay up."
 )
 
 NOTE = (
     "Hung here by tools/trm_board.py, which runs the TinyRefinementModel "
     "plotter and puts its sheets up. Not hand-maintained and not redrawn here: "
-    "to change what a panel shows, change that repo's instruments/plots.py. If "
-    "this picture is stale, that script is not running."
+    "to change what a panel shows, change that repo's instruments/plots.py. "
+    "Between runs it stays up showing the last one as it finished; if it is "
+    "stale while a run is on the card, that script is not running."
 )
 
 
@@ -175,7 +176,21 @@ def measure(done: int, budget: int) -> None:
     )
 
 
+def lower_bar() -> None:
+    """Take the progress bar down and leave the sheets where they are.
+
+    What the end of a run looks like. A bar with no run behind it says nothing,
+    but the last run's curves are still the most recent word on the model, and
+    they stay until the next run redraws them.
+    """
+    standing = by_key().get(PROGRESS_KEY)
+    if standing:
+        board("DELETE", f"/board/items/{standing['id']}")
+        log("bar lowered")
+
+
 def clear() -> None:
+    """Take everything this hangs down: the sheets and the bar. Only by hand."""
     standing = by_key()
     for key in (*(sheet[0] for sheet in SHEETS), PROGRESS_KEY):
         if key in standing:

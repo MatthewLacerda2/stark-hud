@@ -50,3 +50,28 @@ def test_a_run_with_no_rows_yet_has_no_progress_to_draw(
     """A bar at zero would say the run has started when nothing says so yet."""
     run = a_run(tmp_path, [], TRAIN_TOKEN_BUDGET=6400)
     assert trm_board.progress(tmp_path, run) is None
+
+
+def test_the_end_of_a_run_lowers_the_bar_and_leaves_the_sheets(
+    monkeypatch: pytest.MonkeyPatch, trm_board: ModuleType
+) -> None:
+    """The last run's curves stay on the wall; only the bar has nothing to say."""
+    images = importlib.import_module("board_images")
+    standing = [
+        {"id": "curve", "key": "trm_curve"},
+        {"id": "health", "key": "trm_health"},
+        {"id": "bar", "key": "trm_progress"},
+    ]
+    deleted: list[str] = []
+
+    def board(method: str, path: str, body: dict | None = None) -> list | None:
+        if method == "DELETE":
+            deleted.append(path.rsplit("/", 1)[-1])
+        return standing if method == "GET" else None
+
+    monkeypatch.setattr(images, "board", board)
+    monkeypatch.setattr(images, "log", lambda _message: None)
+
+    images.lower_bar()
+
+    assert deleted == ["bar"]

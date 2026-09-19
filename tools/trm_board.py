@@ -16,8 +16,10 @@ This is a picture hook.
     python3 tools/trm_board.py ~/Desktop/Repos/TinyRefinementModel
 
 It runs until stopped. Nobody has to point it at a run: it watches the card, so
-the widgets appear when a real run starts and come down an hour after the card
-goes quiet.
+the widgets appear when a real run starts. An hour after the card goes quiet the
+progress bar comes down — there is nothing left to be in progress — and the
+sheets stay, showing the last run as it finished, until the next one redraws
+them.
 """
 
 from __future__ import annotations
@@ -32,10 +34,10 @@ import subprocess
 import sys
 import time
 
-from board_images import clear, log, measure, show
+from board_images import clear, log, lower_bar, measure, show
 
 POLL_SECONDS = 60  # how often the card is looked at
-IDLE_SECONDS = 3600  # how long it stays quiet before the widgets come down
+IDLE_SECONDS = 3600  # how long it stays quiet before the bar comes down
 REFRESHES_PER_RUN = 20  # how many times a run is redrawn over its whole life
 FASTEST, SLOWEST = 300, 3600  # and the bounds on that, in seconds
 
@@ -267,8 +269,8 @@ def watch(repo: pathlib.Path, cache: pathlib.Path, once: bool = False) -> int:
         elif run:
             log(f"{run.name} is on the card but not worth watching: {why}")
         elif showing and time.time() - last_busy >= IDLE_SECONDS:
-            log(f"card quiet for {IDLE_SECONDS // 60} minutes — packing up")
-            clear()
+            log(f"card quiet for {IDLE_SECONDS // 60} minutes — lowering the bar")
+            lower_bar()
             return 0
 
         if once:
@@ -286,7 +288,9 @@ def main() -> int:
         help="where the letterboxed copies are kept",
     )
     parser.add_argument("--once", action="store_true", help="one pass, then exit")
-    parser.add_argument("--clear", action="store_true", help="take the sheets down and exit")
+    parser.add_argument(
+        "--clear", action="store_true", help="take the sheets and the bar down and exit"
+    )
     args = parser.parse_args()
     if args.clear:
         clear()
