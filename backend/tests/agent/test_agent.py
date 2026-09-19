@@ -2,10 +2,12 @@
 
 The fetching half is not here — it shells out and opens sockets — but this is
 where a collector's output becomes what the board is sent, and it is the half
-that decides whether a panel is right.
+that decides whether a panel is right. What the file declaring those sources
+does when it is edited is `test_sources.py`.
 """
 
-from tools.agent import Source, interpret
+from agent import Board, tick
+from sources import Source, interpret
 
 
 def _source(**spec) -> Source:
@@ -61,14 +63,6 @@ def test_a_feed_is_replaced_rather_than_accumulated():
     assert source.payload([{"title": "second"}])["entries"] == [{"title": "second"}]
 
 
-def test_a_source_with_nothing_to_run_is_left_as_the_config_wrote_it():
-    """The inbox is fed over the socket; it only needs to exist and stay put."""
-    assert _source(panel={"kind": "inbox", "title": "Inbox"}).payload([]) == {
-        "kind": "inbox",
-        "title": "Inbox",
-    }
-
-
 def _announcer() -> Source:
     """A source whose rows are notifications rather than a panel."""
     return Source({"name": "alerts", "notifications": True})
@@ -116,3 +110,36 @@ def test_a_row_with_no_key_falls_back_to_its_title():
     source.news([{"title": "sshd.service has failed"}])
 
     assert source.news([{"title": "sshd.service has failed"}]) == []
+
+
+class _Spy(Board):
+    """A board that writes nothing down but what it was asked to do."""
+
+    def __init__(self):
+        super().__init__("http://nowhere")
+        self.written: list[tuple[str, dict]] = []
+
+    def call(self, method, path, body=None):
+        self.written.append((path, body or {}))
+        return None
+
+
+def test_a_static_widget_is_written_without_running_anything(tmp_path):
+    """The inbox is fed over the socket: this entry only keeps it on the board."""
+    board = _Spy()
+    source = Source({"name": "inbox", "panel": {"kind": "inbox"}, "place": {"x": 1}})
+
+    tick(board, [source], tmp_path, 0.0)
+
+    assert board.written == [("/board/items/by-key/inbox", {"payload": {"kind": "inbox"}, "x": 1})]
+
+
+def test_a_job_writes_its_own_widgets_and_the_agent_writes_none(tmp_path):
+    """The agent starts a watcher and gets out of its way."""
+    board = _Spy()
+    job = Source({"name": "trm", "command": "true"})
+
+    tick(board, [job], tmp_path, 0.0)
+    job.process.wait()
+
+    assert board.written == []

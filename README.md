@@ -93,7 +93,12 @@ Point a Claude session at it:
 
 The agent lives **outside** the containers on purpose: it reads `/proc`,
 `nvidia-smi` and `tmux`, none of which describe the right machine from inside
-one. `make check` is the only quality gate and the whole of it — there is no CI,
+one. What it feeds the board is `state/sources.toml` — this machine's file, not
+the repository's; a fresh clone has no `state/` and runs from
+`tools/sources.example.toml` until that is copied across. The agent re-reads it
+whenever it changes, so a new panel is a save rather than a restart.
+
+`make check` is the only quality gate and the whole of it — there is no CI,
 so nothing catches a push whose gates were never run.
 
 <details>
@@ -117,7 +122,7 @@ so nothing catches a push whose gates were never run.
                            │ HTTP, every few seconds
                     ┌──────┴────────────────────────────────┐
                     │  tools/agent.py, on the host           │
-                    │  runs tools/sources.toml → collectors  │
+                    │  runs state/sources.toml → collectors  │
                     └────────────────────────────────────────┘
 ```
 
@@ -145,7 +150,7 @@ directions rather than instructions.
 - Use `arrange` when more than one widget has to end up somewhere. One at a time,
   a swap is not merely slow but impossible on a full board.
 - The board never fetches. If something should update on its own, it belongs in
-  `tools/sources.toml`, not in a widget.
+  `state/sources.toml`, not in a widget.
 - Anything meant to survive belongs on the **item** (`description`, colour,
   position) rather than in its payload: a panel's payload is rewritten whole
   every few seconds.
@@ -156,7 +161,7 @@ Anyone on the wifi can read and write the board. It shows the weather of one
 machine on one television in one flat, and a token would buy nothing but the
 feeling of a lock.
 
-Which is why **commands live in `tools/sources.toml` on the host and never on
+Which is why **commands live in `state/sources.toml` on the host and never on
 the board**. If the board carried commands, anything on the network could run
 code here. A display should not be a remote shell.
 
