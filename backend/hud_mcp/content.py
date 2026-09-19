@@ -34,7 +34,6 @@ def register(server: MCPServer) -> None:
     @server.tool()
     async def add_note(
         text: str,
-        color: str | None = None,
         x: float | None = None,
         y: float | None = None,
         w: float | None = None,
@@ -45,12 +44,8 @@ def register(server: MCPServer) -> None:
 
         Omit x and y and the board picks a free slot; omit w and h for a default
         size. Coordinates are grid cells (the grid is 12x8), never pixels.
-
-        Leave `color` alone unless asked. The board is a TV in a dim room, so
-        widgets are dark by convention — a pale note is a lamp pointed at whoever
-        is watching, and white text on it is unreadable.
         """
-        return await add(NotePayload(text=text, color=color), x, y, w, h, description=description)
+        return await add(NotePayload(text=text), x, y, w, h, description=description)
 
     @server.tool()
     async def add_text(

@@ -511,11 +511,11 @@ export function Chart({ id, payload }: { id: string; payload: ChartPayload }) {
   // the whole widget, and the widget's box is the circle's box.
   const polar = gauge || payload.chart === "radar";
   return (
-    // Only a colour at an opacity. A border and a blur survive at zero opacity
-    // and still draw a rectangle, which defeats the point of turning it down.
+    // No background, no border, no shadow: the card's own would draw a
+    // rectangle on a board where no widget has one.
     <Card
       className={cn(
-        "size-full border-0 widget-surface widget-edge shadow-none widget-text",
+        "size-full border-0 widget-edge shadow-none widget-text",
         polar ? "py-0" : "py-[2cqmin]",
       )}
     >

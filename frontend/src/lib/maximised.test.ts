@@ -17,8 +17,6 @@ function item(id: string, payload: Payload): Item {
     id,
     key: null,
     description: null,
-    opacity: null,
-    background: null,
     color: null,
     border: null,
     scale: null,
@@ -79,7 +77,7 @@ describe("what the grid still draws underneath", () => {
       // A muted player is covered like anything else: it has nothing to be
       // heard, so the only thing it was costing was a decode for nobody.
       ["media", loop],
-      ["note", { kind: "note", text: "hello", color: null }],
+      ["note", { kind: "note", text: "hello" }],
     ];
     for (const [kind, payload] of kinds) {
       expect([kind, drawn(item(kind, payload), film)]).toEqual([kind, false]);

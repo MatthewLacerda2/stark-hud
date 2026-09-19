@@ -48,7 +48,7 @@ export function Progress({
 
   return (
     <div
-      className="flex size-full items-center gap-[6cqmin] overflow-hidden rounded-xl widget-surface widget-edge p-[6cqmin] widget-text"
+      className="flex size-full items-center gap-[6cqmin] overflow-hidden rounded-xl widget-edge p-[6cqmin] widget-text"
       style={SIZED}
     >
       {payload.icon_side === "start" ? icon : null}

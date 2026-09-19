@@ -16,9 +16,7 @@ ITEMS = "/api/v1/board/items"
 # the comment and did it anyway. The guard below is why this is a dict rather
 # than a handful of literals.
 STYLES = {
-    "opacity": 0.5,
     "color": "#ff0000",
-    "background": "#00ff00",
     "border": "#0000ff",
     "scale": 2.0,
 }

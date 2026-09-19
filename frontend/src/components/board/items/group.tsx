@@ -27,7 +27,7 @@ export function Group({ holds }: { holds: Item[] }) {
   const behind = holds.length > FACING;
 
   return (
-    <div className="flex size-full items-center justify-center gap-[6cqw] rounded-xl widget-surface widget-edge p-[8cqw] widget-text">
+    <div className="flex size-full items-center justify-center gap-[6cqw] rounded-xl widget-edge p-[8cqw] widget-text">
       {behind ? (
         <div className="relative size-[22cqw] shrink-0 opacity-40 blur-[2px]">
           <KindIcon kind={holds[FACING].payload.kind} />

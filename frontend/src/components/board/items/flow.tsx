@@ -66,10 +66,9 @@ const MAX_CORNER = 1 / 40;
  * The one thing no other widget on this board can say. A deployment, a morning
  * routine, the shape of a pipeline, a decision with two ways out.
  *
- * **No card.** `mesh.tsx` is the precedent: this returns bare content and never
- * writes `widget-surface`, which is applied per widget rather than by
- * `board-grid.tsx`. A flow's boxes are panes of glass on the board itself, so
- * the background video runs *between* them and not only around the whole thing.
+ * **No card.** No widget has one, and a flow never did: its boxes are panes of
+ * glass on the board itself, so the background video runs *between* them and
+ * not only around the whole thing.
  * A title and an icon are content the way a gantt's are; a flow with neither
  * draws no chrome at all, which is what a diagram usually wants.
  *

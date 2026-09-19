@@ -64,8 +64,6 @@ function item(id: string, payload: Payload, x: number): Item {
     id,
     key: null,
     description: null,
-    opacity: null,
-    background: null,
     color: null,
     border: null,
     scale: null,
@@ -120,7 +118,7 @@ function board(maximised: boolean): Item[] {
     // A clip put up to be looked at and not listened to: a player with one
     // thing in it and nothing to hear. It was a widget kind of its own once.
     item("loop", media(false, "video", true), 14),
-    item("note", { kind: "note", text: "Buy milk", color: null }, 21),
+    item("note", { kind: "note", text: "Buy milk" }, 21),
   ];
 }
 
@@ -171,7 +169,7 @@ async function grid(): Promise<{
     // Every widget's own outer frame, which is where a corner radius lives.
     frames: () =>
       [...host.querySelectorAll("div")]
-        .filter((d) => d.className.includes("widget-surface"))
+        .filter((d) => d.className.includes("widget-edge"))
         .map((d) => d.className),
   };
 }

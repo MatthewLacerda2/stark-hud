@@ -14,7 +14,6 @@ describe("tapeFrom", () => {
     expect(tapeFrom("")).toEqual({
       scanlines: 1,
       dirt: 1,
-      vignette: 1,
       fringe: 1,
     });
   });
@@ -23,7 +22,6 @@ describe("tapeFrom", () => {
     expect(tapeFrom("?vhs=0.5")).toEqual({
       scanlines: 0.5,
       dirt: 0.5,
-      vignette: 0.5,
       fringe: 0.5,
     });
   });
@@ -70,7 +68,6 @@ describe("tapeVars", () => {
     expect(tapeVars(NO_TAPE)).toEqual({
       "--vhs-scanlines": 0,
       "--vhs-dirt": 0,
-      "--vhs-vignette": 0,
       "--vhs-fringe": 0,
     });
   });

@@ -23,7 +23,7 @@ def test_instructions_cover_what_a_session_cannot_guess() -> None:
         "never scrolls",  # why a full board refuses
         "kept on disk",  # why yesterday's board is still there
         "drag",  # why an item may have moved under it
-        "dark",  # the widget convention
+        "no background",  # every widget sits straight on the video
         "notify",  # how to announce finishing
         "written whole",  # why a list is the one thing you add to
         "set_description",  # the note on a widget that the TV never shows

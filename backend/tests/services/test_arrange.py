@@ -78,10 +78,10 @@ def test_moving_and_resizing_are_one_entry():
     """An entry is where a widget ends up, not a verb applied to it."""
     note = _note(0, 0)
 
-    arrange.rearrange([Change(target=note.id, x=4, y=2, w=8, h=4, opacity=0.5)])
+    arrange.rearrange([Change(target=note.id, x=4, y=2, w=8, h=4, scale=0.5)])
 
     after = repo.get(note.id)
-    assert (after.x, after.y, after.w, after.h, after.opacity) == (4, 2, 8, 4, 0.5)
+    assert (after.x, after.y, after.w, after.h, after.scale) == (4, 2, 8, 4, 0.5)
 
 
 def test_a_removal_makes_room_for_the_move_in_the_same_batch():

@@ -64,12 +64,10 @@ function note(): Item {
     id: "a",
     key: null,
     description: null,
-    opacity: null,
-    background: null,
     color: null,
     border: null,
     scale: null,
-    payload: { kind: "note", text: "hello", color: null },
+    payload: { kind: "note", text: "hello" },
     playback: null,
     x: 4,
     y: 2,
@@ -136,7 +134,7 @@ async function board() {
 
   return {
     drag,
-    body: () => host.querySelector(".widget-surface") as Element,
+    body: () => host.querySelector(".widget-edge") as Element,
     grip: (edge: string) =>
       host.querySelector(`.widget-grip-${edge}`) as Element,
     patched: () => sent.filter((s) => s.url.includes("/board/items/a")).at(-1),

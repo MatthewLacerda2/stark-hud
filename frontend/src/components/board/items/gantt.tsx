@@ -72,7 +72,7 @@ export function Gantt({
   const times = marks(rows, now, window, cols);
 
   return (
-    <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl widget-surface widget-edge p-[4cqmin] widget-text">
+    <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl widget-edge p-[4cqmin] widget-text">
       {payload.title || payload.icon ? (
         <h3 className="flex shrink-0 items-center gap-2 truncate text-node font-semibold tracking-tight">
           <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />

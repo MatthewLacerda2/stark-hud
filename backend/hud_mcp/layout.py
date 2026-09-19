@@ -50,9 +50,8 @@ def register(server: MCPServer) -> None:
         not what to do to it: `{"target": "cpu", "x": 4, "y": 2, "w": 8,
         "h": 3}`. Anything left out is left alone, so a change says only what
         changes. `{"target": "...", "remove": true}` takes a widget off the
-        board — the one verb here, because being gone is not a place. `opacity`,
-        `color`, `background`, `border`, `scale` and `parent_id` are accepted
-        too. There is no add: a new widget has no id to name yet.
+        board — the one verb here, because being gone is not a place. `color`,
+        `border`, `scale` and `parent_id` are accepted too. There is no add: a new widget has no id to name yet.
 
         Name each widget once. Two entries for one widget is two answers to
         where it ends up.
@@ -84,17 +83,14 @@ def register(server: MCPServer) -> None:
     @server.tool()
     async def set_style(
         item_id: str,
-        opacity: float | None = None,
         color: str | None = None,
-        background: str | None = None,
         border: str | None = None,
         scale: float | None = None,
     ) -> str:
         """Change how a widget looks. Everything is optional; only what you pass moves.
 
-        `opacity` 0 to 1, how solid its background is. Lower lets the video
-        behind show through — charts read fine almost transparent because they
-        are mostly their own marks, prose needs something behind it.
+        There is no background to set: every widget is drawn straight on the
+        board's video, except media and images, which cover it with a picture.
 
         `color` is the widget's **text** colour, and every colour on this board
         is written the same way. Name one of the board's own — `foreground`,
@@ -109,38 +105,19 @@ def register(server: MCPServer) -> None:
         not, and a board where every session picked its own red stops looking
         like one board.
 
-        `background` is what the widget is made of, shown at `opacity`. Left
-        alone every widget uses the same card colour, which is what makes a
-        board look like one board — so set this only when a widget is meant to
-        stand apart from the rest.
-
         `border` draws a line around the widget in whatever colour is given.
         Almost nothing wants one — a board of outlined rectangles is a form
         rather than a view — so this is for the widget that needs an edge of its
-        own. It is the one style `opacity` does not touch, because the point of
-        it is a clear line around a widget whose background has been turned
-        right down; pass an eight-digit hex if you want the line itself faint.
+        own; pass an eight-digit hex if you want the line itself faint.
 
         `scale` multiplies the text inside, 0.25 to 4. Type already grows with
         the widget; this moves the whole range.
         """
-        if opacity is not None and not 0 <= opacity <= 1:
-            return f"Not set: opacity must be between 0 and 1 (got {opacity})"
         if scale is not None and not 0.25 <= scale <= 4:
             return f"Not set: scale must be between 0.25 and 4 (got {scale})"
-        if (
-            opacity is None
-            and color is None
-            and background is None
-            and border is None
-            and scale is None
-        ):
-            return (
-                "Nothing to set: pass at least one of opacity, color, background, border or scale"
-            )
-        update = ItemUpdate(
-            opacity=opacity, color=color, background=background, border=border, scale=scale
-        )
+        if color is None and border is None and scale is None:
+            return "Nothing to set: pass at least one of color, border or scale"
+        update = ItemUpdate(color=color, border=border, scale=scale)
         return await _patch(item_id, update, "restyled")
 
     @server.tool()
