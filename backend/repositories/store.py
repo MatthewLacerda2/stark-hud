@@ -22,7 +22,7 @@ from pathlib import Path
 from pydantic import BaseModel, ValidationError
 
 from core.config import get_settings
-from schemas.board import Background, Ink, ItemRead
+from schemas.board import DEFAULT_PAGE, Background, Ink, ItemRead
 from schemas.notifications import Notification
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,18 @@ logger = logging.getLogger(__name__)
 # within a tick of coming up, and a screen worth having is worth saying again.
 # What is not acceptable is a board that will not start, which is why this is a
 # drop and not a refusal.
-FORMAT = 3
+#
+# 4 put pages back, and this time they are what they should have been. A page is
+# a name a widget carries and the board shows one of them; the file gained
+# `page` on every item and `showing` beside `items`. A format-3 board needs no
+# migration at all — both default, so every widget lands on the one page there
+# was and the board comes up turned to it, which is exactly what a board with no
+# pages in it meant. What does not survive is a group in the state `away`, which
+# was a group doing a page's job: `state` is now a two-value literal, so such a
+# group fails validation and `_salvage` drops it with a warning, leaving its
+# widgets loose on the page. That costs the screens and nothing else, and no
+# board we have ever written to disk has had one.
+FORMAT = 4
 
 _dirty = False
 
@@ -63,6 +74,10 @@ class HudFile(BaseModel):
     hud: int = FORMAT
     saved_at: datetime | None = None
     items: list[ItemRead] = []
+    # Which page the board was turned to. A file written before pages comes back
+    # showing the page its widgets all defaulted onto, which is the whole of the
+    # migration.
+    showing: str = DEFAULT_PAGE
     background: Background | None = None
     ink: Ink | None = None
     notifications: list[Notification] = []
@@ -151,6 +166,24 @@ def _as_media(payload: dict) -> dict:
     }
 
 
+def _one_page(entry: dict) -> dict:
+    """The same widget with a page name on it, whatever the file called a page.
+
+    Format 1 numbered its pages, and a number is not a name: left alone it would
+    fail validation and cost the widget, which is the one thing a restore is not
+    allowed to do. The numbers are not kept — format 2 already decided that an
+    old file comes up as one board — so they all land on the default page,
+    possibly overlapping, the same as they did before this key meant anything.
+    """
+    if isinstance(entry.get("page"), str):
+        return entry
+    if entry.get("page") is not None:
+        logger.warning(
+            "widget was on numbered page %s; it is on %s now", entry["page"], DEFAULT_PAGE
+        )
+    return {**entry, "page": DEFAULT_PAGE}
+
+
 def _salvage(document: dict) -> HudFile:
     """Build a board from a file, skipping the parts this build cannot read.
 
@@ -160,18 +193,10 @@ def _salvage(document: dict) -> HudFile:
     document takes the background, the clock and every notification with it —
     which is exactly what happened the first time a field was removed.
     """
-    turned = sum(1 for entry in document.get("items") or [] if (entry or {}).get("page"))
-    if turned:
-        logger.warning(
-            "%s widgets were on a page other than the first; pages are gone and they are "
-            "all on the one board now, possibly overlapping",
-            turned,
-        )
-
     kept: list[ItemRead] = []
     upgraded = 0
     for entry in document.get("items") or []:
-        entry = entry or {}
+        entry = _one_page(entry or {})
         if (entry.get("payload") or {}).get("kind") == "video":
             entry = {**entry, "payload": _as_media(entry["payload"])}
             upgraded += 1
@@ -217,6 +242,7 @@ def _salvage(document: dict) -> HudFile:
 
     return HudFile(
         hud=document.get("hud", FORMAT),
+        showing=document.get("showing") or DEFAULT_PAGE,
         items=kept,
         notifications=notes,
         background=background,

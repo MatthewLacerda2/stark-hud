@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 from repositories import board, notifications, store
-from schemas.board import GroupPayload, Ink, NotePayload
+from schemas.board import DEFAULT_PAGE, GroupPayload, Ink, NotePayload
 from schemas.notifications import NotificationCreate
 from services import persistence
 
@@ -234,3 +234,71 @@ def test_the_upgraded_board_is_what_goes_back_to_disk(tmp_path, monkeypatch):
 
     written = json.loads(target.read_text(encoding="utf-8"))
     assert [e["payload"]["kind"] for e in written["items"]] == ["media"]
+
+
+def _format_3(target: Path) -> dict:
+    """The board on disk as the build before pages wrote it.
+
+    Made by taking away what format 4 added rather than by typing a file out:
+    a fixture written by hand drifts from the real thing quietly, and the whole
+    question here is whether the file already on the television still loads.
+    """
+    document = json.loads(target.read_text(encoding="utf-8"))
+    document["hud"] = 3
+    document.pop("showing", None)
+    for entry in document["items"]:
+        entry.pop("page", None)
+    return document
+
+
+def test_a_format_3_board_comes_up_on_the_default_page(tmp_path, monkeypatch):
+    """The board that is on the television has no pages in it, and that is a board.
+
+    Every widget lands on the page the board starts on and the board comes up
+    turned to it, which is exactly what a file with no pages in it meant.
+    """
+    target = _point_at(tmp_path, monkeypatch)
+    board.add(NotePayload(text="hello"), 0, 0, 4, 2, None, False, key="greeting")
+    board.add(GroupPayload(), 8, 0, 4, 3, None, False)
+    board.set_showing("planning")
+    assert persistence.save()
+
+    target.write_text(json.dumps(_format_3(target)), encoding="utf-8")
+    board.clear()
+    persistence.restore()
+
+    assert {i.page for i in board.list_items()} == {DEFAULT_PAGE}
+    assert board.showing() == DEFAULT_PAGE
+    assert [i.key for i in board.list_items()] == ["greeting", None]
+
+
+def test_a_numbered_page_from_format_1_costs_the_widget_nothing(tmp_path, monkeypatch):
+    """A number is not a name, and a restore is never allowed to drop a widget."""
+    target = _point_at(tmp_path, monkeypatch)
+    board.add(NotePayload(text="hello"), 0, 0, 4, 2, None, False, key="greeting")
+    assert persistence.save()
+
+    document = _format_3(target)
+    document["hud"] = 1
+    document["items"][0]["page"] = 2
+    target.write_text(json.dumps(document), encoding="utf-8")
+    board.clear()
+    persistence.restore()
+
+    assert [i.page for i in board.list_items()] == [DEFAULT_PAGE]
+
+
+def test_the_pages_and_the_one_showing_survive_a_restart(tmp_path, monkeypatch):
+    """A board turned to a page comes back turned to it, or a restart is a page turn."""
+    _point_at(tmp_path, monkeypatch)
+    board.add(NotePayload(text="ordinary"), 0, 0, 4, 2, None, False)
+    board.set_showing("planning")
+    board.add(NotePayload(text="planning"), 0, 0, 32, 18, None, False)
+
+    assert persistence.save()
+    board.clear()
+    board.set_showing(DEFAULT_PAGE)
+    persistence.restore()
+
+    assert board.showing() == "planning"
+    assert sorted(i.page for i in board.list_items()) == [DEFAULT_PAGE, "planning"]

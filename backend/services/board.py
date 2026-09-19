@@ -16,7 +16,7 @@ from schemas.board import (
     ItemUpdate,
     Placement,
 )
-from services import groups
+from services import groups, pages
 from services.placement import (
     cells,
     default_size,
@@ -57,6 +57,25 @@ class KeyTakenError(Exception):
         super().__init__(
             f"The key {key!r} already names {holder.payload.kind} {holder.id}. "
             f"Write to that widget instead — a key names one widget."
+        )
+
+
+class NotByPatchError(Exception):
+    """Raised when an update tries to change what only a service may change.
+
+    A group's state is half of a trade — its widgets come off the board and it
+    takes their place — and a PATCH writing ``state`` straight through did the
+    half that is a field and skipped the half that is a rule, leaving widgets
+    stacked on the television. ``parent_id`` and ``page`` were the same hole and
+    are simply not on ``ItemUpdate`` any more; this one has to be caught here,
+    because a group's state arrives inside a payload that is otherwise ordinary.
+    """
+
+    def __init__(self, item: ItemRead) -> None:
+        self.item = item
+        super().__init__(
+            f"{item.id} is a group, and a group is opened and closed by "
+            f"fold_group and unfold_group, never by writing its state."
         )
 
 
@@ -119,12 +138,18 @@ def _resolve(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> Placeme
     """Work out where an item goes, honouring explicit coordinates when given.
 
     Only what is on the board is in the way, which is not everything that
-    exists: an open group takes up no room and neither does anything folded
-    inside a closed one. A widget that takes up no room has its coordinates
-    recorded rather than checked — see ``groups.weightless``.
+    exists: an open group takes up no room, neither does anything folded inside
+    a closed one, and neither does a single widget on a page that is not this
+    one. A widget that takes up no room has its coordinates recorded rather than
+    checked — see ``groups.weightless``.
+
+    The page judged against is the widget's own, never the one showing: a panel
+    written every few seconds while its page is put away has to be measured
+    against the board it will come back to.
     """
     cols, rows = _grid()
     everything = repo.list_items()
+    page = current.page if current else pages.showing()
     dw, dh = default_size(data.payload) if data.payload else (3.0, 2.0)
 
     w = data.w if data.w is not None else (current.w if current else dw)
@@ -133,11 +158,16 @@ def _resolve(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> Placeme
     y = data.y if data.y is not None else (current.y if current else None)
 
     payload = data.payload or (current.payload if current else None)
-    parent_id = data.parent_id or (current.parent_id if current else None)
+    # Only a creation says which group a widget joins. An update cannot — that
+    # field is not on ``ItemUpdate`` — so for every other call the group it is
+    # already in is the answer.
+    parent_id = data.parent_id if isinstance(data, ItemCreate) else None
+    if parent_id is None and current is not None:
+        parent_id = current.parent_id
     if payload is not None and groups.weightless(payload, parent_id, everything):
         return Placement(x=x or 0.0, y=y or 0.0, w=w, h=h)
 
-    items = groups.on_board(everything)
+    items = pages.drawn(everything, page)
     if x is None or y is None:
         return find_slot(items, w, h, cols, rows)
 
@@ -169,8 +199,13 @@ def _described(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> str |
 
 
 def create(data: ItemCreate) -> ItemRead:
-    """Add an item, auto-placing it when coordinates are omitted."""
+    """Add an item on the page that is showing, auto-placing it when asked to.
+
+    A widget created straight into a group never passes through ``gather``, so
+    the one check that would have made is made here instead.
+    """
     _claim(data.key, None)
+    parent = groups.joining(data.parent_id) if data.parent_id else None
     place = _resolve(data, None)
     return repo.add(
         data.payload,
@@ -181,6 +216,9 @@ def create(data: ItemCreate) -> ItemRead:
         data.parent_id,
         data.pinned,
         data.key,
+        # A widget in a group is on the group's page, whatever is showing: the
+        # two are one thing on one board.
+        page=parent.page if parent is not None else None,
         # These were accepted by the schema and then dropped here, so a widget
         # created with a colour came out with none until something updated it.
         color=data.color,
@@ -192,6 +230,8 @@ def create(data: ItemCreate) -> ItemRead:
 
 def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
     """Apply a partial update, revalidating placement when geometry changes."""
+    if data.payload is not None and groups.is_group(item):
+        raise NotByPatchError(item)
     _claim(data.key, item)
     place = _resolve(data, item)
     return repo.replace(
@@ -207,7 +247,6 @@ def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
                 "color": data.color if data.color is not None else item.color,
                 "border": data.border if data.border is not None else item.border,
                 "scale": data.scale if data.scale is not None else item.scale,
-                "parent_id": data.parent_id if data.parent_id is not None else item.parent_id,
                 "pinned": data.pinned if data.pinned is not None else item.pinned,
             }
         )
@@ -223,12 +262,21 @@ def remove(item: ItemRead) -> None:
 
 
 def status() -> BoardStatus:
-    """Report what the board is carrying, so a caller can look before it leaps."""
+    """Report what the page that is showing is carrying, so a caller can look
+    before it leaps.
+
+    One page, because each page has the whole grid to itself. The pages the
+    board is carrying are named here too: a board with three of them and a
+    clock on this one would otherwise read as a board with one clock on it.
+    """
     cols, rows = _grid()
-    items = groups.on_board(repo.list_items())
+    everything = repo.list_items()
+    items = pages.drawn(everything)
     used = sum(i.w * i.h for i in items)
     total = cols * rows
     return BoardStatus(
+        showing=pages.showing(),
+        pages=pages.names(everything),
         cols=cols,
         rows=rows,
         cells_total=total,

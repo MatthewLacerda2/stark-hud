@@ -23,7 +23,7 @@ half-rearranged board on a television nobody is standing at.
 from core.config import get_settings
 from repositories import board as repo
 from schemas.board import Change, ItemRead
-from services import groups
+from services import pages
 from services.placement import NoRoomError, illegal
 
 
@@ -102,7 +102,12 @@ def rearrange(changes: list[Change]) -> list[ItemRead]:
     """
     settings = get_settings()
     board = _proposed(_targets(changes))
-    why = illegal(groups.on_board(board), settings.GRID_COLS, settings.GRID_ROWS)
-    if why is not None:
-        raise NoRoomError(f"Not rearranged: {why}")
+    # Every page, not just the one showing. A batch may move a panel on a page
+    # nobody is looking at, and that page has to be a board somebody could turn
+    # back to — the bill for it arriving on the turn would be a refusal with
+    # nothing on screen to explain it.
+    for page in pages.names(board):
+        why = illegal(pages.drawn(board, page), settings.GRID_COLS, settings.GRID_ROWS)
+        if why is not None:
+            raise NoRoomError(f"Not rearranged: {why}")
     return repo.swap(board)

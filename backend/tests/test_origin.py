@@ -82,7 +82,7 @@ async def test_nothing_about_an_origin_is_written_down(listening: Listener) -> N
     assert "origin" not in created["data"]
 
     kept = BoardSnapshot(
-        items=repo.list_items(), background=None, ink=None, notifications=[]
+        items=repo.list_items(), showing="main", background=None, ink=None, notifications=[]
     ).model_dump_json()
     assert "origin" not in kept
     assert "add_note" not in kept

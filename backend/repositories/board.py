@@ -13,11 +13,16 @@ import uuid
 from datetime import UTC, datetime
 
 from repositories import store
-from schemas.board import Background, Ink, ItemRead, Payload
+from schemas.board import DEFAULT_PAGE, Background, Ink, ItemRead, Payload
 
 _items: dict[str, ItemRead] = {}
 _background: Background | None = None
 _ink: Ink | None = None
+# Which page the board is turned to. One string, because that is the whole of
+# what turning the page changes: every widget carries the page it is on, so
+# nothing is moved, gathered or rewritten when the board goes from one to
+# another. See ``services.pages``.
+_showing: str = DEFAULT_PAGE
 
 
 def list_items() -> list[ItemRead]:
@@ -49,6 +54,7 @@ def add(
     parent_id: str | None,
     pinned: bool,
     key: str | None = None,
+    page: str | None = None,
     color: str | None = None,
     border: str | None = None,
     scale: float | None = None,
@@ -58,6 +64,9 @@ def add(
     item = ItemRead(
         id=uuid.uuid4().hex[:12],
         key=key,
+        # A new widget lands on the page that is showing, which is the only page
+        # anybody is looking at while they ask for it.
+        page=page if page is not None else _showing,
         description=description,
         color=color,
         border=border,
@@ -125,6 +134,20 @@ def clear() -> int:
     return count
 
 
+def showing() -> str:
+    """Which page the board is turned to."""
+    return _showing
+
+
+def set_showing(page: str) -> str:
+    """Turn the board to a page. It need not exist: a page with nothing on it
+    is an empty board, which is how a new one is started."""
+    global _showing  # noqa: PLW0603 - module-level store, same as _items
+    _showing = page
+    store.touch()
+    return _showing
+
+
 def get_background() -> Background | None:
     """Return the current video background, if any."""
     return _background
@@ -151,13 +174,19 @@ def set_ink(ink: Ink | None) -> Ink | None:
     return _ink
 
 
-def load(items: list[ItemRead], background: Background | None, ink: Ink | None) -> None:
+def load(
+    items: list[ItemRead],
+    background: Background | None,
+    ink: Ink | None,
+    page: str = DEFAULT_PAGE,
+) -> None:
     """Replace everything with what came off disk.
 
     Deliberately not marked dirty: what was just read is what is already there.
     """
-    global _background, _ink  # noqa: PLW0603 - module-level store, same as _items
+    global _background, _ink, _showing  # noqa: PLW0603 - module-level store, same as _items
     _items.clear()
     _items.update({item.id: item for item in items})
     _background = background
     _ink = ink
+    _showing = page

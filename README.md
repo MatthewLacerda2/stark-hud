@@ -43,9 +43,8 @@ gone. The board stores facts; the browser works out the readings.
   Folded — 3 widgets inside
   Board 32x18, 8 items. 296/576 cells used, 279 free.
 
-› show me the work screen
-  Showing group 4c1f90ab77e2 — a group of 6 widgets. 6 widgets on the
-  board, 2 groups away.
+› let's plan the refactor — put the board on the planning page
+  Showing page 'planning' — 0 widgets on it. Also here: 'main'.
 
 › put the cpu chart where the feed is
   Not rearranged: chart f6dc572ce69f at (19,0) and feed 4271fcbd35a6
@@ -66,8 +65,15 @@ gone. The board stores facts; the browser works out the readings.
 | `inbox` · `feed` | Notifications as a phone's shade; things that happened elsewhere, newest first. |
 | `media` | Audio, video or YouTube, with a queue, loop and maximise. One file is a queue of one, which is what a clip on the board is. |
 | `image` | A local file, served by id — a path never reaches a URL. |
-| `group` | A widget that holds widgets, in one of three states. Open, they are on the board. Folded, they come off and it draws a shelf of icons in their place. Away, they come off and nothing is drawn: a screen the board is not showing, which is how one board carries several full-board subjects and cuts between them. |
+| `group` | A widget that holds widgets, in one of two states. Open, they are on the board. Folded, they come off and it draws a shelf of icons in their place. A handful of widgets on one page, never a page of its own. |
 | `box` | A frame drawn on the board. Decoration, and nothing else. |
+
+The board carries more than one screenful as **pages**. A page is a whole board:
+every widget is on exactly one, the television shows one at a time, and
+`show_page` turns between them in a single call — so each page has the entire
+grid to itself. A page that is not showing draws nothing and takes no room, but
+its panels go on taking writes, so turning back is a cut to something already
+current. Nothing is drawn to say which page is up.
 
 Every widget is drawn straight on the board's video — no panel behind it — except
 media and images, which are pictures. Each carries its own text colour and scale, sits at
@@ -126,7 +132,7 @@ decides, `repositories/` holds, `schemas/` defines what is legal. Placement is
 settled on the server — a drag in a browser is a request, and the authoritative
 answer comes back over the socket, so two viewers can never disagree. The board
 is a `.hud` file written whole and atomically; pull the plug and it comes back,
-widgets, notifications and folded groups alike.
+every page's widgets, the notifications, and which page was showing.
 
 </details>
 

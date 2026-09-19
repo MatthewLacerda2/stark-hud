@@ -9,8 +9,8 @@ const FACING = 3;
  * A folded group: the icons of what is inside, stacked like sleeves on a shelf.
  *
  * Only a folded group is ever drawn. An open one draws nothing because its
- * widgets are on the board; one that is away draws nothing because it is a
- * screen the board is not showing.
+ * widgets are on the board, and a group on another page is not on this board
+ * at all — a whole screenful is a page, never a group.
  *
  * Three are shown and a fourth sits behind them, blurred, however many there
  * really are. That is deliberate: a count is a number to read, and this is a

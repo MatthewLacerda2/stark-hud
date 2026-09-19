@@ -17,6 +17,7 @@ import { reduceBoard } from "@/hooks/use-board";
 
 const EMPTY = {
   items: [] as Item[],
+  showing: "main",
   background: null,
   ink: null,
   notifications: [],
@@ -40,6 +41,7 @@ function note(id: string, text: string): Item {
     y: 0,
     w: 6,
     h: 4,
+    page: "main",
     parent_id: null,
     pinned: false,
     created_at: "2026-09-01T00:00:00Z",
@@ -114,6 +116,7 @@ describe("a widget told work is coming", () => {
         event: "board.snapshot",
         data: {
           items: [note("a", "hello")],
+          showing: "main",
           background: null,
           ink: null,
           notifications: [],
@@ -196,6 +199,7 @@ describe("the board's ink", () => {
       event: "board.snapshot",
       data: {
         items: [],
+        showing: "main",
         background: null,
         ink: { color: "var(--color-chart-2)" },
         notifications: [],
@@ -275,6 +279,7 @@ describe("the call that made a widget", () => {
       event: "board.snapshot",
       data: {
         items: [note("a", "hello")],
+        showing: "main",
         background: null,
         ink: null,
         notifications: [],

@@ -32,7 +32,11 @@ export interface ItemCreate {
   pinned?: boolean;
 }
 
-export type ItemUpdate = Partial<ItemCreate>;
+/**
+ * No `parent_id`: which group a widget is in is a trade the server makes whole,
+ * never a field a PATCH writes. The same goes for which page it is on.
+ */
+export type ItemUpdate = Omit<Partial<ItemCreate>, "parent_id">;
 
 export function listItems(): Promise<Item[]> {
   return request<Item[]>("/board/items");

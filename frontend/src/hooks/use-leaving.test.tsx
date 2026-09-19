@@ -39,6 +39,7 @@ function item(id: string): Item {
     y: 0,
     w: 4,
     h: 3,
+    page: "main",
     parent_id: null,
     pinned: false,
     created_at: "2026-09-01T00:00:00Z",
