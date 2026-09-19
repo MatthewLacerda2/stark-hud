@@ -35,6 +35,10 @@ services:
       # the voice — its speed, its stability, any other ELEVENLABS_ setting —
       # add the variable here. Setting it in `.env` alone changes nothing.
       ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
+      # The command bar (cmd+k). Same rule as the voice: only named here does it
+      # reach the backend, and empty is a working board whose bar says it has no
+      # key rather than failing.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       # Spoken lines land beside the board file, in the one volume the backend
       # can write to. Absolute on purpose, and for the same reason STATE_FILE is
       # below it: the default is a path relative to the backend's working

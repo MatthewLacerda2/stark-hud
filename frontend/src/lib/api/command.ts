@@ -18,12 +18,11 @@ import { request } from "@/lib/api/client";
  * `backend/schemas/command.py`, like everything else in `lib/schemas` — nothing
  * checks that the two agree.
  *
- * All three are Flash, because the entire reason this exists beside Claude is
+ * Both are Flash, because the entire reason this exists beside Claude is
  * speed. The Live API is deliberately absent: it is a stateful WebSocket built
  * for real-time audio, and none of that buys anything for a typed one-shot.
  */
-export type CommandModel =
-  "gemini-2.5-flash-lite" | "gemini-3.5-flash-lite" | "gemini-3.8-flash";
+export type CommandModel = "gemini-3.5-flash-lite" | "gemini-3.8-flash";
 
 /**
  * What the dropdown offers, in the order it offers it.
@@ -34,7 +33,6 @@ export type CommandModel =
  */
 export const MODELS: { id: CommandModel; label: string }[] = [
   { id: "gemini-3.5-flash-lite", label: "Flash Lite 3.5" },
-  { id: "gemini-2.5-flash-lite", label: "Flash Lite 2.5" },
   { id: "gemini-3.8-flash", label: "Flash 3.8" },
 ];
 

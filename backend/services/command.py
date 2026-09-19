@@ -38,7 +38,7 @@ from google.genai import errors, types
 from mcp_types import CallToolResult, TextContent, Tool
 
 from core.config import Settings, get_settings
-from schemas.command import THINKS, CommandCall, CommandRead
+from schemas.command import LEAST_THINKING, CommandCall, CommandRead
 
 # What this model is doing that a Claude session reading the same instructions
 # is not. Appended to the server's own instructions rather than replacing them:
@@ -164,17 +164,17 @@ def declarations(tools: list[Tool]) -> list[types.FunctionDeclaration]:
 
 
 def _thinking(model: str) -> types.ThinkingConfig | None:
-    """Turn the thinking dial down on a model that has one.
+    """Turn the thinking dial as far down as this model allows.
 
-    Left alone, `gemini-3.8-flash` stops and thinks before answering, which
-    makes the most capable option on this menu also the slowest — on a menu
-    whose whole purpose is speed. Minimal rather than off: moving three widgets
-    at once is still a small plan, and a model that makes no plan at all gets
-    the order wrong.
+    Left alone, these models stop and think before answering, which on a menu
+    whose whole purpose is speed makes them slower than they need to be. The
+    floor is per model (`LEAST_THINKING`), and going under it is a 400, not a
+    quiet round-up.
     """
-    if model not in THINKS:
+    level = LEAST_THINKING.get(model)
+    if level is None:
         return None
-    return types.ThinkingConfig(thinking_level=types.ThinkingLevel.MINIMAL)
+    return types.ThinkingConfig(thinking_level=types.ThinkingLevel(level))
 
 
 def _said(result: CallToolResult) -> str:
@@ -256,16 +256,11 @@ async def _rounds(
             return done
 
         # The model's own turn goes back in before the results, or the next turn
-        # sees answers to questions it cannot see itself having asked.
-        said.append(
-            types.Content(
-                role="model",
-                parts=[
-                    types.Part.from_function_call(name=c.name or "", args=c.args or {})
-                    for c in wanted
-                ],
-            )
-        )
+        # sees answers to questions it cannot see itself having asked. Exactly
+        # as it came, not rebuilt from the calls: a thinking model signs its
+        # function calls (`thought_signature`), and Google refuses the next
+        # round with a 400 if the signature is missing or altered.
+        said.append(_turn(answer))
         answers: list[types.Part] = []
         for call in wanted:
             name = call.name or ""
@@ -275,6 +270,15 @@ async def _rounds(
         said.append(types.Content(role="user", parts=answers))
 
     return done
+
+
+def _turn(answer: types.GenerateContentResponse) -> types.Content:
+    """The model's turn, untouched, to be sent back with the tool results.
+
+    Only reached after `function_calls` found calls, which it reads from this
+    same first candidate, so the content is there.
+    """
+    return (answer.candidates or [types.Candidate()])[0].content or types.Content(role="model")
 
 
 async def run(prompt: str, board: Tooling, model: str | None = None) -> CommandRead:
