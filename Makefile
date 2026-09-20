@@ -12,6 +12,9 @@
 #   make check    everything, ~45s. What `pre-push` runs, and what has to be
 #                 green before anything leaves this machine. The container
 #                 build it now ends on costs a second or so, cached.
+#   make perf     not a gate. Measures what the board costs, in a browser it
+#                 starts itself or on the television. Minutes, not seconds, and
+#                 it takes the same lock — see the note above `perf` below.
 #
 # Both say what the load average was, and the heavy ones take a lock on this
 # machine so that two of them queue instead of fighting. A result is evidence
@@ -89,7 +92,7 @@ endef
 # ---------------------------------------------------------------------------
 # Aggregate gates
 # ---------------------------------------------------------------------------
-.PHONY: check gate hooks backend agent frontend
+.PHONY: check gate hooks backend agent frontend perf
 check:
 	$(call heavy,backend agent units-lint state frontend)
 
@@ -115,6 +118,48 @@ agent:
 
 frontend:
 	$(call heavy,front-lint front-dead front-build front-theme front-test)
+
+# ---------------------------------------------------------------------------
+# What the board costs  (`tools/perf/`)
+#
+# Not a gate, and deliberately not reachable from `check`. It needs a browser,
+# it wants a GPU to say anything about the card, and it takes minutes — and a
+# gate that needs a graphics stack is a gate that cannot run on the machine
+# where the code is written. `make check` stays runnable on a box with neither.
+#
+# It takes the lock anyway, and that is the one decision in this file worth
+# arguing about. A gate under load goes red and somebody looks; a *measurement*
+# under load comes back with a number, and a wrong number is believed. The 18x
+# that `bun install` moved by between a quiet box and a busy one is the whole
+# reason this target exists at all, so measuring while a sibling's `make check`
+# builds the frontend would be the exact lie the rig was written to stop. It
+# holds the machine for the length of the sweep and says so.
+#
+# The rig prints its own conditions on every run, including the load at both
+# ends, because the lock stops a gate starting — it does not stop a training
+# run, and this machine usually has one.
+#
+#   make perf                 what this working tree costs
+#   make perf REF=master      this tree against master, interleaved
+#   make perf LIVE=1          the television, four-way split, with a GPU figure
+#
+# LIVE attaches read-only to the kiosk's debugging port. It injects one
+# stylesheet and pauses one video to take the split, and puts both back; it
+# never navigates the page and never touches `state/`.
+# ---------------------------------------------------------------------------
+REF     ?=
+LIVE    ?=
+ROUNDS  ?= 4
+SECONDS ?= 20
+PERF_ARGS = --repo $(CURDIR) --rounds $(ROUNDS) --seconds $(SECONDS) \
+            $(if $(REF),--ref $(REF)) $(if $(LIVE),--live)
+
+perf:
+	$(call heavy,perf-run)
+
+.PHONY: perf-run
+perf-run:
+	cd tools && $(PYTHON) -m perf $(PERF_ARGS)
 
 # ---------------------------------------------------------------------------
 # One Python  (PYTHON_VERSION, wherever it is spelled a second time)
@@ -198,6 +243,13 @@ back-install:
 # back-test, which is the one pytest this project has. What they test is the
 # half of a collector that can be tested anywhere — given this text from
 # /proc, or this JSON from `gh`, produce these rows.
+#
+# `tools/perf/` is under these two targets as well, and its own tests are in
+# that same directory for the same reason. The rig itself needs a browser and
+# is not a gate; the parts of it that decide whether a number is right — the
+# websocket framing, the /proc field counting, the picture comparison — need
+# neither, and each of them has a wrong version that returns a plausible
+# number rather than an error.
 # ---------------------------------------------------------------------------
 .PHONY: agent-lint agent-types
 agent-lint:
