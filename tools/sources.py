@@ -224,8 +224,8 @@ class Source:
         """Fold what the source produced into the declared panel.
 
         Where it lands depends on the kind: a chart wants rows in `data`, a list
-        wants strings in `items`, a feed wants entries in `entries`, and
-        anything else wants text. The source only has to print the content; the
+        wants strings in `items`, a feed wants entries in `entries`, a table
+        wants them in `rows`, and anything else wants text. The source only has to print the content; the
         config already says what it is.
         """
         panel = dict(self.spec["panel"])
@@ -240,6 +240,11 @@ class Source:
         rows = produced if isinstance(produced, list) else [produced]
         if kind == "list":
             panel["items"] = [str(row) for row in rows]
+            return panel
+        if kind == "table":
+            # Rows are already cells keyed by column. Replaced whole like a
+            # feed, so `history` would fight the collector rather than extend it.
+            panel["rows"] = rows
             return panel
         if kind == "feed":
             # Rows are already whole entries; a feed is replaced, never appended

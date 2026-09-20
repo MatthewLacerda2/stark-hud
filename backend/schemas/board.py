@@ -13,6 +13,7 @@ from schemas.media import MEDIA_ACTIONS, MediaAction, Playback, PlaybackReport
 from schemas.mesh import MeshPart, MeshWave, WaveMode, Wireframe
 from schemas.notifications import Notification
 from schemas.payloads import (
+    Align,
     BoxPayload,
     CalendarPayload,
     ChartAxes,
@@ -43,12 +44,15 @@ from schemas.payloads import (
     NotePayload,
     Payload,
     ProgressPayload,
+    TableColumn,
+    TablePayload,
     TextPayload,
     TextSize,
 )
 
 __all__ = [
     "MEDIA_ACTIONS",
+    "Align",
     "BoxPayload",
     "CalendarPayload",
     "ChartAxes",
@@ -84,6 +88,8 @@ __all__ = [
     "Playback",
     "PlaybackReport",
     "ProgressPayload",
+    "TableColumn",
+    "TablePayload",
     "TextPayload",
     "TextSize",
     "WaveMode",
