@@ -8,7 +8,7 @@ happens to be writing — it is part of the write.
 Two rules make that hold:
 
 1. **``core.hub`` is imported here and nowhere else in the stack.** A surface
-   cannot broadcast because a surface cannot reach the hub; ``lint/house_lint``
+   cannot broadcast because a surface cannot reach the hub; ``lint/boundaries``
    fails the build on an import that tries. Event names are constants in this
    file rather than string literals at thirty call sites, so a typo is a
    ``NameError`` at import and not a widget that never updates.

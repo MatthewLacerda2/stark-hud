@@ -91,7 +91,7 @@ endef
 # ---------------------------------------------------------------------------
 .PHONY: check gate hooks backend agent frontend
 check:
-	$(call heavy,backend agent frontend)
+	$(call heavy,backend agent units-lint state frontend)
 
 # Fast enough to run on every commit: what a linter can say without compiling,
 # building or executing anything, plus `py-version`, which is two greps. The
@@ -101,7 +101,7 @@ check:
 # machine where the daemon is not up.
 gate:
 	@echo "gate: linters only, at load $(LOAD) on $(CORES) cores"
-	@$(MAKE) --no-print-directory py-version back-lint agent-lint front-quick
+	@$(MAKE) --no-print-directory py-version back-lint agent-lint units-lint front-quick
 
 hooks:
 	git config core.hooksPath .githooks
@@ -148,7 +148,7 @@ py-version:
 back-lint:
 	cd backend && $(PYTHON) -m ruff check .
 	cd backend && $(PYTHON) -m ruff format --check .
-	cd backend && $(PYTHON) lint/house_lint.py .
+	cd backend && $(PYTHON) -m lint.house_lint .
 
 # The annotations are already required by ruff's ANN rules; this is what checks
 # they are true. Not in `gate` — it is the second most expensive thing here, and
@@ -203,7 +203,7 @@ back-install:
 agent-lint:
 	cd backend && $(PYTHON) -m ruff check --config pyproject.toml ../tools
 	cd backend && $(PYTHON) -m ruff format --check --config pyproject.toml ../tools
-	cd backend && $(PYTHON) lint/house_lint.py ../tools
+	cd backend && $(PYTHON) -m lint.house_lint ../tools
 
 # The same argument as `back-types`, and more of it out here: ruff's ANN rules
 # have demanded annotations in `tools/` from the day this target existed, and
@@ -217,6 +217,124 @@ agent-lint:
 # nobody runs.
 agent-types:
 	cd backend && MYPYPATH=../tools $(PYTHON) -m mypy --config-file pyproject.toml ../tools
+
+# ---------------------------------------------------------------------------
+# state/, when this machine has one
+#
+# `state/` is the instance: the sources file, the board file, and the scripts a
+# source runs. It is gitignored, it is a git repository of its own with no
+# remote, and keeping it out of this one was the right call — a change of focus
+# should not need a pull request. The price was that it sat outside every gate,
+# and what is in it is not scratch work: `trm_watch.py` is what puts four sheets
+# and a progress bar on the television, and when it breaks the board goes stale
+# while still looking fine, which is the failure this project is worst at
+# noticing.
+#
+# So the gate reaches in when there is something to reach into, and says nothing
+# at all when there is not: a fresh clone has no `state/` and passes without a
+# word. This repository knows `state/` may exist. It does not know what is in
+# it — whatever Python is there is linted and type-checked, and whatever tests
+# are there are run.
+#
+# Two of this project's own gates are deliberately not pointed at it.
+# `ruff format --check` is house style, and `state/` is not this house.
+# `lint/house_lint.py` is more so: every rule in it is about this backend's
+# layers and this repository's ceilings, and the instance never agreed to them.
+# What is left — ruff's lint rules, mypy, and the tests — is the half that
+# catches a break rather than a preference.
+#
+# Found from a worktree as well as from the checkout, because there is one
+# `state/` on this machine and the worktrees are where the work happens. A gate
+# that only fires in the main checkout is a gate nobody runs, which is the same
+# as not having one.
+# ---------------------------------------------------------------------------
+STATE := $(firstword $(wildcard $(CURDIR)/state $(MAIN)/state))
+
+.PHONY: state
+ifeq ($(STATE),)
+state:
+	@echo "state: nothing here to gate (no state/ - this clone feeds no board yet)"
+else
+state:
+	@echo "state: gating $(STATE)"
+	cd backend && $(PYTHON) -m ruff check --config pyproject.toml $(STATE)
+	cd backend && MYPYPATH=../tools:../tools/mesh $(PYTHON) -m mypy --config-file pyproject.toml $(STATE)
+# pytest's own config, because `state/` has none and is not getting one; its
+# exit code 5 is "no tests here", which is a fresh instance and not a failure.
+# Nothing of pytest's is left behind in a directory this repository does not own.
+	cd backend && $(PYTHON) -m pytest -c pytest.ini -p no:cacheprovider $(STATE) || [ $$? = 5 ]
+endif
+
+# ---------------------------------------------------------------------------
+# What runs this board on a machine  (`units/`)
+#
+# The containers need no unit: `restart: unless-stopped` plus a docker daemon
+# enabled at boot is the whole of their autostart story. Two things are left,
+# and until now they lived only in one person's home directory, where nothing
+# reviewed them, nothing gated them, and a clone could not reproduce them —
+# which is how the agent's unit came to say the board was in memory two months
+# after the board became a file.
+#
+#   units/stark-hud-agent.service   the agent, as a systemd user service
+#   units/stark-hud.desktop         the kiosk, as an XDG autostart entry
+#
+# The kiosk is not a unit because it cannot be one: it needs the graphical
+# session, and an autostart entry is what starts after that session exists
+# rather than beside it. `tv-remote.service` is not here either, and that is a
+# decision rather than an oversight — it is the owner's own tool, it lives in
+# ~/.local/share/tv-video/, and it is not this board.
+#
+# Both are symlinked rather than copied, so the repository stays the copy of
+# record and an edit here is an edit there. The one thing the agent needs that
+# this repository must not hold — where the checkout is — is written into a
+# drop-in instead, beside the `orgs.conf` somebody wrote by hand for the same
+# reason. This file is public; a home directory and a LAN address are not.
+#
+# `$(MAIN)` and not `$(CURDIR)`: run from a worktree, this still points systemd
+# at the checkout the board runs from, rather than at a branch that will be
+# deleted next week.
+#
+# Point UNITS_DIR and AUTOSTART_DIR at a scratch directory and this installs
+# there and leaves systemd alone, which is how it is tested without touching a
+# running board.
+# ---------------------------------------------------------------------------
+UNITS_DIR     ?= $(HOME)/.config/systemd/user
+AUTOSTART_DIR ?= $(HOME)/.config/autostart
+DROP_IN        = $(UNITS_DIR)/stark-hud-agent.service.d
+
+.PHONY: units units-lint
+units:
+	@mkdir -p $(UNITS_DIR) $(DROP_IN) $(AUTOSTART_DIR)
+	ln -sfn $(MAIN)/units/stark-hud-agent.service $(UNITS_DIR)/stark-hud-agent.service
+	ln -sfn $(MAIN)/units/stark-hud.desktop $(AUTOSTART_DIR)/stark-hud.desktop
+	@printf '%s\n' \
+	  '# Written by `make units`, and not in the repository: where this checkout' \
+	  '# is, which belongs to this machine and to nobody else.' \
+	  '[Service]' \
+	  'WorkingDirectory=$(MAIN)' > $(DROP_IN)/10-checkout.conf
+	@if [ "$(UNITS_DIR)" = "$(HOME)/.config/systemd/user" ]; then \
+		systemctl --user daemon-reload; \
+		systemctl --user enable stark-hud-agent.service; \
+		echo "units: installed and enabled. The running agent is still the old one:"; \
+		echo "       systemctl --user restart stark-hud-agent   when the board can blink."; \
+	else \
+		echo "units: installed into $(UNITS_DIR) and $(AUTOSTART_DIR), systemd left alone."; \
+	fi
+
+# Both files are read by something that is not here when it is wrong: systemd at
+# boot, and the session manager at login. The kiosk's Exec line already went in
+# wrong once and was caught by this rather than by a television showing nothing.
+#
+# Each check is skipped when its tool is missing, because neither is worth a
+# dependency on a machine that only ever builds this repository — and both ship
+# with the desktop that runs the board.
+units-lint:
+	@if command -v systemd-analyze >/dev/null; then \
+		systemd-analyze --user verify units/stark-hud-agent.service; \
+	else echo "units-lint: no systemd-analyze here - unit not verified"; fi
+	@if command -v desktop-file-validate >/dev/null; then \
+		desktop-file-validate units/stark-hud.desktop; \
+	else echo "units-lint: no desktop-file-validate here - entry not verified"; fi
 
 # ---------------------------------------------------------------------------
 # Frontend gates  (run from frontend/, driven by $(BUN))

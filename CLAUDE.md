@@ -153,11 +153,13 @@ exists while somebody remembers it, which is not a gate but a habit.
 ```
 make hooks      # once per clone. Points git at .githooks.
 make back-install  # once per clone too. Builds the venv at the project's Python.
+make units      # once per machine. Symlinks units/ into systemd and autostart.
 make front-install # once per clone as well. node_modules for the frontend gates.
 make gate       # fast: every linter, plus py-version. What pre-commit runs. ~9s
 make check      # everything. What pre-push runs. ~45s
 make backend    # py-version + back-lint + back-types + back-test + back-build
 make agent      # agent-lint + agent-types over tools/
+make state      # ruff + mypy + the tests in state/, when this machine has one
 make frontend   # front-lint + front-dead + front-build + front-theme + front-test
 ```
 
@@ -201,6 +203,23 @@ hooks are files nobody calls: `core.hooksPath` is not set by cloning, and a
 repository that looks defended and is not is worse than one that never claimed
 to be. The template shipped a husky `pre-commit` that had never once run for
 exactly this reason.
+
+**`state/` is inside the gates too, when there is one.** The instance — the
+sources file and the scripts it names — is deliberately not in this repository,
+and `make check` reaches into it anyway: ruff's lint rules, mypy, and whatever
+tests sit beside the scripts. A clone with no `state/` passes without a word, so
+there is still one command and nothing to remember. Two things are deliberately
+*not* pointed at it, and the next session should not add them: `ruff format
+--check`, because formatting is this repository's house style and the instance
+never agreed to it, and `lint/house_lint.py`, whose every rule is about this
+backend's layers. The gate is there to catch a break, not a preference.
+
+**What runs this board lives in `units/`.** The agent's systemd unit and the
+kiosk's autostart entry, installed by `make units`, which symlinks them so that
+the repository stays the copy of record and an edit here is an edit there.
+Anything a public repository should not hold — where the checkout is, which
+GitHub organisations the feed reads — is a drop-in beside the unit instead.
+`tv-remote` is the owner's own tool and is deliberately not here.
 
 `tools/` is inside the gates too. It is not part of the backend package — the
 agent is standard library only so cron can run it with no virtualenv — but it

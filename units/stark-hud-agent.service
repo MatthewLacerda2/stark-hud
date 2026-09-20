@@ -1,0 +1,36 @@
+# The agent, as this machine runs it: one process on the host that reads
+# state/sources.toml and writes the panels it names.
+#
+# It stays outside the containers on purpose — it reads /proc, nvidia-smi and
+# tmux, and none of those describe the right machine from inside one. The
+# containers need no unit at all (`restart: unless-stopped` plus a docker daemon
+# enabled at boot is the whole of their autostart story), so this is the only
+# service this board has.
+#
+# `make units` symlinks this file into ~/.config/systemd/user/, so the copy of
+# record is the one in the repository and an edit here is an edit there. What
+# this machine alone knows stays out of it and goes in a drop-in beside it:
+# `make units` writes WorkingDirectory into 10-checkout.conf, and HUD_GITHUB_ORGS
+# is in an orgs.conf somebody wrote by hand. This file is public; neither of
+# those is.
+
+[Unit]
+Description=stark-hud agent: keeps the board fed from this machine
+Documentation=https://github.com/MatthewLacerda2/stark-hud
+After=network-online.target
+
+[Service]
+Type=simple
+# Relative to WorkingDirectory, which the drop-in supplies. The system python
+# on purpose: the agent is standard library only so that it needs no
+# virtualenv, and `make agent` is the gate that keeps it that way.
+ExecStart=/usr/bin/python3 tools/agent.py
+Restart=always
+RestartSec=10
+# Nothing here has to be ordered against the backend. The board is a file on
+# disk, so a restart of either side recovers on its own: the backend reads
+# `state/board.hud` back, and the agent writes its panels again on its next
+# pass, which is at most a few seconds away.
+
+[Install]
+WantedBy=default.target

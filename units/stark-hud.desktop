@@ -1,0 +1,28 @@
+[Desktop Entry]
+Type=Application
+Name=stark-hud
+Comment=Open the board full-screen on the TV at login
+# The kiosk: chromium with nothing around it, on the port the frontend container
+# publishes to loopback. `make units` symlinks this into ~/.config/autostart/.
+#
+# An autostart entry and not a systemd unit, because it cannot be one. It needs
+# the graphical session — the Wayland socket, that session's own display — and
+# an autostart entry is the thing started once that exists rather than beside
+# it.
+#
+# Through `sh -c` for one reason: a .desktop Exec line expands no variables, and
+# the profile directory is under somebody's home, which a public repository
+# should not be spelling out. `exec` replaces the shell, so the process tree is
+# the one chromium alone would have made.
+#
+# --user-data-dir keeps the kiosk's profile away from the browser a human uses
+# on this machine: a restored tab, a crash bubble or a signed-in account on one
+# is then not the other's problem. --autoplay-policy is what lets a media widget
+# start playing on a screen that has nothing to click with. The debugging port
+# is how a session drives this page — casting it to another television, mostly —
+# and it listens on loopback only.
+Exec=sh -c "exec chromium --kiosk --remote-debugging-port=9222 --user-data-dir=\\$HOME/.local/share/stark-hud-chromium --autoplay-policy=no-user-gesture-required --noerrdialogs --disable-session-crashed-bubble --disable-infobars --ozone-platform=wayland http://127.0.0.1:8080/"
+X-GNOME-Autostart-enabled=true
+# The containers come back on their own (restart: unless-stopped), but they need
+# a moment to answer before the page loads, or the board opens on an error.
+X-GNOME-Autostart-Delay=15
