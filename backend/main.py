@@ -25,7 +25,7 @@ from hud_mcp.server import server as board_tools
 from repositories import board as repo
 from repositories import notifications as notifications_repo
 from schemas.board import BoardSnapshot
-from services import persistence
+from services import media, persistence
 
 APP_NAME = "stark-hud"
 
@@ -37,18 +37,28 @@ mcp_app = build_mcp_app()
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
-    """Restore the board, run the MCP session manager, and write on the way out.
+    """Restore the board, run the two loops and the MCP session manager, and write out.
 
     The final save is what makes a clean stop lose nothing; the flusher is what
     covers the other kind, where nothing gets to run on the way out.
+
+    The reaper is the other loop: a media widget that finished playing an hour
+    ago takes itself off the board. It ticks here rather than in the browser
+    because there may be several browsers looking at this board or none at all —
+    see ``services.media.reaper``.
     """
+    settings = get_settings()
     persistence.restore()
-    flush = asyncio.create_task(persistence.flusher(get_settings().STATE_FLUSH_SECONDS))
+    loops = [
+        asyncio.create_task(persistence.flusher(settings.STATE_FLUSH_SECONDS)),
+        asyncio.create_task(media.reaper(settings.MEDIA_EXPIRY_CHECK_SECONDS)),
+    ]
     try:
         async with mcp_app.router.lifespan_context(mcp_app):
             yield
     finally:
-        flush.cancel()
+        for loop in loops:
+            loop.cancel()
         persistence.save()
 
 
