@@ -243,6 +243,9 @@ async def create(data: ItemCreate) -> ItemRead:
         color=data.color,
         border=data.border,
         scale=data.scale,
+        # A widget nobody said anything about is a pane, which is what the
+        # repository already defaults to.
+        flat=bool(data.flat),
         description=_described(data, None),
     )
     await events.created(item)
@@ -268,6 +271,7 @@ async def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
                 "color": data.color if data.color is not None else item.color,
                 "border": data.border if data.border is not None else item.border,
                 "scale": data.scale if data.scale is not None else item.scale,
+                "flat": data.flat if data.flat is not None else item.flat,
             }
         )
     )

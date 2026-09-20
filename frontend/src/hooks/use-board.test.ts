@@ -35,6 +35,7 @@ function note(id: string, text: string): Item {
     color: null,
     border: null,
     scale: null,
+    flat: false,
     payload: { kind: "note", text },
     playback: null,
     x: 0,

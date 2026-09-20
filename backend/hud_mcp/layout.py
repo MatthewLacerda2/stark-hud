@@ -53,7 +53,7 @@ def register(server: MCPServer) -> None:
         "h": 3}`. Anything left out is left alone, so a change says only what
         changes. `{"target": "...", "remove": true}` takes a widget off the
         board — the one verb here, because being gone is not a place. `color`,
-        `color`, `border` and `scale` are accepted too. There is no add: a new
+        `border`, `scale` and `flat` are accepted too. There is no add: a new
         widget has no id to name yet, and no `parent_id` or page — which group
         and which page a widget is on are trades, made by `add_to_group` and
         `move_to_page`, not fields an arrangement writes.
@@ -90,6 +90,7 @@ def register(server: MCPServer) -> None:
         color: str | None = None,
         border: str | None = None,
         scale: float | None = None,
+        flat: bool | None = None,
     ) -> str:
         """Change how a widget looks. Everything is optional; only what you pass moves.
 
@@ -116,12 +117,24 @@ def register(server: MCPServer) -> None:
 
         `scale` multiplies the text inside, 0.25 to 4. Type already grows with
         the widget; this moves the whole range.
+
+        `flat` takes the widget's glass off: no lit edge, no thickness, just
+        what it draws, straight on the video. `true` takes it off and `false`
+        puts it back. Every widget is a pane by default and most should stay
+        one — this is for the widget that already carries a picture of its own,
+        a film or a photograph or a chart with its own frame, where the edge
+        reads as a frame around a frame.
+
+        It is not `border` by another name. A border is a line somebody chose
+        the colour of; `flat` is whether the widget has thickness at all. And it
+        only ever takes away — a board flattened at the browser stays flat
+        whatever a widget asks for.
         """
         if scale is not None and not 0.25 <= scale <= 4:
             return f"Not set: scale must be between 0.25 and 4 (got {scale})"
-        if color is None and border is None and scale is None:
-            return "Nothing to set: pass at least one of color, border or scale"
-        update = ItemUpdate(color=color, border=border, scale=scale)
+        if color is None and border is None and scale is None and flat is None:
+            return "Nothing to set: pass at least one of color, border, scale or flat"
+        update = ItemUpdate(color=color, border=border, scale=scale, flat=flat)
         return await _patch(item_id, update, "restyled")
 
     @server.tool()

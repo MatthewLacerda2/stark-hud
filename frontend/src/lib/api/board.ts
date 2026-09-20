@@ -31,6 +31,8 @@ export interface ItemUpdate {
   color?: string;
   border?: string;
   scale?: number;
+  /** Takes this widget's glass off, or puts it back. See `Item.flat`. */
+  flat?: boolean;
   x?: number;
   y?: number;
   w?: number;

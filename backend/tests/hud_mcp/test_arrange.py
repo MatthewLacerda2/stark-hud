@@ -64,3 +64,17 @@ async def test_a_change_the_schema_refuses_comes_back_in_words(server: MCPServer
 
     assert "Not rearranged" in message
     assert repo.get(ids[0]).w == 16
+
+
+async def test_a_batch_takes_the_glass_off_a_widget(server: MCPServer) -> None:
+    """A look is a place a widget ends up in, so it travels with the rest of them."""
+    a, *_ = await _full(server)
+
+    await call(server, "arrange", changes=[{"target": a, "x": 0, "y": 0, "flat": True}])
+
+    assert repo.get(a).flat is True
+    # And the pane back again, which only works because the field is
+    # three-state: ``exclude_none`` is what tells "leave it alone" from
+    # "put it back".
+    await call(server, "arrange", changes=[{"target": a, "flat": False}])
+    assert repo.get(a).flat is False

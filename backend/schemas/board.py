@@ -1,14 +1,28 @@
-"""What a widget is: where it sits, how it looks, and the note left on it.
+"""The board itself: the video behind the widgets, and the ink they are written in.
 
-What a widget *shows* lives in ``schemas.payloads`` and is re-exported here,
-because ``schemas.board`` is the name every layer already imports from.
+What a widget *is* lives in ``schemas.item`` and what a widget *shows* lives in
+``schemas.payloads``. Both are re-exported here, because ``schemas.board`` is
+the name every layer already imports from — and that is worth keeping even
+though the models no longer all live in this file.
+
+They stopped living here when this file reached the 350-line ceiling with a
+fifth style field still to add. The cut is along the meaning the docstring
+already claimed: a widget is one thing, the board that holds it is another.
 """
 
-from datetime import datetime
-
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 from schemas.colour import Colour
+from schemas.item import (
+    DEFAULT_PAGE,
+    MIN_SIZE,
+    Arrangement,
+    Change,
+    ItemCreate,
+    ItemRead,
+    ItemUpdate,
+    Placement,
+)
 from schemas.media import MEDIA_ACTIONS, MediaAction, Playback, PlaybackReport
 from schemas.mesh import MeshPart, MeshWave, WaveMode, Wireframe
 from schemas.notifications import Notification
@@ -51,10 +65,14 @@ from schemas.payloads import (
 )
 
 __all__ = [
+    "DEFAULT_PAGE",
     "MEDIA_ACTIONS",
+    "MIN_SIZE",
     "Align",
+    "Arrangement",
     "BoxPayload",
     "CalendarPayload",
+    "Change",
     "ChartAxes",
     "ChartKind",
     "ChartPayload",
@@ -75,6 +93,9 @@ __all__ = [
     "IconSide",
     "ImagePayload",
     "InboxPayload",
+    "ItemCreate",
+    "ItemRead",
+    "ItemUpdate",
     "ListEntry",
     "ListPayload",
     "MediaAction",
@@ -85,6 +106,7 @@ __all__ = [
     "MeshWave",
     "NotePayload",
     "Payload",
+    "Placement",
     "Playback",
     "PlaybackReport",
     "ProgressPayload",
@@ -95,169 +117,6 @@ __all__ = [
     "WaveMode",
     "Wireframe",
 ]
-
-
-# The smallest a widget may be, in cells. A cell is roughly 60px on the 1080p
-# television this is read from, so a quarter of one is about 15px — the point
-# below which a widget stops being small and becomes invisible while still
-# refusing to let anything overlap it. Zero is not the floor for that reason.
-MIN_SIZE = 0.25
-
-# The page a board starts on, and the one a file written before pages had names
-# comes back onto. A page is nothing but a name its widgets carry, so this is
-# also what "no page in particular" is spelled as.
-DEFAULT_PAGE = "main"
-
-
-class Placement(BaseModel):
-    """Where an item sits, in columns and rows. Never pixels.
-
-    Fractional: the board is a 32-by-18 space rather than 576 slots, so a
-    widget sits where it was put. Whole numbers still mean exactly what they
-    always meant, which is why every call written before this went on working.
-    """
-
-    x: float = Field(ge=0)
-    y: float = Field(ge=0)
-    w: float = Field(ge=MIN_SIZE)
-    h: float = Field(ge=MIN_SIZE)
-
-
-class ItemCreate(BaseModel):
-    """Payload to add an item.
-
-    Omit ``x``/``y`` to let the auto-placer choose a free slot. ``w``/``h``
-    default to a size that suits the kind.
-    """
-
-    payload: Payload
-    key: str | None = None
-    description: str | None = None
-    color: Colour | None = None
-    border: Colour | None = None
-    scale: float | None = Field(default=None, ge=0.25, le=4)
-    x: float | None = Field(default=None, ge=0)
-    y: float | None = Field(default=None, ge=0)
-    w: float | None = Field(default=None, ge=MIN_SIZE)
-    h: float | None = Field(default=None, ge=MIN_SIZE)
-    parent_id: str | None = None
-
-
-class ItemUpdate(BaseModel):
-    """Partial update. Any field left as ``None`` is untouched."""
-
-    payload: Payload | None = None
-    key: str | None = None
-    # ``None`` leaves the note alone like every other field here, so an empty
-    # string is how it is cleared. Without that there would be no way back from
-    # a wrong note, and adding a second "unset" sentinel for one field would
-    # cost more than the rule does.
-    description: str | None = None
-    color: Colour | None = None
-    border: Colour | None = None
-    scale: float | None = Field(default=None, ge=0.25, le=4)
-    x: float | None = Field(default=None, ge=0)
-    y: float | None = Field(default=None, ge=0)
-    w: float | None = Field(default=None, ge=MIN_SIZE)
-    h: float | None = Field(default=None, ge=MIN_SIZE)
-    # No ``parent_id`` and no ``page``. Both say which widgets are drawn beside
-    # which, and both are a trade — a widget joining a folded group leaves the
-    # board with nothing taking its place. ``services.groups`` and
-    # ``services.pages`` make those trades whole; a PATCH that wrote either
-    # field straight through skipped every check they make.
-
-
-class Change(BaseModel):
-    """One widget's place in the arrangement a batch is asking for.
-
-    Written as an end state rather than a verb, because that is what somebody
-    asking for a rearrangement is describing: this widget ends up here, that
-    size, that colour. Everything is optional and anything left out is left
-    alone, so an entry says only what changes — and a move and a resize in one
-    entry are one thought rather than two operations that have to be ordered.
-
-    ``remove`` is the one verb, because taking a widget off the board is not a
-    place it ends up in.
-
-    There is no ``add``. A new widget has no id to be named by yet, and adding
-    never had the problem a batch exists to solve.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    # An id, or the key a panel is known by. A key names one widget, so either
-    # is unambiguous — which is what makes naming a widget by name safe here.
-    target: str
-    remove: bool = False
-    x: float | None = Field(default=None, ge=0)
-    y: float | None = Field(default=None, ge=0)
-    w: float | None = Field(default=None, ge=MIN_SIZE)
-    h: float | None = Field(default=None, ge=MIN_SIZE)
-    color: Colour | None = None
-    border: Colour | None = None
-    scale: float | None = Field(default=None, ge=0.25, le=4)
-
-
-class Arrangement(BaseModel):
-    """A batch of changes, applied together or not at all."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    changes: list[Change] = Field(min_length=1)
-
-
-class ItemRead(BaseModel):
-    """An item as broadcast to every client."""
-
-    id: str
-    # A caller-supplied name for something it will write again — a panel that
-    # updates rather than a one-off. Whoever writes it can find it later without
-    # remembering an id, which is what lets a refresher survive losing its state
-    # or being replaced by another process entirely.
-    key: str | None = None
-    # A note for whoever drives the board next, never drawn on the TV. It says
-    # what a widget is for, what it is waiting on, what its number means — the
-    # things a later session cannot recover by looking. It lives here beside
-    # ``x`` and ``y`` rather than inside the payload because a panel's payload is
-    # rewritten whole every few seconds, which would erase it on the next pass.
-    description: str | None = None
-    # A widget has no background: the board's video runs behind every one of
-    # them, and a media or image widget covers it with its own picture. So the
-    # only things a widget can be told about its look are these three.
-    #
-    # The colour of the widget's text.
-    color: str | None = None
-    # A line around the widget, at whatever colour is given. None is no line,
-    # which is what almost every widget wants: a board of outlined rectangles is
-    # a form, not a view. A colour carrying its own alpha is how you ask for a
-    # faint one.
-    border: str | None = None
-    # Multiplies the text sizes inside this widget. The type still scales with the
-    # widget, this just moves the whole range.
-    scale: float | None = None
-    payload: Payload
-    # What the browser says this widget is actually doing, for the one widget
-    # that can fail on its own: a media file may be missing, or in a codec the
-    # browser will not take, and without this that would be invisible from
-    # anywhere but the sofa. It lives here beside ``description`` rather than in
-    # the payload for the same reason that does — a payload is rewritten whole
-    # by whoever owns it, and this is not theirs to overwrite.
-    playback: Playback | None = None
-    # The page this widget is on. Exactly one, and the board shows one page at
-    # a time: a widget on any other takes no room, is not drawn, and goes on
-    # taking writes by ``key`` the whole time, so a page comes back current
-    # rather than rebuilt. Changed through ``services.pages``, never by a PATCH.
-    page: str = DEFAULT_PAGE
-    x: float
-    y: float
-    w: float
-    h: float
-    # The group this widget belongs to, if any. A widget in a group is on the
-    # board while the group is open and off it while the group is closed, which
-    # is the whole of what folding does. Never another group: nesting stops at
-    # one level.
-    parent_id: str | None
-    created_at: datetime
 
 
 class Background(BaseModel):

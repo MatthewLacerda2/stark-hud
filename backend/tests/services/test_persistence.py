@@ -55,6 +55,25 @@ def test_a_board_written_before_the_ink_existed_asks_for_the_default(tmp_path, m
     assert board.get_ink() is None
 
 
+def test_a_board_written_before_the_glass_could_come_off_keeps_its_panes(tmp_path, monkeypatch):
+    """Every widget on disk today has no ``flat`` in it, and every one is a pane.
+
+    No format bump for the same reason the ink needed none: a field nobody wrote
+    is the default, and the default is the board exactly as it was.
+    """
+    target = _point_at(tmp_path, monkeypatch)
+    item = board.add(NotePayload(text="hello"), 0, 0, 4, 2)
+    assert persistence.save()
+    written = json.loads(target.read_text(encoding="utf-8"))
+    written["items"][0].pop("flat")
+    target.write_text(json.dumps(written), encoding="utf-8")
+
+    board.clear()
+    persistence.restore()
+
+    assert board.get(item.id).flat is False
+
+
 def test_unreadable_file_is_moved_aside_not_obeyed(tmp_path, monkeypatch):
     target = _point_at(tmp_path, monkeypatch)
     target.write_text("this is not a board", encoding="utf-8")

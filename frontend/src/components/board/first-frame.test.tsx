@@ -48,6 +48,7 @@ const NOTE: Item = {
   color: null,
   border: null,
   scale: null,
+  flat: false,
   payload: { kind: "note", text: "twenty across" },
   playback: null,
   x: 20,

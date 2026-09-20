@@ -468,6 +468,34 @@ async def test_what_a_widget_reports_is_on_the_line_a_session_already_reads(
     assert "[failed '01 - Track 1': no codec]" in listed
 
 
+async def test_the_glass_comes_off_one_widget_and_goes_back(server: MCPServer) -> None:
+    """The widget that carries a picture of its own can stop being framed.
+
+    Said in ``list_items`` and nowhere else, because this is the one thing about
+    a widget's look that a session is ever asked to undo: a colour is read off
+    the television, an edge that is missing looks like a widget that never had
+    one.
+    """
+    await call(server, "add_image", path="/mnt/d_drive/poster.png")
+    item_id = repo.list_items()[0].id
+
+    assert "restyled" in (await call(server, "set_style", item_id=item_id, flat=True)).lower()
+    assert repo.get(item_id).flat is True
+    assert "[flat]" in await call(server, "list_items")
+
+    await call(server, "set_style", item_id=item_id, flat=False)
+    assert repo.get(item_id).flat is False
+    assert "[flat]" not in await call(server, "list_items")
+
+
+async def test_a_style_call_that_says_nothing_names_what_it_takes(server: MCPServer) -> None:
+    """Including the new one: a list of accepted fields that is missing one is a lie."""
+    await call(server, "add_note", text="hello")
+    item_id = repo.list_items()[0].id
+
+    assert "color, border, scale or flat" in await call(server, "set_style", item_id=item_id)
+
+
 async def test_a_widget_can_be_woken_before_anything_is_written_to_it(
     server: MCPServer, listening: Listener
 ) -> None:

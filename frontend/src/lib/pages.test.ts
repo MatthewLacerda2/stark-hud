@@ -18,6 +18,7 @@ function item(id: string, page: string, parent: string | null = null): Item {
     color: null,
     border: null,
     scale: null,
+    flat: false,
     payload: { kind: "note", text: "x" } as Payload,
     playback: null,
     x: 0,

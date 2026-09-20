@@ -64,6 +64,7 @@ function note(
     color: null,
     border: null,
     scale: null,
+    flat: false,
     payload: { kind: "note", text },
     playback: null,
     ...rect,

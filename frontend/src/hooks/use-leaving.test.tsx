@@ -33,6 +33,7 @@ function item(id: string): Item {
     color: null,
     border: null,
     scale: null,
+    flat: false,
     payload: { kind: "note", text: id },
     playback: null,
     x: 0,

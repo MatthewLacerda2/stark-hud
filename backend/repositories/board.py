@@ -58,6 +58,7 @@ def add(
     color: str | None = None,
     border: str | None = None,
     scale: float | None = None,
+    flat: bool = False,
     description: str | None = None,
 ) -> ItemRead:
     """Insert a new item at an already-resolved position.
@@ -78,6 +79,7 @@ def add(
         color=color,
         border=border,
         scale=scale,
+        flat=flat,
         payload=payload,
         x=x,
         y=y,

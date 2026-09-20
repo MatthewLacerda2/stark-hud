@@ -118,6 +118,10 @@ function widgetVars(item: Item): React.CSSProperties {
  * that shows the thickness off is the page's, in `stage.tsx`; all this file
  * does is keep the 3D context alive from the board down to each widget, which
  * is what `depth-carry` is on every element in between.
+ *
+ * A widget can also ask to go without its pane, and that lives here rather than
+ * in `lib/depth.ts` for the same reason `--widget-border` does: depth is the
+ * whole board's look and knows nothing about which widget is which.
  */
 export function BoardGrid({
   items,
@@ -144,7 +148,8 @@ export function BoardGrid({
   tape: Tape;
   /** How much light the widgets spill. One setting for the whole board. */
   bloom: Bloom;
-  /** Whether each widget is drawn as a pane of glass. */
+  /** Whether a widget is drawn as a pane of glass at all — one dial for the
+   * whole board. A widget may still refuse its own; see `Item.flat`. */
   glass: boolean;
   cols: number;
   rows: number;
@@ -207,8 +212,13 @@ export function BoardGrid({
                 }}
               >
                 {/* Not while something has the whole board: the others draw
-                    nothing then, and a pane with nothing on it is still glass. */}
-                {glass && !maximised ? <Slab /> : null}
+                    nothing then, and a pane with nothing on it is still glass.
+
+                    And not on a widget that asked to go without one. The two
+                    conditions are an `and` on purpose — the board's dial and
+                    the widget's own setting can each take the pane away, and
+                    neither can give one the other took. */}
+                {glass && !item.flat && !maximised ? <Slab /> : null}
                 {drawn(item, maximised) ? (
                   <>
                     <div className={cn("size-full", looked(item, tape, bloom))}>

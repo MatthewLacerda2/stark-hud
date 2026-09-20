@@ -377,6 +377,17 @@ export interface Item {
   border: string | null;
   /** Multiplies the text sizes inside the widget. Null means 1. */
   scale: number | null;
+  /**
+   * Whether this widget goes without its glass: no lit edge, no walls, no
+   * face, just what it draws on the video. False on all but the few widgets
+   * that carry a picture of their own, where the edge is a frame around a
+   * frame.
+   *
+   * Not `border`, which is a line somebody asked for in a colour they chose.
+   * This is whether the widget has thickness at all — and it only ever takes
+   * away: a board flattened by `?glass=0` cannot be told to give one back.
+   */
+  flat: boolean;
   payload: Payload;
   /**
    * What the browser says this widget is actually doing. Only a media widget
