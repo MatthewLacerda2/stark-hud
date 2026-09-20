@@ -138,7 +138,15 @@ export function entranceVars(flight: Entrance): Record<string, string> {
   };
 }
 
-/** The class that plays this entrance, or plays it backwards on the way out. */
+/**
+ * The class that plays this entrance, or the one that undoes it on the way out.
+ *
+ * Undoes, not reverses. A departure travels the same corridor the other way,
+ * but it also steps back out of the plane the other widgets are in before it
+ * sets off (`widget-fly-out` in `styles.css`). There is no matching step
+ * forward on the way in: a widget arriving has no plane to step out of, and
+ * the owner asked for the going, not the coming.
+ */
 export function entranceClass(flight: Entrance, going: boolean): string {
   if (going) return flight.edge ? "widget-flying-out" : "widget-leaving";
   return flight.edge ? "widget-flying-in" : "widget-arriving";

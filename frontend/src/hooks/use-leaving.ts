@@ -12,7 +12,9 @@ import type { Item } from "@/lib/schemas/board";
  *
  * Nothing here is board state. The board records where things end up, never
  * where they are mid-flight, and a ghost is neither — it is a picture of
- * something that is not there any more, held for a fifth of a second.
+ * something that is not there any more, held for exactly as long as its going
+ * takes and not a frame more. How long that is belongs to `styles.css`; no
+ * number here has to agree with it.
  *
  * The animation reports its own end rather than a timer counting the same
  * duration a second time, which is one number that cannot drift out of step

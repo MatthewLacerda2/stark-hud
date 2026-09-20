@@ -5,6 +5,7 @@
  * all the answer depends on: what the widget is, what it draws and how long the
  * flight takes are somebody else's questions.
  */
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { Rect } from "@/lib/drag";
 import { entrance, entranceClass, entranceVars } from "@/lib/entrance";
@@ -119,5 +120,39 @@ describe("entranceClass", () => {
     const flight = { edge: null, dx: 0, dy: 0 } as const;
     expect(entranceClass(flight, false)).toBe("widget-arriving");
     expect(entranceClass(flight, true)).toBe("widget-leaving");
+  });
+});
+
+/**
+ * The one thing about the departure's stylesheet that this file's arithmetic
+ * depends on, checked here because nothing else can check it.
+ *
+ * `--fly-x` is the corridor measured above, handed over as a percentage of the
+ * widget's own box. A percentage translate means that only while the box is
+ * the one the browser laid out — and the departure now scales the widget down
+ * on its way out. CSS transform functions compose right to left, so
+ * `translate() scale()` scales first and still translates by the full
+ * corridor, while `scale() translate()` would multiply the corridor by the
+ * scale and leave the widget short of the edge, parked in view. Two words in
+ * one order, and the whole of this file is either honoured or quietly wrong.
+ */
+describe("the fly-out keyframes", () => {
+  // The file itself, not a `?raw` import of it: the Tailwind plugin owns every
+  // `.css` id in this build and hands back the compiled sheet, which is empty
+  // of anything no class in the test used. Vitest runs at `frontend/`.
+  const flyOut = readFileSync("src/styles.css", "utf8").match(
+    /@keyframes widget-fly-out \{[^@]*?\n\}/,
+  )?.[0];
+
+  it("translates before it scales, so the corridor is the travel", () => {
+    expect(flyOut).toBeDefined();
+    for (const [, transform] of flyOut!.matchAll(/transform:\s*([^;]+);/g)) {
+      expect(transform).toMatch(/translate\(.*\)\s+scale\(/);
+    }
+  });
+
+  it("ends the flight at the stepped-back size, not back in the plane", () => {
+    const [, last] = [...flyOut!.matchAll(/scale\(([\d.]+)\)/g)].at(-1)!;
+    expect(Number(last)).toBeLessThan(1);
   });
 });
