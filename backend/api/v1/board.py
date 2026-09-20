@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 
 from repositories import board as repo
 from schemas.board import (
+    DEFAULT_PAGE,
     Arrangement,
     Background,
     BoardStatus,
@@ -123,10 +124,18 @@ async def upsert_by_key(key: str, payload: ItemCreate) -> ItemRead:
     Only the payload is rewritten, so the item's own fields — its description
     among them — outlive every refresh. That is the whole reason a note about a
     panel is kept on the item and not inside what the panel is showing.
+
+    A panel is born on the page the body names, and on the board's default page
+    when it names none — never on the page that happens to be showing. Nothing
+    reaching this route is looking at the television: a caller that writes by
+    key is one that will write again, which is what a panel is, and the agent
+    creating one at four in the morning should not have where it lands decided
+    by what somebody left up. Say ``page`` to put a panel somewhere else.
     """
     existing = repo.get_by_key(key)
     if existing is None:
-        return await service.create(payload.model_copy(update={"key": key}))
+        born = payload.model_copy(update={"key": key, "page": payload.page or DEFAULT_PAGE})
+        return await service.create(born)
     return await service.update(existing, ItemUpdate(payload=payload.payload))
 
 

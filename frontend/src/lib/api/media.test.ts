@@ -13,11 +13,13 @@ import {
   mediaUrl,
   notificationIconUrl,
   trackUrl,
+  uploadTrack,
 } from "@/lib/api/media";
 
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.resetModules();
+  vi.restoreAllMocks();
 });
 
 describe("the URLs behind the board's pictures", () => {
@@ -49,5 +51,43 @@ describe("the URLs behind the board's pictures", () => {
     expect(moved.backgroundUrl()).toBe(
       "http://box.lan:8000/api/v1/media/background",
     );
+  });
+});
+
+describe("handing the board a file", () => {
+  it("posts the file itself, with its name in the query", async () => {
+    const spy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          path: "/data/uploads/ab/f.mp4",
+          name: "f.mp4",
+          bytes: 4,
+        }),
+        { status: 201 },
+      ),
+    );
+    const file = new File(["bits"], "Cidade de Deus.mkv");
+
+    const got = await uploadTrack(file);
+
+    const [url, init] = spy.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/media/upload?name=Cidade%20de%20Deus.mkv");
+    expect(init.method).toBe("POST");
+    // The file, not a string and not a form: anything else is the whole film
+    // copied through memory on the way out.
+    expect(init.body).toBe(file);
+    expect(init.headers).toEqual({});
+    expect(got.path).toBe("/data/uploads/ab/f.mp4");
+  });
+
+  it("encodes a name that would otherwise be a second query parameter", async () => {
+    const spy = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValue(new Response("{}", { status: 201 }));
+
+    await uploadTrack(new File(["x"], "a&b=c ../d.mp4"));
+
+    const [url] = spy.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/v1/media/upload?name=a%26b%3Dc%20..%2Fd.mp4");
   });
 });

@@ -67,6 +67,12 @@ class ItemCreate(BaseModel):
     w: float | None = Field(default=None, ge=MIN_SIZE)
     h: float | None = Field(default=None, ge=MIN_SIZE)
     parent_id: str | None = None
+    # The page this widget is born on. Only a creation says it — moving a widget
+    # between pages afterwards is a trade ``services.pages`` makes whole, which
+    # is why ``ItemUpdate`` has none. ``None`` means the page being shown, which
+    # is right for a session looking at the board and wrong for a writer that
+    # cannot see the television: see the panel path in ``api.v1.board``.
+    page: str | None = None
 
 
 class ItemUpdate(BaseModel):

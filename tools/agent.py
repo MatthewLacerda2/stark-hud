@@ -81,16 +81,26 @@ class Board:
         """
         self.call("POST", "/notifications", entry)
 
-    def write(self, key: str, payload: dict, place: dict, description: str = "") -> None:
+    def write(
+        self, key: str, payload: dict, place: dict, description: str = "", page: str = ""
+    ) -> None:
         """Create or update the panel called ``key``.
 
-        ``place`` only takes effect the first time; the board ignores it after,
-        so a panel someone dragged stays dragged. A ``description`` is the note
-        only sessions read, and is left alone when it is not given.
+        ``place`` and ``page`` only take effect the first time; the board
+        ignores them after, so a panel someone dragged stays dragged and one
+        somebody moved to another page stays moved. A ``description`` is the
+        note only sessions read, and is left alone when it is not given.
+
+        Naming no page is not the same as naming the page that is showing. A
+        panel that names none is born on the board's default page, because what
+        happened to be up the moment a panel was first written has nothing to do
+        with where that panel belongs.
         """
         body: dict = {"payload": payload, **place}
         if description:
             body["description"] = description
+        if page:
+            body["page"] = page
         self.call("PUT", f"/board/items/by-key/{key}", body)
 
 
@@ -105,7 +115,7 @@ def tick(board: Board, sources: list[Source], state: Path, now: float) -> None:
             continue
         if not source.runs:
             # A static widget: nothing to run, it only has to exist and stay put.
-            board.write(source.name, dict(source.spec["panel"]), source.place)
+            board.write(source.name, dict(source.spec["panel"]), source.place, page=source.page)
             continue
         produced = read_source(source.spec, state)
         if produced is None:
@@ -114,7 +124,7 @@ def tick(board: Board, sources: list[Source], state: Path, now: float) -> None:
             for entry in source.news(produced if isinstance(produced, list) else []):
                 board.announce(entry)
             continue
-        board.write(source.name, source.payload(produced), source.place)
+        board.write(source.name, source.payload(produced), source.place, page=source.page)
 
 
 def configured(given: Path | None) -> Path:

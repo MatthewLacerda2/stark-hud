@@ -111,6 +111,29 @@ class Settings(BaseSettings):
     # megabyte or two and never grows past it.
     SPEECH_KEEP: int = Field(default=20, ge=1)
 
+    # Where a file handed over by a browser lands. Beside the board file and the
+    # spoken lines, because that is the one directory this backend owns and the
+    # one volume it can write to. Relative here like `STATE_FILE` and `SPEECH_DIR`,
+    # and absolute in the container for the same reason — see `docker-compose.yml`.
+    #
+    # It is also the only directory on this machine the board ever deletes from.
+    # A media queue mostly holds paths a session named — an album somewhere on a
+    # disk full of them — and those are somebody's files. These are ours: they
+    # arrived with no name on this machine and nothing but a widget refers to
+    # them, so when no widget does, nothing does. See `services.uploads`.
+    UPLOAD_DIR: str = "state/uploads"
+
+    # How long an uploaded file nothing refers to is left alone before a sweep
+    # may delete it.
+    #
+    # Receiving a file and playing it are two calls: the bytes land, and then
+    # something puts the path into a queue. In between, the file is referenced by
+    # nobody and is indistinguishable from one whose widget has just been taken
+    # off the board. Without this window, removing any media widget in that gap
+    # would delete a file that was a second away from being played. Five minutes
+    # is far longer than the gap and far shorter than anybody notices the disk.
+    UPLOAD_GRACE_SECONDS: float = Field(default=300.0, ge=0)
+
     # Driving the board by typing at it, which is bought from Google a prompt at
     # a time. Empty is a working configuration, exactly like the voice above:
     # the bar refuses in one sentence and everything else on the board carries

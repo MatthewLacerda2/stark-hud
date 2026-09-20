@@ -18,14 +18,16 @@ under ``/board/items``, which is where the page already posts it.
 
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import FileResponse
 
 from repositories import board as repo
 from schemas.board import ImagePayload, ItemRead, MediaPayload, PlaybackReport
 from schemas.media import media_type
+from schemas.uploads import Uploaded
 from services import board as service
 from services import media as media_service
+from services import uploads as upload_service
 
 router = APIRouter(prefix="/media", tags=["media"])
 
@@ -56,6 +58,31 @@ async def report_playback(item_id: str, payload: PlaybackReport) -> ItemRead:
             detail=f"Item {item_id} is a {item.payload.kind}, which plays nothing",
         )
     return await media_service.report(item, payload)
+
+
+@router.post("/upload", response_model=Uploaded, status_code=status.HTTP_201_CREATED)
+async def upload_media(request: Request, name: str) -> Uploaded:
+    """Take a file from a browser, put it on the host's disk, and name the path.
+
+    The one route here that receives a file rather than serving one, and the
+    only way a person with a browser can put something on this board: a file
+    picker hands the page bytes and never a path, and the browser is usually not
+    the machine the board runs on. What comes back is a path, which goes into a
+    media queue exactly like a path a session would have named — so nothing
+    downstream of here knows a track was uploaded.
+
+    **The body is the file itself, not a form.** What arrives is a film, and a
+    multipart parser spools the whole body to a temporary file before anything
+    can write it where it belongs: the same gigabytes twice, on a machine with
+    one disk. Straight off the stream there is no second copy and no parser to
+    hold it. The name travels in the query, which is the only thing the form was
+    carrying that anybody needed.
+
+    It is refused before a byte is written when the suffix is not one the board
+    can play — the same table a queue is checked against, so a file accepted
+    here is a file that will queue.
+    """
+    return await upload_service.receive(name, request.stream())
 
 
 def _stream(path: str) -> FileResponse:
