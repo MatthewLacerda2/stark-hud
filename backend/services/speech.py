@@ -37,6 +37,7 @@ from pydantic import ValidationError
 
 from core.config import Settings, get_settings
 from schemas.speech import MAX_CHARS, SpeechRequest, Spoken
+from services import events
 
 # The audio the television gets. 128 kbps MP3 is the cheapest format the free
 # tier will produce and far past what a spoken sentence needs; anything better
@@ -230,9 +231,15 @@ async def say(text: str) -> Spoken:
     thread: the same event loop carries every socket looking at this board, and
     a board that stops repainting while it buys a sentence is worse than a board
     that says nothing.
+
+    The line reaches the page from here. The television has no sound card of its
+    own — the browser does the speaking — so a line synthesised and not
+    broadcast is a line nobody hears and quota already spent.
     """
     line = _checked(text)
     if not get_settings().ELEVENLABS_API_KEY:
         raise SpeechError(NO_KEY)
     audio = await asyncio.to_thread(_convert, line)
-    return _store(line, audio)
+    said = _store(line, audio)
+    await events.spoken(said)
+    return said

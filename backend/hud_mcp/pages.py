@@ -7,8 +7,7 @@ room has no pointer to press anyway. A session finds the pages by asking.
 
 from mcp.server.mcpserver import MCPServer
 
-from core.hub import hub
-from hud_mcp.common import arranged, describe, find
+from hud_mcp.common import describe, find
 from schemas.board import ItemRead
 from services import pages
 from services.pages import GroupSplitError, NoRoomError
@@ -40,10 +39,10 @@ def register(server: MCPServer) -> None:
         Nothing on the page moves, now or ever — a page keeps its own layout, so
         the one you left is the one you get back.
         """
-        board = pages.show(page)
-        # One event carrying the board whole, so the television cuts from one
-        # page to the next instead of dealing it out a widget at a time.
-        await hub.broadcast("board.arranged", arranged(board))
+        # ``services.pages`` sends the one event carrying the board whole, so
+        # the television cuts from one page to the next instead of dealing it
+        # out a widget at a time.
+        board = await pages.show(page)
         drawn = len(pages.drawn(board))
         others = [p for p in pages.names(board) if p != pages.showing()]
         line = (
@@ -71,10 +70,9 @@ def register(server: MCPServer) -> None:
             return f"No item {missing[0]}. Call list_items to see what is there."
         wanted = [f for f in found if isinstance(f, ItemRead)]
         try:
-            moved = pages.send(wanted, page)
+            moved = await pages.send(wanted, page)
         except (GroupSplitError, NoRoomError) as exc:
             return str(exc)
-        await hub.broadcast("board.arranged", arranged())
         return f"{len(moved)} widgets are on page {moved[0].page!r} now:\n" + "\n".join(
             describe(i) for i in moved
         )

@@ -1,8 +1,19 @@
-"""Serve the local files that items point at: their media, and their icons.
+"""Everything the media widget needs of the API: its files, and what it reports.
 
-The item id is the handle, not the path: a filesystem path never appears in a
-URL, and an item that points at a file which has since moved simply 404s. The
-frontend turns that 404 into a visible placeholder rather than a broken widget.
+Serving first. The item id is the handle, not the path: a filesystem path never
+appears in a URL, and an item that points at a file which has since moved simply
+404s. The frontend turns that 404 into a visible placeholder rather than a broken
+widget.
+
+And then the one route on this board that runs the other way, ``playback``. It
+is here rather than in the generic board router, where it sat behind an ``if
+kind != "media"`` — a route about one kind of widget belongs with that widget,
+and a router that has to ask what kind of thing it was handed is a router holding
+somebody else's route.
+
+Two routers, because they are addressed differently and both addresses are a
+contract: what is served lives under ``/media``, and the widget's own state is
+under ``/board/items``, which is where the page already posts it.
 """
 
 from pathlib import Path
@@ -11,12 +22,40 @@ from fastapi import APIRouter, HTTPException, status
 from fastapi.responses import FileResponse
 
 from repositories import board as repo
-from schemas.board import ImagePayload
+from schemas.board import ImagePayload, ItemRead, MediaPayload, PlaybackReport
 from schemas.media import media_type
 from services import board as service
 from services import media as media_service
 
 router = APIRouter(prefix="/media", tags=["media"])
+
+# The widget rather than its files, so it is addressed like every other widget.
+playback_router = APIRouter(prefix="/board", tags=["board"])
+
+
+@playback_router.post("/items/{item_id}/playback", response_model=ItemRead)
+async def report_playback(item_id: str, payload: PlaybackReport) -> ItemRead:
+    """Record what the browser says a media widget is doing.
+
+    The only route on this board that runs the other way. Everything else is
+    written by whoever drives the board and drawn by the TV; a file that is gone,
+    or in a codec the browser refuses, is a thing only the TV can find out — and
+    without somewhere to say it, it would be visible from the sofa and nowhere
+    else.
+
+    It lands on the item rather than in the payload, so a widget rewritten by its
+    owner keeps it. A finished track is also how the queue moves on: the rule for
+    what follows the last one lives in the service, not in the page.
+    """
+    item = repo.get(item_id)
+    if item is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
+    if not isinstance(item.payload, MediaPayload):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Item {item_id} is a {item.payload.kind}, which plays nothing",
+        )
+    return await media_service.report(item, payload)
 
 
 def _stream(path: str) -> FileResponse:

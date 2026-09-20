@@ -452,7 +452,7 @@ async def test_a_video_nobody_may_embed_is_read_off_the_same_line(
     await call(server, "add_media", tracks=["QgH9sr7G13Q"])
     item = repo.list_items()[0]
     refusal = "the owner does not allow this video to be played outside YouTube"
-    media_service.report(item, PlaybackReport(state="failed", track=0, error=refusal))
+    await media_service.report(item, PlaybackReport(state="failed", track=0, error=refusal))
     assert f"[failed 'QgH9sr7G13Q': {refusal}]" in await call(server, "list_items")
 
 
@@ -462,7 +462,7 @@ async def test_what_a_widget_reports_is_on_the_line_a_session_already_reads(
     """A player that is silently failing should say so where somebody is looking."""
     await call(server, "add_media", tracks=[_album(tmp_path)])
     item = repo.list_items()[0]
-    media_service.report(item, PlaybackReport(state="failed", track=0, error="no codec"))
+    await media_service.report(item, PlaybackReport(state="failed", track=0, error="no codec"))
     listed = await call(server, "list_items")
     assert "[failed '01 - Track 1': no codec]" in listed
 

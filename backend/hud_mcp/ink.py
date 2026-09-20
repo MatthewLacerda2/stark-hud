@@ -3,7 +3,6 @@
 from mcp.server.mcpserver import MCPServer
 from pydantic import ValidationError
 
-from core.hub import hub
 from schemas.board import Ink
 from services import board as service
 
@@ -34,13 +33,11 @@ def register(server: MCPServer) -> None:
             ink = Ink(color=color)
         except ValidationError as exc:
             return f"Not set: {exc.errors()[0]['msg']}"
-        service.set_ink(ink)
-        await hub.broadcast("ink.changed", ink.model_dump(mode="json"))
+        await service.set_ink(ink)
         return f"The board now writes in {ink.color}"
 
     @server.tool()
     async def clear_ink() -> str:
         """Go back to the board's own ink, which is white at 65%."""
-        service.set_ink(None)
-        await hub.broadcast("ink.changed", None)
+        await service.set_ink(None)
         return "Ink back to the default, white at 65%"

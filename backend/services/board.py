@@ -1,6 +1,10 @@
-"""Board business logic: resolve placement, then mutate through the repository.
+"""Board business logic: resolve placement, mutate, and say so.
 
-Handlers stay thin; the rules about where an item may land live here.
+Handlers stay thin; the rules about where an item may land live here, and so
+does telling the television what happened. Every function below that changes
+anything is ``async`` for that one reason — the announcement is the awaited
+thing — so a caller that writes through this cannot leave the TV showing the old
+widget. See ``services.events``.
 """
 
 from pathlib import Path
@@ -16,7 +20,7 @@ from schemas.board import (
     ItemUpdate,
     Placement,
 )
-from services import groups, pages
+from services import events, groups, pages
 from services.placement import (
     cells,
     default_size,
@@ -87,7 +91,7 @@ class MissingFileError(Exception):
         super().__init__(f"No file at {path}")
 
 
-def set_background(background: Background | None) -> Background | None:
+async def set_background(background: Background | None) -> Background | None:
     """Set or clear the video background, checking the file exists first.
 
     Items with a missing file show a visible placeholder, so the problem
@@ -96,17 +100,22 @@ def set_background(background: Background | None) -> Background | None:
     """
     if background is not None and not Path(background.path).is_file():
         raise MissingFileError(background.path)
-    return repo.set_background(background)
+    stored = repo.set_background(background)
+    await events.background_changed(stored)
+    return stored
 
 
-def set_ink(ink: Ink | None) -> Ink | None:
+async def set_ink(ink: Ink | None) -> Ink | None:
     """Set or clear the board's default text colour.
 
     Nothing to check that the colour type has not already checked, so this is a
     pass through — it is here so that setting the ink crosses the same boundary
-    every other mutation crosses, rather than being the one that reaches past it.
+    every other mutation crosses, rather than being the one that reaches past it,
+    and so that it announces itself like everything else.
     """
-    return repo.set_ink(ink)
+    stored = repo.set_ink(ink)
+    await events.ink_changed(stored)
+    return stored
 
 
 def icon_path(item: ItemRead, index: int | None = None) -> str | None:
@@ -198,16 +207,20 @@ def _described(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> str |
     return data.description.strip() or None
 
 
-def create(data: ItemCreate) -> ItemRead:
+async def create(data: ItemCreate) -> ItemRead:
     """Add an item on the page that is showing, auto-placing it when asked to.
 
     A widget created straight into a group never passes through ``gather``, so
     the one check that would have made is made here instead.
+
+    The widget reaches the socket from here, with whatever made it — see
+    ``services.events.created`` — so no route and none of the sixteen ``add_``
+    tools has anything to remember.
     """
     _claim(data.key, None)
     parent = groups.joining(data.parent_id) if data.parent_id else None
     place = _resolve(data, None)
-    return repo.add(
+    item = repo.add(
         data.payload,
         place.x,
         place.y,
@@ -226,15 +239,17 @@ def create(data: ItemCreate) -> ItemRead:
         scale=data.scale,
         description=_described(data, None),
     )
+    await events.created(item)
+    return item
 
 
-def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
+async def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
     """Apply a partial update, revalidating placement when geometry changes."""
     if data.payload is not None and groups.is_group(item):
         raise NotByPatchError(item)
     _claim(data.key, item)
     place = _resolve(data, item)
-    return repo.replace(
+    written = repo.replace(
         item.model_copy(
             update={
                 "payload": data.payload if data.payload is not None else item.payload,
@@ -251,14 +266,36 @@ def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
             }
         )
     )
+    await events.updated(written)
+    return written
 
 
-def remove(item: ItemRead) -> None:
-    """Delete a widget. A group gives its widgets back to the board first."""
+async def remove(item: ItemRead) -> None:
+    """Delete a widget. A group gives its widgets back to the board first.
+
+    A group goes out as ``board.arranged`` rather than ``item.removed``, because
+    removing one is not one widget disappearing: it may unfold first, and its
+    widgets are handed back to the board where they were. Sending only the
+    group's id left the television drawing those widgets wherever it last saw
+    them, which is the failure this whole module exists to stop.
+    """
     if groups.is_group(item):
         groups.disband(item)
+        await events.arranged()
         return
     repo.remove(item.id)
+    await events.removed(item.id)
+
+
+async def clear() -> int:
+    """Take every widget off every page. Returns how many went.
+
+    Here rather than in a handler so that the two surfaces empty the board the
+    same way and neither is the one that reaches past the services to do it.
+    """
+    removed = repo.clear()
+    await events.cleared(removed)
+    return removed
 
 
 def status() -> BoardStatus:

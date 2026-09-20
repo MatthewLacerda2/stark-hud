@@ -18,7 +18,7 @@ from repositories import board as repo
 from schemas.board import ItemRead
 from schemas.mesh import MeshPart, Wireframe
 from schemas.notifications import NotificationCreate
-from services import notifications
+from services import events, notifications
 
 # The most lines this will hand a browser. A wireframe is drawn one stroke per
 # edge on a canvas, on a television that is the slowest machine in the house, so
@@ -231,7 +231,7 @@ def read(path: str) -> Wireframe | None:
     return parse(text)
 
 
-def forget(item: ItemRead, path: str) -> str:
+async def forget(item: ItemRead, path: str) -> str:
     """Take a mesh widget off the board because its file is no longer there.
 
     The mesh widget is the one file-backed widget that does this. A picture or a
@@ -257,7 +257,8 @@ def forget(item: ItemRead, path: str) -> str:
     the repository marks the store dirty and the flusher writes the file.
     """
     repo.remove(item.id)
-    notifications.create(
+    await events.removed(item.id)
+    await notifications.create(
         NotificationCreate(
             title="Mesh widget removed",
             body=f"{path} is no longer there.",

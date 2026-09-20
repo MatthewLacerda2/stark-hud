@@ -18,9 +18,10 @@ has missed it, and that is correct — an origin is an event and not a fact, whi
 is also why a page load does not fire a hundred of them.
 
 Two halves. ``telling`` is what a surface sets when it still knows what it was
-called with, and ``created`` is the only way a new widget reaches the socket — so
-a creation cannot be announced without its origin coming with it, and not one of
-the sixteen ``add_`` tools has to remember anything.
+called with, and ``spoken`` is what ``services.events.created`` reads back as it
+announces a new widget — so a creation cannot reach the socket without its origin
+coming with it, and not one of the sixteen ``add_`` tools has to remember
+anything.
 """
 
 import json
@@ -30,9 +31,6 @@ from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any
-
-from core.hub import hub
-from schemas.board import ItemRead
 
 # How long one of these is on screen. The frontend holds the same number as a
 # motion token; it is here because it is also the width of the window below.
@@ -149,20 +147,20 @@ class Burst:
 burst = Burst(AT_ONCE, SECONDS)
 
 
-async def created(item: ItemRead) -> None:
-    """Put a new widget on every screen, and say what made it.
+def spoken() -> str | None:
+    """What made the widget being announced right now, or ``None`` to say nothing.
 
-    The only way a creation reaches the socket. Both broadcasts live here so a
-    new ``add_`` tool, or a new route, cannot quietly arrive without one — there
-    is no call site left that could forget, which is the whole reason this is a
-    function rather than a convention.
+    Read by ``services.events.created`` and by nothing else, so that a creation
+    and its origin go out together and no ``add_`` tool has a chance to forget
+    one. Answering ``None`` is ordinary rather than exceptional: a call that set
+    no origin has nothing to show, and a burst that is already three deep drops
+    the rest instead of queueing them.
 
     Creation only. A panel the agent rewrites every five seconds would strobe,
-    and a strobing board is one somebody turns off; ``item.updated`` goes out
-    from where it always did and carries none of this.
+    and a strobing board is one somebody turns off; ``item.updated`` carries
+    none of this.
     """
-    await hub.broadcast("item.created", item.model_dump(mode="json"))
     text = _told.get()
     if text is None or not burst.allows(time.monotonic()):
-        return
-    await hub.broadcast("item.origin", {"id": item.id, "text": text})
+        return None
+    return text

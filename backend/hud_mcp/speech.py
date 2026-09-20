@@ -7,7 +7,6 @@ what it refuses, not just what it does.
 
 from mcp.server.mcpserver import MCPServer
 
-from core.hub import hub
 from services import speech as service
 from services.speech import SpeechError
 
@@ -46,5 +45,4 @@ def register(server: MCPServer) -> None:
             spoken = await service.say(text)
         except SpeechError as exc:
             return f"Not spoken: {exc}"
-        await hub.broadcast("speech.spoken", spoken.model_dump(mode="json"))
         return f"Said out loud: {spoken.text}"

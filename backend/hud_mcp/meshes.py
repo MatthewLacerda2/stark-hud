@@ -12,10 +12,10 @@ OBJ beside whatever it was given.
 
 from mcp.server.mcpserver import MCPServer
 
-from core.hub import hub
-from hud_mcp.common import ON_HOST, add, find
+from hud_mcp.common import ON_HOST, add, typed
 from schemas.board import ItemRead, ItemUpdate, MeshPayload, MeshWave
 from services import board as service
+from services import events
 from services.board import SlotTakenError
 
 # What a wave runs through when it is switched on without a ramp being named.
@@ -30,24 +30,20 @@ def register(server: MCPServer) -> None:
 
     def _mesh(target: str) -> tuple[ItemRead, MeshPayload] | None:
         """The widget with that id or key, when it is a mesh and not something else."""
-        item = find(target)
-        if item is None or not isinstance(item.payload, MeshPayload):
-            return None
-        return item, item.payload
+        return typed(target, MeshPayload)
 
     async def _write(item: ItemRead, payload: MeshPayload, said: str) -> str:
-        """Validate the new payload, store it, and tell every board."""
+        """Validate the new payload and store it. The service tells every board."""
         try:
             # Validated rather than trusted: model_copy does not run the field
             # bounds, so a spin of 400 would sit in the payload and reach the
             # browser as a model turning too fast to be a model.
             checked = MeshPayload.model_validate(payload.model_dump())
-            updated = service.update(item, ItemUpdate(payload=checked))
+            await service.update(item, ItemUpdate(payload=checked))
         except ValueError as exc:
             return f"Not set: {exc}"
         except SlotTakenError as exc:
             return f"Not set: {exc}"
-        await hub.broadcast("item.updated", updated.model_dump(mode="json"))
         return f"Set {said} on {item.id}"
 
     @server.tool(annotations=ON_HOST)
@@ -177,7 +173,7 @@ def register(server: MCPServer) -> None:
         # would rewrite the board file and make every *other* client redraw a
         # widget whose payload is identical — see `item.waking` for the same
         # shape, a signal that is not board state.
-        await hub.broadcast("mesh.reloaded", {"id": item.id})
+        await events.mesh_reloaded(item.id)
         return f"Told {item.id} to read {model.path} again"
 
     @server.tool()

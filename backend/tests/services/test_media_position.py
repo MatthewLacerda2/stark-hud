@@ -47,10 +47,10 @@ def test_moving_to_another_track_starts_it_at_its_beginning() -> None:
     assert service.commanded(_queue(index=1, seconds=90), "stop").seconds == 0.0
 
 
-def test_a_report_from_a_track_already_left_cannot_rewind_this_one() -> None:
+async def test_a_report_from_a_track_already_left_cannot_rewind_this_one() -> None:
     """A tick is in flight while the queue moves on; it is about the old track."""
     item = repo.add(_queue(index=1, seconds=120), 0, 0, 10, 6, None, False)
-    said = service.report(item, PlaybackReport(state="playing", track=0, seconds=8.0))
+    said = await service.report(item, PlaybackReport(state="playing", track=0, seconds=8.0))
     assert said.payload.seconds == 120
 
 

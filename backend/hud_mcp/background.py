@@ -2,7 +2,6 @@
 
 from mcp.server.mcpserver import MCPServer
 
-from core.hub import hub
 from hud_mcp.common import ON_HOST
 from schemas.board import Background
 from services import board as service
@@ -23,15 +22,13 @@ def register(server: MCPServer) -> None:
         The path must exist on the machine running the board.
         """
         try:
-            service.set_background(Background(path=path, blur=blur))
+            await service.set_background(Background(path=path, blur=blur))
         except MissingFileError as exc:
             return f"Not set: {exc}"
-        await hub.broadcast("background.changed", {"path": path, "blur": blur})
         return f"Background set to {path}" + (" (blurred)" if blur else " (sharp)")
 
     @server.tool()
     async def clear_background() -> str:
         """Drop the video and go back to the plain dark ground."""
-        service.set_background(None)
-        await hub.broadcast("background.changed", None)
+        await service.set_background(None)
         return "Background cleared"

@@ -3,7 +3,8 @@
 Kept rather than recomputed, for the reason a list is: a countdown is put there
 one at a time, often by a session that never saw the others, so rewriting the
 payload to add one would mean knowing every entry and losing the ones you did
-not.
+not. Both kinds of keeping live in ``services.entries``, which the REST route
+and the agent use too; what is here is the sentence a model reads back.
 
 Nothing here ever writes how long is left. That is a reading of the clock, and
 the browser is the only part of this board holding one — see ``CountdownPayload``
@@ -14,36 +15,15 @@ from datetime import datetime
 
 from mcp.server.mcpserver import MCPServer
 
-from core.hub import hub
-from hud_mcp.common import add
-from repositories import board as repo
-from schemas.board import Countdown, CountdownPayload, ItemRead, ItemUpdate
-from services import board as service
-
-
-def _stack(item_id: str) -> tuple[ItemRead, CountdownPayload] | None:
-    """The item with that id or key, when it is a countdown and not something else.
-
-    The payload comes back beside the item because the check that it *is* a
-    countdown happens here, and handing back only the item throws that away:
-    every caller would then be reading `.items` off a union of thirteen payload
-    kinds, most of which have no such field. The check was always here — this
-    just stops it being forgotten on the way out.
-    """
-    item = repo.get(item_id) or repo.get_by_key(item_id)
-    if item is None or not isinstance(item.payload, CountdownPayload):
-        return None
-    return item, item.payload
+from hud_mcp.common import add, typed
+from schemas.board import CountdownPayload
+from schemas.entries import EntryCreate
+from services import entries as service
+from services.entries import BadEntryError, NoEntryError
 
 
 def register(server: MCPServer) -> None:
     """Attach the countdown tools to the server."""
-
-    async def _write(item: ItemRead, entries: list[Countdown]) -> None:
-        """Put these entries in place of the old ones and tell every board."""
-        payload = item.payload.model_copy(update={"items": entries})
-        updated = service.update(item, ItemUpdate(payload=payload))
-        await hub.broadcast("item.updated", updated.model_dump(mode="json"))
 
     @server.tool()
     async def add_countdown(
@@ -97,27 +77,25 @@ def register(server: MCPServer) -> None:
         Without a zone it is read as this machine's local time, which is the one
         the television is standing in.
         """
-        found = _stack(item_id)
+        found = typed(item_id, CountdownPayload)
         if found is None:
             return f"No countdown {item_id}. Call list_items to see what is there."
-        item, stack = found
+        item, _ = found
         try:
-            entry = Countdown(
+            # Both ways a pair of instants can be wrong are refused by the model
+            # itself (schemas.spans), so they arrive as a ValueError like any
+            # other bad field — including the one that used to escape as an
+            # uncaught TypeError, a start naming a timezone and an end not.
+            thing = EntryCreate(
                 title=title,
                 icon=icon,
                 start=datetime.fromisoformat(start),
                 end=datetime.fromisoformat(end) if end else None,
             )
-        except (TypeError, ValueError) as exc:
-            # Both ways a pair of instants can be wrong are refused by the model
-            # itself now (schemas.spans), so they arrive here as a ValueError
-            # like any other bad field. The comparison that used to sit below
-            # this guard is gone: it ran one line after the except closed, so a
-            # start naming a timezone and an end not naming one escaped as an
-            # uncaught TypeError.
+            _, held = await service.append(item, thing)
+        except (BadEntryError, TypeError, ValueError) as exc:
             return f"Not added: {exc}"
-        await _write(item, [*stack.items, entry])
-        return f"Added {title!r} to {item_id}, which now holds {len(stack.items) + 1}"
+        return f"Added {title!r} to {item.id}, which now holds {held}"
 
     @server.tool()
     async def remove_from_countdown(item_id: str, title: str) -> str:
@@ -126,13 +104,12 @@ def register(server: MCPServer) -> None:
         An entry drops out of the drawing by itself twelve hours after it ends.
         This is for taking one off before that — something cancelled, or moved.
         """
-        found = _stack(item_id)
+        found = typed(item_id, CountdownPayload)
         if found is None:
             return f"No countdown {item_id}. Call list_items to see what is there."
-        item, stack = found
-        kept = [entry for entry in stack.items if entry.title != title]
-        if len(kept) == len(stack.items):
-            held = ", ".join(repr(e.title) for e in stack.items) or "nothing"
-            return f"No {title!r} in {item_id}. It holds {held}."
-        await _write(item, kept)
-        return f"Removed {title!r} from {item_id}, which now holds {len(kept)}"
+        item, _ = found
+        try:
+            _, held = await service.drop(item, title)
+        except NoEntryError as exc:
+            return str(exc)
+        return f"Removed {title!r} from {item.id}, which now holds {held}"

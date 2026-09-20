@@ -121,7 +121,7 @@ async def test_a_panel_on_a_page_that_is_not_showing_still_takes_writes(
     that is deliberate — it costs nothing to keep writing.
     """
     panel = (await client.put(KEY, json=chart(10))).json()
-    pages.show("planning")
+    await pages.show("planning")
 
     written = (await client.put(KEY, json=chart(90))).json()
 
