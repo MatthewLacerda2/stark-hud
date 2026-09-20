@@ -170,3 +170,54 @@ export const BELOW = { x: 0.1, y: 0.7, w: 0.2, h: 0.2 };
 // distance. These cases are about which side an arrow meets, not about the
 // widget, and a square one is the shape that lets them say only that.
 export const SQUARE = { cols: 8, rows: 8 };
+
+// The widget the clipped word was seen in: 5.98 cells by 9.6, off the
+// television. Tall, so the flow runs downwards and the way back bows towards
+// the right edge — which is the edge that cut the word.
+export const LOOP = { cols: 5.98, rows: 9.6 };
+
+/**
+ * The refiner, as far as its loop is concerned: a chain of five with a way back
+ * from the gate to the refinement step, carrying how many times it goes round.
+ *
+ * The payload off the board in #94, which is here because it is the case the
+ * report was written about — and because what it actually does is keep its
+ * word, which is the thing worth pinning.
+ */
+export const REFINER = ["in", "embed", "refine", "gate", "out"].map((id) =>
+  node(id),
+);
+export const REFINE_LOOP = [
+  link("in", "embed"),
+  link("embed", "refine"),
+  link("refine", "gate"),
+  link("gate", "refine", { label: "\u00d76" }),
+  link("gate", "out"),
+];
+
+/**
+ * The same loop with the ranks widened: `in` branches four ways, so the boxes
+ * are a quarter as wide and the outermost of them sits hard against the right
+ * of the diagram. The way back has almost no room left to bow into, and the
+ * word goes over the edge.
+ */
+export function crowded(seats: number, label: string) {
+  const sides = Array.from({ length: seats - 1 }, (_, at) => `side${at}`);
+  const ids = [
+    "in",
+    ...sides,
+    "refine",
+    ...sides.map((id) => `${id}-on`),
+    "gate",
+  ];
+  return flow(
+    ids.map((id) => node(id)),
+    [
+      ...sides.map((id) => link("in", id)),
+      link("in", "refine"),
+      ...sides.map((id) => link(id, `${id}-on`)),
+      link("refine", "gate"),
+      link("gate", "refine", { label }),
+    ],
+  );
+}

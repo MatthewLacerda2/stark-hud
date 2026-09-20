@@ -1,3 +1,4 @@
+import { inside, roomy } from "@/lib/flow-labels";
 import { layer } from "@/lib/flow-ranks";
 import type {
   FlowLink,
@@ -7,8 +8,8 @@ import type {
 } from "@/lib/schemas/board";
 
 /**
- * Reading a flow: where each box lands, where an arrow meets it, and whether
- * an arrow is long enough to carry a word.
+ * Reading a flow: where each box lands, where an arrow meets it, and which way
+ * it runs to get there.
  *
  * All of it is a pure function of the payload and the widget's shape, and none
  * of it is stored — the same division `lib/gantt.ts` makes, for the same
@@ -23,6 +24,11 @@ import type {
  *
  * No React and no DOM, so the arithmetic can be tested without a browser.
  */
+
+// Whether a word can be drawn lives in `flow-labels.ts`, which is a different
+// subject; it is handed back out here so `lib/flow` stays the one door into a
+// flow's reading, the way `flow-ranks.ts` is reached through `layout`.
+export { inside, roomy } from "@/lib/flow-labels";
 
 /** A box on the widget, in fractions of it. */
 export interface Box {
@@ -62,27 +68,6 @@ export const LINE_CROSS = 0.46;
  * with the last fifth still to spare.
  */
 const LOOP_REACH = 0.8;
-
-/**
- * The shortest arrow worth putting any word on, in cells.
- *
- * A cell is roughly 60px on the television this is read from, so one and a half
- * of them is about 90px — below which a label is not small, it is a smudge
- * lying across a line. Measured in cells rather than in fractions because a
- * fraction of a 3-cell widget and a fraction of a 12-cell one are different
- * lengths, and it is the length on the glass that decides.
- */
-const LABEL_FLOOR_CELLS = 1.5;
-
-/**
- * How many cells one character of a label needs.
- *
- * `gantt.ts` asks only whether the bar is wide enough, ignoring how long the
- * name is, and it can: a bar's name is clipped by the bar. A link label has
- * nothing to clip it, so a long word on a short arrow overhangs both ends and
- * reads as a mistake in the drawing rather than in the data. Hence the length.
- */
-const LABEL_CELLS_PER_CHAR = 0.2;
 
 /**
  * How far an S bows out of each end, as a fraction of the run between the two
@@ -418,19 +403,6 @@ export function cells(
   return Math.hypot((to.x - from.x) * cols, (to.y - from.y) * rows);
 }
 
-/**
- * Whether an arrow this long can carry this word.
- *
- * The move `gantt.ts` makes with `roomy()` and `clock.tsx` with the date: a
- * word half-overlapping an arrow is worse than no word, so it comes off rather
- * than being shrunk until it is unreadable anyway.
- */
-export function roomy(label: string, run: number): boolean {
-  return (
-    run >= Math.max(LABEL_FLOOR_CELLS, label.length * LABEL_CELLS_PER_CHAR)
-  );
-}
-
 /** Where a label sits on its arrow: the midpoint, nudged off the line. */
 export function midpoint(run: Route): Point {
   if (run.control === null)
@@ -501,7 +473,32 @@ function aside(from: Box, to: Box, along: Axis): Route {
   return { start, end, control, atEnd: home, atStart: out };
 }
 
-/** Every arrow in a flow, already routed, with the ones that lead nowhere gone. */
+/**
+ * Whether this arrow's word can be drawn: a run long enough to carry it, and a
+ * place for it that is on the widget.
+ *
+ * A link with nothing to say passes trivially — there is no word to drop.
+ */
+function worded(link: FlowLink, run: Route, laid: Layout): boolean {
+  if (!link.label) return true;
+  return (
+    roomy(link.label, cells(run.start, run.end, laid.cols, laid.rows)) &&
+    inside(link.label, midpoint(run), laid.cols, laid.rows)
+  );
+}
+
+/**
+ * Every arrow in a flow as it is to be drawn: routed, with the ones that lead
+ * nowhere gone and the words that cannot be drawn whole gone with them.
+ *
+ * The link that comes back is the arrow, not the line of the board file that
+ * asked for it — so a `label` here is a word that will be on the television,
+ * and a link whose word was dropped comes back without one. Dropping rather
+ * than nudging is the move the widget already makes for an arrow too short to
+ * carry a word, and one rule is better than two: a word shifted back inside is
+ * no longer on the arrow it belongs to, and on a bowed way back it lands on the
+ * line it was lifted off.
+ */
 export function arrows(
   payload: FlowPayload,
   laid: Layout,
@@ -516,6 +513,8 @@ export function arrows(
     const run = returns(link, laid)
       ? aside(from, to, laid.along)
       : route(from, to, link, laid.cols, laid.rows);
-    return [{ link, run }];
+    return [
+      { link: worded(link, run, laid) ? link : { ...link, label: null }, run },
+    ];
   });
 }

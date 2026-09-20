@@ -1,6 +1,6 @@
 /**
- * Reading a flow: where the boxes land, where the arrows meet them, and when a
- * word is dropped off one.
+ * Reading a flow: where the boxes land and where the arrows meet them. When a
+ * word is dropped off one is `flow-labels.test.ts`.
  *
  * The widget's shape is stated rather than measured, so every one of these is a
  * fact about the arithmetic and not about a browser that is not running. What
@@ -39,7 +39,6 @@ import {
   LINE_CROSS,
   LINE_FILL,
   midpoint,
-  roomy,
   route,
 } from "@/lib/flow";
 
@@ -427,23 +426,13 @@ describe("the S", () => {
   });
 });
 
-describe("whether a word fits on an arrow", () => {
+// What is done with this length — whether a word can be carried at all — is
+// `flow-labels.test.ts`, beside the rules that decide it.
+describe("how long an arrow is", () => {
   it("measures the run in cells, because a fraction is not a length", () => {
     // The same fraction across a wide widget and down a short one are very
     // different distances on the glass.
     expect(cells({ x: 0, y: 0 }, { x: 0.5, y: 0 }, 12, 4)).toBe(6);
     expect(cells({ x: 0, y: 0 }, { x: 0, y: 0.5 }, 12, 4)).toBe(2);
-  });
-
-  it("drops a word the arrow is too short to hold", () => {
-    expect(roomy("ok", 3)).toBe(true);
-    expect(roomy("ok", 0.5)).toBe(false);
-  });
-
-  it("drops a long word off an arrow a short one would have fitted", () => {
-    // gantt's `roomy` can ignore the length because a bar clips its own name.
-    // An arrow clips nothing, so a long word would overhang both ends.
-    expect(roomy("ok", 2)).toBe(true);
-    expect(roomy("needs another build", 2)).toBe(false);
   });
 });
