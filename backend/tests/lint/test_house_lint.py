@@ -107,3 +107,54 @@ def test_the_events_module_is_the_one_that_may():
 def test_outside_the_stack_still_holds_the_socket():
     """main.py owns the websocket route and the tests listen on it."""
     assert house_lint.check_source(Path("main.py"), "import core.hub\n", None) == []
+
+
+def test_a_surface_may_read_a_repository_directly():
+    """Rule 6: every read in api/ and hud_mcp/ today is a handler fetching its widget."""
+    source = "from repositories import board as repo\n\ndef f():\n    return repo.get_by_key(k)\n"
+
+    assert house_lint.check_source(Path("api/v1/board.py"), source, "api") == []
+
+
+def test_a_surface_may_not_write_to_a_repository():
+    """The half of the layering worth enforcing: a write carries rules and an event."""
+    source = "from repositories import board as repo\n\ndef f():\n    repo.add(item)\n"
+    violations = house_lint.check_source(Path("api/v1/board.py"), source, "api")
+
+    assert any("write through services/" in v for v in violations)
+
+
+def test_the_module_need_not_be_called_repo():
+    """The alias is resolved from the import, not assumed, and a dotted name works too."""
+    plain = "from repositories import board\n\ndef f():\n    board.set_ink(c)\n"
+    dotted = "import repositories.board\n\ndef f():\n    repositories.board.remove(i)\n"
+
+    assert house_lint.check_source(Path("hud_mcp/layout.py"), plain, "hud_mcp")
+    assert house_lint.check_source(Path("api/v1/mesh.py"), dotted, "api")
+
+
+def test_a_write_imported_by_name_is_caught_at_the_import():
+    """``from repositories.board import add`` leaves a call check nothing to see."""
+    source = "from repositories.board import add, get\n"
+    violations = house_lint.check_source(Path("hud_mcp/groups.py"), source, "hud_mcp")
+
+    assert len(violations) == 1
+    assert "repositories.add" in violations[0]
+
+
+def test_an_unfamiliar_repository_function_is_stopped_not_waved_through():
+    """Why the rule is an allowlist: the function nobody has written yet fails safe.
+
+    A denylist of write-ish names would pass this, and the boundary would move
+    without anyone deciding that it should.
+    """
+    source = "from repositories import board as repo\n\ndef f():\n    repo.archive(i)\n"
+
+    assert house_lint.check_source(Path("api/v1/board.py"), source, "api")
+
+
+def test_services_write_to_repositories_for_a_living():
+    """Only the surfaces are checked; below them writing to the store is the job."""
+    source = "from repositories import board as repo\n\ndef f():\n    repo.add(item)\n"
+
+    assert house_lint.check_source(Path("services/board.py"), source, "services") == []
