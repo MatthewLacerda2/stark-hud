@@ -11,9 +11,14 @@
  * pointing at whatever origin served the page.
  *
  * Everything here goes through `apiUrl`, so there is one base again.
+ *
+ * `uploadTrack` is the exception and runs the other way: it is the only call on
+ * this board that hands the server a file rather than asking it for one. It
+ * lives here because what it produces is the same thing everything else here
+ * addresses — a file on the host that a widget can play.
  */
 
-import { apiUrl } from "@/lib/api/client";
+import { request, apiUrl } from "@/lib/api/client";
 
 /** The picture a media or image widget holds, by the widget's id. */
 export function mediaUrl(id: string): string {
@@ -59,4 +64,38 @@ export function backgroundUrl(): string {
 /** The icon on a notification, which is held by the notification, not a widget. */
 export function notificationIconUrl(id: string): string {
   return apiUrl(`/notifications/${id}/icon`);
+}
+
+/** What the backend says about a file it has just taken, mirroring `schemas/uploads.py`. */
+export interface Uploaded {
+  /**
+   * Where it landed on the host. This is the value a media queue holds: a
+   * track is a path on the machine the board runs on, and an uploaded one is
+   * no different, which is why nothing about the media widget had to change.
+   */
+  path: string;
+  /** What it ended up being called, which is not always what was sent. */
+  name: string;
+  /** How much arrived — the one number that says the upload finished. */
+  bytes: number;
+}
+
+/**
+ * Hand the board a file, and get back a path a queue can hold.
+ *
+ * A file picker gives the page the file's *contents* and never a path, and the
+ * browser is usually not even the machine the board runs on — so this is the
+ * only way a person at a laptop can put something on the television.
+ *
+ * The file is the body. Not a `FormData`: a multipart body makes the backend
+ * spool the whole film to a temporary file before it can be written where it
+ * belongs, which is the same gigabytes twice on a machine with one disk. The
+ * name travels in the query instead, encoded because a filename may contain
+ * anything at all and is not to be trusted at either end.
+ */
+export function uploadTrack(file: File): Promise<Uploaded> {
+  return request<Uploaded>(
+    `/media/upload?name=${encodeURIComponent(file.name)}`,
+    { method: "POST", body: file },
+  );
 }

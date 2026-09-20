@@ -47,13 +47,24 @@ export async function request<T>(
   options: RequestOptions = {},
 ): Promise<T> {
   const { method = "GET", body } = options;
+  // A file goes as itself. Everything else this board sends is JSON, and a file
+  // cannot be: a film is gigabytes, `JSON.stringify` would refuse it, and
+  // base64 inside a field would be a third more bytes held in memory twice
+  // over. `fetch` streams a Blob, so the body crosses as the file it already
+  // is and the backend writes it to disk a chunk at a time. Its content type is
+  // left unset on purpose — the browser fills one in from the file.
+  const raw = body instanceof Blob;
   const headers: Record<string, string> = {};
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (body !== undefined && !raw) headers["Content-Type"] = "application/json";
 
   const response = await fetch(apiUrl(path), {
     method,
     headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: raw
+      ? (body as Blob)
+      : body === undefined
+        ? undefined
+        : JSON.stringify(body),
   });
 
   if (!response.ok) {
