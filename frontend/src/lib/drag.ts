@@ -197,8 +197,15 @@ function overlap(a: Rect, b: Rect): number {
   return w > EPS && h > EPS ? w * h : 0;
 }
 
-/** Whether this rectangle is on the board and on nobody. */
-function free(rect: Rect, neighbours: Rect[], board: Board): boolean {
+/**
+ * Whether this rectangle is on the board and on nobody.
+ *
+ * The same question `services/placement.illegal` answers, asked here so a
+ * gesture can say before the hand opens whether the board will take what it is
+ * holding. It is a prediction and not a permission: the server is still the
+ * judge, and a rectangle this calls free can still come back refused.
+ */
+export function free(rect: Rect, neighbours: Rect[], board: Board): boolean {
   if (rect.x < -EPS || rect.y < -EPS) return false;
   if (rect.x + rect.w > board.cols + EPS) return false;
   if (rect.y + rect.h > board.rows + EPS) return false;
