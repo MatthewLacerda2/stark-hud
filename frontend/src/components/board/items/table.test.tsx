@@ -18,12 +18,6 @@ beforeAll(() => {
   (
     globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
   ).IS_REACT_ACT_ENVIRONMENT = true;
-  // Nothing is ever laid out in jsdom, but the scroller measures itself.
-  globalThis.ResizeObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  };
 });
 
 const USAGE: TablePayload = {
@@ -104,6 +98,21 @@ describe("the cells", () => {
       rows: [{ name: "chromium", cpu: "23%" }],
     });
     expect(cells(grids(host)[1])).toEqual(["chromium", "23%", ""]);
+  });
+});
+
+describe("more rows than fit", () => {
+  it("are all drawn into a box that clips, rather than into a scroller", async () => {
+    const rows = Array.from({ length: 40 }, (_, n) => ({ name: `p${n}` }));
+    const host = await render({ ...USAGE, rows });
+
+    // Every row is rendered and the order is kept — which one is visible is the
+    // height's business, not this component's. What must not happen is the list
+    // creeping up and down: a panel that refreshes every few seconds and also
+    // moves is something in the corner of the eye rather than something read.
+    expect(grids(host)).toHaveLength(41);
+    expect(host.querySelector(".overflow-hidden")).not.toBe(null);
+    expect(host.querySelector("[style*='animation']")).toBe(null);
   });
 });
 
