@@ -154,7 +154,7 @@ exists while somebody remembers it, which is not a gate but a habit.
 make hooks      # once per clone. Points git at .githooks.
 make back-install  # once per clone too. Builds the venv at the project's Python.
 make gate       # fast: every linter, plus py-version. What pre-commit runs. ~9s
-make check      # everything. What pre-push runs. ~60s
+make check      # everything. What pre-push runs. ~45s
 make backend    # py-version + back-lint + back-types + back-test + back-build
 make agent      # agent-lint + agent-types over tools/
 make frontend   # front-lint + front-dead + front-build + front-theme + front-test

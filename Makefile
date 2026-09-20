@@ -9,8 +9,9 @@
 #   make gate     fast. Every linter, no type check, no build, no test, and no
 #                 docker. ~9s. What `pre-commit` runs, so it has to stay quick
 #                 enough that nobody reaches for --no-verify.
-#   make check    everything, ~50s. What `pre-push` runs, and what has to be
-#                 green before anything leaves this machine.
+#   make check    everything, ~45s. What `pre-push` runs, and what has to be
+#                 green before anything leaves this machine. The container
+#                 build it now ends on costs a second or so, cached.
 #
 # One Python, named once. The agent in `tools/` runs under the host's system
 # python, the backend runs in a container, and the gates run in a venv — and a
