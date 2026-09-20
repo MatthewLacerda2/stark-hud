@@ -67,7 +67,7 @@ export function only(
 }
 
 /** Where an arrow is, a given fraction of the way along it. */
-export function walk(run: Route, t: number): Point {
+function walk(run: Route, t: number): Point {
   if (run.control === null)
     return {
       x: run.start.x + (run.end.x - run.start.x) * t,
@@ -115,7 +115,7 @@ export function where(nodes: FlowNode[], links: FlowLink[] = [], size = WIDE) {
 }
 
 /** Whether two boxes share any area at all. */
-export function touching(a: Box, b: Box): boolean {
+function touching(a: Box, b: Box): boolean {
   return (
     a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
   );

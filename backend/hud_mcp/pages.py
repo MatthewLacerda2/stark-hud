@@ -7,10 +7,10 @@ room has no pointer to press anyway. A session finds the pages by asking.
 
 from mcp.server.mcpserver import MCPServer
 
+from core.refusal import BoardRefusal
 from hud_mcp.common import describe, find
 from schemas.board import ItemRead
 from services import pages
-from services.pages import GroupSplitError, NoRoomError
 
 
 def register(server: MCPServer) -> None:
@@ -71,7 +71,7 @@ def register(server: MCPServer) -> None:
         wanted = [f for f in found if isinstance(f, ItemRead)]
         try:
             moved = await pages.send(wanted, page)
-        except (GroupSplitError, NoRoomError) as exc:
+        except BoardRefusal as exc:
             return str(exc)
         return f"{len(moved)} widgets are on page {moved[0].page!r} now:\n" + "\n".join(
             describe(i) for i in moved

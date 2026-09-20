@@ -75,7 +75,6 @@ function item(id: string, payload: Payload, x: number): Item {
     h: 6,
     page: "main",
     parent_id: null,
-    pinned: false,
     created_at: "2026-09-01T00:00:00Z",
   };
 }

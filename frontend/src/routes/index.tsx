@@ -115,9 +115,9 @@ export function BoardPage() {
           </p>
         ) : null}
 
-        {/* Outside `board-grid.tsx` on purpose: that file is at the top of its
-            length budget, and this belongs to the page rather than to the grid
-            — it is not a widget and never takes a cell. */}
+        {/* Outside `board-grid.tsx` on purpose: the bar belongs to the page
+            rather than to the grid — it is not a widget and never takes a
+            cell. */}
         <CommandBar />
 
         {!connected ? (

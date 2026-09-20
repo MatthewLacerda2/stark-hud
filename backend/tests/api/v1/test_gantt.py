@@ -88,7 +88,7 @@ def test_a_gantt_comes_back_off_the_disk_intact(tmp_path: Path, monkeypatch) -> 
     """The board is restored from a file, so an evening has to survive a restart."""
     monkeypatch.setattr(store, "path", lambda: tmp_path / "board.hud")
     payload = GanttPayload.model_validate(EVENING)
-    item = board.add(payload, 0, 0, 12, 6, None, False, key="tonight")
+    item = board.add(payload, 0, 0, 12, 6, key="tonight")
 
     assert persistence.save()
     board.clear()

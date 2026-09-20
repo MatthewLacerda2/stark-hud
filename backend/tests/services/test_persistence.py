@@ -17,7 +17,7 @@ def _point_at(tmp_path: Path, monkeypatch) -> Path:
 
 def test_round_trip_keeps_items_and_notifications(tmp_path, monkeypatch):
     target = _point_at(tmp_path, monkeypatch)
-    item = board.add(NotePayload(text="hello"), 0, 0, 4, 2, None, False, key="greeting")
+    item = board.add(NotePayload(text="hello"), 0, 0, 4, 2, key="greeting")
     notifications.add(NotificationCreate(title="done", source="test"))
 
     assert persistence.save()
@@ -89,7 +89,7 @@ def test_a_widget_this_build_cannot_read_costs_only_that_widget(tmp_path, monkey
     validated as one document.
     """
     target = _point_at(tmp_path, monkeypatch)
-    board.add(NotePayload(text="keeps"), 0, 0, 4, 2, None, False, key="good")
+    board.add(NotePayload(text="keeps"), 0, 0, 4, 2, key="good")
     notifications.add(NotificationCreate(title="also keeps"))
     persistence.save()
 
@@ -123,7 +123,7 @@ def test_a_mutation_marks_the_board_dirty(tmp_path, monkeypatch):
     persistence.save()
     assert not store.dirty()
 
-    board.add(NotePayload(text="anything"), 0, 0, 2, 2, None, False)
+    board.add(NotePayload(text="anything"), 0, 0, 2, 2)
     assert store.dirty()
 
 
@@ -133,8 +133,8 @@ def test_a_file_with_two_widgets_holding_one_key_loads_with_one():
     A widget that cannot answer to its name is unreachable rather than wrong, so
     the later claimant keeps everything it shows and loses only the name.
     """
-    board.add(NotePayload(text="a"), 0, 0, 4, 2, None, False, key="cpu")
-    board.add(NotePayload(text="b"), 4, 0, 4, 2, None, False, key="cpu")
+    board.add(NotePayload(text="a"), 0, 0, 4, 2, key="cpu")
+    board.add(NotePayload(text="b"), 4, 0, 4, 2, key="cpu")
 
     # The rule this tests has no public door: restore() calls it on the way past,
     # and going through restore() would test the file reader instead.
@@ -155,8 +155,8 @@ def test_a_format_2_board_loses_its_groups_and_comes_up_anyway(tmp_path, monkeyp
     loose rather than gone, the same as when a group is removed.
     """
     target = _point_at(tmp_path, monkeypatch)
-    group = board.add(GroupPayload(), 0, 0, 4, 3, None, False)
-    board.add(NotePayload(text="hello"), 0, 0, 4, 2, group.id, False)
+    group = board.add(GroupPayload(), 0, 0, 4, 3)
+    board.add(NotePayload(text="hello"), 0, 0, 4, 2, parent_id=group.id)
     assert persistence.save()
 
     old = json.loads(target.read_text(encoding="utf-8"))
@@ -179,6 +179,11 @@ def _before_the_fold(path: str) -> dict:
 
     The shape of a real item, with a `video` payload in it: one local file, and
     the three flags that are now `playing`, `loop` and `muted` on a player.
+
+    It still carries `pinned`, a field this build no longer has. That is the
+    point and not an oversight: every `.hud` on disk was written with it, and
+    `ItemRead` ignores what it does not know, so this is the board proving it
+    still reads its own history rather than us assuming it does.
     """
     return {
         "id": "clip00000001",
@@ -258,8 +263,8 @@ def test_a_format_3_board_comes_up_on_the_default_page(tmp_path, monkeypatch):
     turned to it, which is exactly what a file with no pages in it meant.
     """
     target = _point_at(tmp_path, monkeypatch)
-    board.add(NotePayload(text="hello"), 0, 0, 4, 2, None, False, key="greeting")
-    board.add(GroupPayload(), 8, 0, 4, 3, None, False)
+    board.add(NotePayload(text="hello"), 0, 0, 4, 2, key="greeting")
+    board.add(GroupPayload(), 8, 0, 4, 3)
     board.set_showing("planning")
     assert persistence.save()
 
@@ -275,7 +280,7 @@ def test_a_format_3_board_comes_up_on_the_default_page(tmp_path, monkeypatch):
 def test_a_numbered_page_from_format_1_costs_the_widget_nothing(tmp_path, monkeypatch):
     """A number is not a name, and a restore is never allowed to drop a widget."""
     target = _point_at(tmp_path, monkeypatch)
-    board.add(NotePayload(text="hello"), 0, 0, 4, 2, None, False, key="greeting")
+    board.add(NotePayload(text="hello"), 0, 0, 4, 2, key="greeting")
     assert persistence.save()
 
     document = _format_3(target)
@@ -291,9 +296,9 @@ def test_a_numbered_page_from_format_1_costs_the_widget_nothing(tmp_path, monkey
 def test_the_pages_and_the_one_showing_survive_a_restart(tmp_path, monkeypatch):
     """A board turned to a page comes back turned to it, or a restart is a page turn."""
     _point_at(tmp_path, monkeypatch)
-    board.add(NotePayload(text="ordinary"), 0, 0, 4, 2, None, False)
+    board.add(NotePayload(text="ordinary"), 0, 0, 4, 2)
     board.set_showing("planning")
-    board.add(NotePayload(text="planning"), 0, 0, 32, 18, None, False)
+    board.add(NotePayload(text="planning"), 0, 0, 32, 18)
 
     assert persistence.save()
     board.clear()

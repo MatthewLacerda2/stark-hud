@@ -43,7 +43,6 @@ function note(id: string, text: string): Item {
     h: 4,
     page: "main",
     parent_id: null,
-    pinned: false,
     created_at: "2026-09-01T00:00:00Z",
   };
 }

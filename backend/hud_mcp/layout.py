@@ -5,12 +5,12 @@ from typing import cast
 from mcp.server.mcpserver import MCPServer
 from pydantic import ValidationError
 
+from core.refusal import BoardRefusal
 from hud_mcp.common import DESTRUCTIVE, carried, describe
 from repositories import board as repo
 from schemas.board import Arrangement, Change, ItemUpdate
 from services import arrange as arrange_service
 from services import board as service
-from services.arrange import RepeatedTargetError, UnknownTargetError
 from services.board import SlotTakenError
 from services.placement import NoRoomError, cells, size
 
@@ -75,7 +75,7 @@ def register(server: MCPServer) -> None:
             items = await arrange_service.rearrange(batch.changes)
         except ValidationError as exc:
             return f"Not rearranged: {exc.error_count()} bad change(s) — {exc.errors()[0]['msg']}"
-        except (NoRoomError, RepeatedTargetError, UnknownTargetError) as exc:
+        except BoardRefusal as exc:
             return str(exc)
         return "Rearranged:\n" + "\n".join(describe(i) for i in items)
 

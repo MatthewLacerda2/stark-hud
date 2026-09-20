@@ -18,7 +18,6 @@ def _item(x: float, y: float, w: float, h: float, item_id: str = "i") -> ItemRea
         w=w,
         h=h,
         parent_id=None,
-        pinned=False,
         created_at=datetime.now(UTC),
     )
 
