@@ -51,8 +51,8 @@ def add(
     y: float,
     w: float,
     h: float,
-    parent_id: str | None,
-    pinned: bool,
+    *,
+    parent_id: str | None = None,
     key: str | None = None,
     page: str | None = None,
     color: str | None = None,
@@ -60,7 +60,14 @@ def add(
     scale: float | None = None,
     description: str | None = None,
 ) -> ItemRead:
-    """Insert a new item at an already-resolved position."""
+    """Insert a new item at an already-resolved position.
+
+    Everything past the rectangle is keyword-only. It used to be positional, and
+    when ``pinned`` was taken out from the middle of that run every caller went
+    on compiling while its remaining arguments each slid one place left — a
+    ``False`` landing in ``key``. A widget's name is not the sort of thing that
+    should be decided by counting commas.
+    """
     item = ItemRead(
         id=uuid.uuid4().hex[:12],
         key=key,
@@ -77,7 +84,6 @@ def add(
         w=w,
         h=h,
         parent_id=parent_id,
-        pinned=pinned,
         created_at=datetime.now(UTC),
     )
     _items[item.id] = item

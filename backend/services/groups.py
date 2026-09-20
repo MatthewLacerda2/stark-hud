@@ -31,6 +31,7 @@ fold is doing with the room, and one of the two has to be the plain half.
 """
 
 from core.config import get_settings
+from core.refusal import BoardRefusal
 from repositories import board as repo
 from schemas.board import GroupPayload, GroupState, ItemRead, Payload, Placement
 from services import events
@@ -56,7 +57,7 @@ __all__ = [
 ]
 
 
-class NotAGroupError(Exception):
+class NotAGroupError(BoardRefusal):
     """Raised when something that is not a group is asked to behave like one."""
 
     def __init__(self, item: ItemRead) -> None:
@@ -64,7 +65,7 @@ class NotAGroupError(Exception):
         super().__init__(f"{item.id} is a {item.payload.kind}, not a group")
 
 
-class NestedGroupError(Exception):
+class NestedGroupError(BoardRefusal):
     """Raised when a group is asked to hold a group.
 
     One level, deliberately: a tree of groups is easy to build and hard to hold

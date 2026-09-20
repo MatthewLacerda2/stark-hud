@@ -11,12 +11,13 @@ can use.
 
 from mcp.server.mcpserver import MCPServer
 
+from core.refusal import BoardRefusal
 from hud_mcp.common import describe
 from repositories import board as repo
 from schemas.board import GroupPayload, ItemCreate, ItemRead
 from services import board as service
 from services import groups
-from services.groups import NestedGroupError, NoRoomError, NotAGroupError
+from services.groups import NoRoomError
 
 
 def _found(item_id: str) -> ItemRead | str:
@@ -36,7 +37,7 @@ def register(server: MCPServer) -> None:
         """
         try:
             turned = await (groups.fold(group) if shut else groups.unfold(group))
-        except (NotAGroupError, NoRoomError) as exc:
+        except BoardRefusal as exc:
             return str(exc)
         held = len(groups.members(turned))
         return f"{'Folded' if shut else 'Unfolded'} {describe(turned)} — {held} widgets inside"
@@ -75,7 +76,7 @@ def register(server: MCPServer) -> None:
         group = await service.create(ItemCreate(payload=GroupPayload(), description=description))
         try:
             await groups.gather(group, wanted)
-        except (NestedGroupError, NoRoomError) as exc:
+        except BoardRefusal as exc:
             await service.remove(group)
             return str(exc)
         return f"Grouped {len(wanted)} widgets into {describe(repo.get(group.id) or group)}"
@@ -119,7 +120,7 @@ def register(server: MCPServer) -> None:
             return missing[0]
         try:
             joined = await groups.gather(group, [f for f in found if isinstance(f, ItemRead)])
-        except (NotAGroupError, NestedGroupError, NoRoomError) as exc:
+        except BoardRefusal as exc:
             return str(exc)
         return f"{len(joined)} widgets are now in {group.id}"
 

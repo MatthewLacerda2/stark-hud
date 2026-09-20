@@ -1,6 +1,6 @@
 """FastAPI application entrypoint.
 
-Middleware order (outermost first): CORS -> rate limiting -> request logging.
+Middleware order (outermost first): CORS -> request logging.
 The versioned API router is mounted at ``/api/v1``, the board socket lives at
 ``/ws``, and the MCP server at ``/mcp``. There is no database: the board is held
 in memory and mirrored to a ``.hud`` file, read back at startup.
@@ -12,9 +12,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
-from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -22,20 +19,13 @@ from api.endpoints import api_router
 from core.config import get_settings
 from core.hub import hub
 from core.logging_middleware import LoggingMiddleware
-from core.rate_limiter import limiter
+from core.refusal import BoardRefusal
 from hud_mcp.server import build_app as build_mcp_app
 from hud_mcp.server import server as board_tools
 from repositories import board as repo
 from repositories import notifications as notifications_repo
 from schemas.board import BoardSnapshot
 from services import persistence
-from services.arrange import RepeatedTargetError, UnknownTargetError
-from services.board import KeyTakenError, MissingFileError, NotByPatchError, SlotTakenError
-from services.groups import NotAGroupError
-from services.mesh import BadMeshError, MeshTooBigError
-from services.notifications import BadIconError
-from services.pages import GroupSplitError
-from services.placement import BoardFullError, NoRoomError
 
 APP_NAME = "stark-hud"
 
@@ -62,63 +52,16 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
         persistence.save()
 
 
-def _rate_limit_handler(_request: Request, exc: RateLimitExceeded) -> JSONResponse:
-    """Return a 429 JSON response when a rate limit is exceeded."""
-    return JSONResponse(status_code=429, content={"detail": f"Rate limit exceeded: {exc.detail}"})
+def _refusal_handler(_request: Request, exc: Exception) -> JSONResponse:
+    """The one answer to the board saying no.
 
-
-def _board_full_handler(_request: Request, exc: Exception) -> JSONResponse:
-    """Return 409 with the free space, so the caller can pick a smaller size."""
-    assert isinstance(exc, BoardFullError)
-    return JSONResponse(
-        status_code=409,
-        content={"detail": str(exc), "cells_free": exc.cells_free, "requested": [exc.w, exc.h]},
-    )
-
-
-def _slot_taken_handler(_request: Request, exc: Exception) -> JSONResponse:
-    """Return 409 when an explicit placement collides or falls outside the grid."""
-    assert isinstance(exc, SlotTakenError)
-    return JSONResponse(status_code=409, content={"detail": str(exc)})
-
-
-def _key_taken_handler(_request: Request, exc: Exception) -> JSONResponse:
-    """Return 409 naming the widget that already holds the key."""
-    assert isinstance(exc, KeyTakenError)
-    return JSONResponse(status_code=409, content={"detail": str(exc), "holder": exc.holder.id})
-
-
-def _no_room_handler(_request: Request, exc: Exception) -> JSONResponse:
-    """Return 409 naming what two widgets an arrangement would have stacked."""
-    return JSONResponse(status_code=409, content={"detail": str(exc)})
-
-
-def _unknown_target_handler(_request: Request, exc: Exception) -> JSONResponse:
-    """Return 404 when a batch names a widget that is not there."""
-    return JSONResponse(status_code=404, content={"detail": str(exc)})
-
-
-def _missing_file_handler(_request: Request, exc: Exception) -> JSONResponse:
-    """Return 404 when a background points at a path that is not there."""
-    assert isinstance(exc, MissingFileError)
-    return JSONResponse(status_code=404, content={"detail": str(exc)})
-
-
-def _bad_icon_handler(_request: Request, exc: Exception) -> JSONResponse:
-    """Return 422 naming the icons that exist, rather than drawing nothing."""
-    assert isinstance(exc, BadIconError)
-    return JSONResponse(status_code=422, content={"detail": str(exc)})
-
-
-def _bad_mesh_handler(_request: Request, exc: Exception) -> JSONResponse:
-    """Return 422 saying what about the file could not be drawn.
-
-    Both of these mean the same thing to a caller — the path is a real file and
-    the board still cannot show it — so they share a status and differ only in
-    the sentence, which is the part that says whether to fix the file or run it
-    through the converter.
+    There were ten of these, several character-identical, and each existed only
+    to put a number in front of a sentence the exception had already written.
+    The number belongs to the exception now — see ``core.refusal`` — so this
+    reads it off rather than knowing it, and a new refusal needs nothing here.
     """
-    return JSONResponse(status_code=422, content={"detail": str(exc)})
+    assert isinstance(exc, BoardRefusal)
+    return JSONResponse(status_code=exc.status, content={"detail": str(exc), **exc.extra()})
 
 
 def create_app() -> FastAPI:
@@ -134,28 +77,11 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    app.state.limiter = limiter
-    app.add_middleware(SlowAPIMiddleware)
-    # slowapi types its handler to RateLimitExceeded; Starlette's registry wants
-    # one typed to Exception. Both are correct and neither can give way, so this
-    # is a mismatch between two libraries rather than anything to fix here.
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)  # type: ignore[arg-type]
-    app.add_exception_handler(BoardFullError, _board_full_handler)
-    app.add_exception_handler(SlotTakenError, _slot_taken_handler)
-    app.add_exception_handler(KeyTakenError, _key_taken_handler)
-    app.add_exception_handler(NoRoomError, _no_room_handler)
-    # All three are the board refusing a change it cannot make whole: a group
-    # that will not hold this, a page that will not take it, a field that is not
-    # a PATCH's to write. Same 409 and the same sentence saying why.
-    app.add_exception_handler(NotAGroupError, _no_room_handler)
-    app.add_exception_handler(GroupSplitError, _no_room_handler)
-    app.add_exception_handler(NotByPatchError, _no_room_handler)
-    app.add_exception_handler(RepeatedTargetError, _no_room_handler)
-    app.add_exception_handler(UnknownTargetError, _unknown_target_handler)
-    app.add_exception_handler(MissingFileError, _missing_file_handler)
-    app.add_exception_handler(BadIconError, _bad_icon_handler)
-    app.add_exception_handler(BadMeshError, _bad_mesh_handler)
-    app.add_exception_handler(MeshTooBigError, _bad_mesh_handler)
+    # One registration for every refusal the board makes: Starlette walks the
+    # MRO looking for a handler, so a subclass of ``BoardRefusal`` lands here
+    # without being named. That is the point — the ten handlers this replaces
+    # meant a refusal nobody remembered to register came out as a 500.
+    app.add_exception_handler(BoardRefusal, _refusal_handler)
 
     app.add_middleware(LoggingMiddleware)
     # The one introduction between the two surfaces. `api/` and `hud_mcp/` sit
@@ -183,11 +109,6 @@ def _register_baseline_routes(app: FastAPI) -> None:
     async def health() -> dict[str, str]:
         """Liveness probe (intentionally not logged)."""
         return {"status": "healthy"}
-
-    @app.get("/security.txt", response_class=PlainTextResponse)
-    async def security_txt() -> str:
-        """Plaintext security contact (see securitytxt.org)."""
-        return "Contact: mailto:security@example.com\nExpires: 2027-01-01T00:00:00Z\n"
 
 
 def _register_socket(app: FastAPI) -> None:

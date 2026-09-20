@@ -61,7 +61,7 @@ export const LINE_CROSS = 0.46;
  * cut off. Eight tenths of it puts the arrow clearly outside the column of boxes
  * with the last fifth still to spare.
  */
-export const LOOP_REACH = 0.8;
+const LOOP_REACH = 0.8;
 
 /**
  * The shortest arrow worth putting any word on, in cells.
@@ -72,7 +72,7 @@ export const LOOP_REACH = 0.8;
  * fraction of a 3-cell widget and a fraction of a 12-cell one are different
  * lengths, and it is the length on the glass that decides.
  */
-export const LABEL_FLOOR_CELLS = 1.5;
+const LABEL_FLOOR_CELLS = 1.5;
 
 /**
  * How many cells one character of a label needs.
@@ -82,7 +82,7 @@ export const LABEL_FLOOR_CELLS = 1.5;
  * nothing to clip it, so a long word on a short arrow overhangs both ends and
  * reads as a mistake in the drawing rather than in the data. Hence the length.
  */
-export const LABEL_CELLS_PER_CHAR = 0.2;
+const LABEL_CELLS_PER_CHAR = 0.2;
 
 /**
  * How far an S bows out of each end, as a fraction of the run between the two
@@ -93,7 +93,7 @@ export const LABEL_CELLS_PER_CHAR = 0.2;
  * author drawing a diagram has an opinion about which two things are joined,
  * not about the curvature of the join.
  */
-export const BOW = 0.5;
+const BOW = 0.5;
 
 /**
  * Which way a flow runs.

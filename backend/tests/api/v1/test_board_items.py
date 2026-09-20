@@ -32,7 +32,6 @@ NOT_STYLE = {
     "y",
     "w",
     "h",
-    "pinned",
 }
 
 

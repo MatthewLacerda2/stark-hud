@@ -397,7 +397,6 @@ export interface Item {
   h: number;
   /** The group this widget is in, if any. Never another group: one level only. */
   parent_id: string | null;
-  pinned: boolean;
   created_at: string;
 }
 

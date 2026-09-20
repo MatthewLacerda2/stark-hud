@@ -35,7 +35,7 @@ export function phaseOf(entry: Countdown, now: number): Phase {
 }
 
 /** The moment the clock is counting to: the start, or the end once it has begun. */
-export function target(entry: Countdown, now: number): number {
+function target(entry: Countdown, now: number): number {
   const start = new Date(entry.start).getTime();
   return now < start ? start : finish(entry);
 }

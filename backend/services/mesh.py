@@ -14,6 +14,7 @@ than a sentence in a comment.
 
 from pathlib import Path
 
+from core.refusal import BoardRefusal
 from repositories import board as repo
 from schemas.board import ItemRead
 from schemas.mesh import MeshPart, Wireframe
@@ -41,12 +42,18 @@ MAX_FACE_CORNERS = 512
 Point = tuple[float, float, float]
 
 
-class BadMeshError(Exception):
+class BadMeshError(BoardRefusal):
     """Raised when a file cannot be read as a mesh, saying what would work."""
 
+    status = 422
 
-class MeshTooBigError(Exception):
+
+class MeshTooBigError(BoardRefusal):
     """Raised when a model has more edges than the board will draw.
+
+    The same 422 as a file that will not parse: both are a real file the board
+    cannot draw, and the sentence is the part that says whether to fix the file
+    or run it through the converter.
 
     Names the converter, because the fix is one command rather than a smaller
     model: ``tools/mesh/convert.py`` decimates to a target on the way through.

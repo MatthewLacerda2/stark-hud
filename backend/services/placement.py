@@ -15,6 +15,7 @@ board, and every question below is answered by walking that short list.
 from collections.abc import Iterator
 from itertools import combinations
 
+from core.refusal import BoardRefusal
 from schemas.board import MIN_SIZE, ItemRead, Payload, Placement
 
 # Sizes tuned for a 1080p TV read from a sofa, not for desktop density. On the
@@ -60,8 +61,12 @@ _DEFAULT_SIZES: dict[str, tuple[float, float]] = {
 _EPS = 1e-9
 
 
-class BoardFullError(Exception):
-    """Raised when no free rectangle of the requested size exists."""
+class BoardFullError(BoardRefusal):
+    """Raised when no free rectangle of the requested size exists.
+
+    Hands back the free space as a number as well as a sentence, so a caller
+    that cannot see the board can pick a size that fits on the second try.
+    """
 
     def __init__(self, w: float, h: float, cells_free: float) -> None:
         self.w = w
@@ -73,6 +78,10 @@ class BoardFullError(Exception):
             else f"{cells(cells_free)} cells free, but none form a {size(w, h)} rectangle"
         )
         super().__init__(f"No free {size(w, h)} slot: {detail}")
+
+    def extra(self) -> dict[str, object]:
+        """The free space and the size that would not go in it."""
+        return {"cells_free": self.cells_free, "requested": [self.w, self.h]}
 
 
 def cells(value: float) -> str:
@@ -182,7 +191,7 @@ def largest_free_rect(items: list[ItemRead], cols: int, rows: int) -> Placement 
     return best
 
 
-class NoRoomError(Exception):
+class NoRoomError(BoardRefusal):
     """Raised when an arrangement is not a board that could be drawn.
 
     It names the widgets and where, because whoever asked for this cannot see

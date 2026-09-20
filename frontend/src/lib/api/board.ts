@@ -1,13 +1,7 @@
 /** Typed wrappers for the board endpoints. Pages call these, never `fetch`. */
 
 import { request } from "@/lib/api/client";
-import type {
-  Background,
-  BoardStatus,
-  Item,
-  Payload,
-  Playback,
-} from "@/lib/schemas/board";
+import type { BoardStatus, Item, Payload, Playback } from "@/lib/schemas/board";
 
 /** What the page tells the server a media widget is doing. */
 export interface PlaybackReport {
@@ -18,36 +12,33 @@ export interface PlaybackReport {
   seconds?: number;
 }
 
-export interface ItemCreate {
-  payload: Payload;
+/**
+ * What a PATCH may write, mirroring `ItemUpdate` in `backend/schemas/board.py`.
+ *
+ * No `parent_id` and no `page`: which group a widget is in and which page it is
+ * on are trades the server makes whole, never fields a PATCH writes.
+ *
+ * Written out rather than derived from a create shape. There used to be an
+ * `ItemCreate` here that this was an `Omit<Partial<…>>` of, and because nothing
+ * ever called the create it drifted from the backend unnoticed — no `key`, no
+ * `border`. A shape nothing sends is a shape nothing checks.
+ */
+export interface ItemUpdate {
+  payload?: Payload;
+  key?: string;
   /** A note only sessions read; never drawn. See `Item.description`. */
   description?: string;
   color?: string;
+  border?: string;
   scale?: number;
   x?: number;
   y?: number;
   w?: number;
   h?: number;
-  parent_id?: string | null;
-  pinned?: boolean;
-}
-
-/**
- * No `parent_id`: which group a widget is in is a trade the server makes whole,
- * never a field a PATCH writes. The same goes for which page it is on.
- */
-export type ItemUpdate = Omit<Partial<ItemCreate>, "parent_id">;
-
-export function listItems(): Promise<Item[]> {
-  return request<Item[]>("/board/items");
 }
 
 export function boardStatus(): Promise<BoardStatus> {
   return request<BoardStatus>("/board/status");
-}
-
-export function createItem(body: ItemCreate): Promise<Item> {
-  return request<Item>("/board/items", { method: "POST", body });
 }
 
 export function updateItem(id: string, body: ItemUpdate): Promise<Item> {
@@ -68,24 +59,4 @@ export function reportPlayback(
     method: "POST",
     body,
   });
-}
-
-export function removeItem(id: string): Promise<void> {
-  return request<void>(`/board/items/${id}`, { method: "DELETE" });
-}
-
-export function clearBoard(): Promise<{ removed: number }> {
-  return request<{ removed: number }>("/board/items", { method: "DELETE" });
-}
-
-export function getBackground(): Promise<Background | null> {
-  return request<Background | null>("/board/background");
-}
-
-export function setBackground(body: Background): Promise<Background> {
-  return request<Background>("/board/background", { method: "PUT", body });
-}
-
-export function clearBackground(): Promise<void> {
-  return request<void>("/board/background", { method: "DELETE" });
 }

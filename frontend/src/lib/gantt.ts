@@ -56,7 +56,7 @@ export const STEPS = [
  * bar from crushing tonight into a hairline. Three is enough to see what is
  * running and what is next, which is what a glance is for.
  */
-export const COVERS = 3;
+const COVERS = 3;
 
 /**
  * How much of the widget's width the row names take.
@@ -75,7 +75,7 @@ export const NAMES = 0.18;
  * is not small, it is absent: there is no font size at which "do the sauce"
  * fits into fifteen minutes of a four-hour window.
  */
-export const TITLE_CELLS = 2;
+const TITLE_CELLS = 2;
 
 /** When a bar is over. */
 function finish(bar: GanttBar): number {
@@ -83,7 +83,7 @@ function finish(bar: GanttBar): number {
 }
 
 /** Every bar not yet over, soonest to finish first. */
-export function ahead(rows: GanttRow[], now: number): GanttBar[] {
+function ahead(rows: GanttRow[], now: number): GanttBar[] {
   return rows
     .flatMap((row) => row.bars)
     .filter((bar) => finish(bar) > now)
@@ -166,7 +166,7 @@ export function tone(row: number): string {
  * off rather than being shrunk — the same trade a bar's name makes, and for the
  * same reason: there is no font size at which crowding becomes legible.
  */
-export const MARK_CELLS = 1.8;
+const MARK_CELLS = 1.8;
 
 /** A time written on the axis, and where along the window it falls. */
 export interface Mark {

@@ -24,7 +24,7 @@ import type { MeshPart } from "@/lib/schemas/board";
  * widths is about where the near edge is a third bigger than the far one, which
  * is enough for the eye to get the depth without noticing the lens.
  */
-export const FOV = 4;
+const FOV = 4;
 
 /**
  * How much of the widget the model spans at its widest.
