@@ -21,18 +21,24 @@ half-rearranged board on a television nobody is standing at.
 """
 
 from core.config import get_settings
+from core.refusal import BoardRefusal
 from repositories import board as repo
 from schemas.board import Change, ItemRead
 from services import events, pages
 from services.placement import NoRoomError, illegal
 
 
-class UnknownTargetError(Exception):
+class UnknownTargetError(BoardRefusal):
     """Raised when a batch names a widget that is not there.
+
+    A 404 rather than the usual 409: nothing about the board is in the way, the
+    caller simply named something that is not on it.
 
     Named rather than skipped: a caller that meant to move four widgets and had
     one name wrong wants to know which, not to find three of them moved.
     """
+
+    status = 404
 
     def __init__(self, target: str) -> None:
         self.target = target
@@ -42,7 +48,7 @@ class UnknownTargetError(Exception):
         )
 
 
-class RepeatedTargetError(Exception):
+class RepeatedTargetError(BoardRefusal):
     """Raised when a batch names one widget twice.
 
     Two entries for one widget is two answers to "where does this end up", and

@@ -141,7 +141,6 @@ class ItemCreate(BaseModel):
     w: float | None = Field(default=None, ge=MIN_SIZE)
     h: float | None = Field(default=None, ge=MIN_SIZE)
     parent_id: str | None = None
-    pinned: bool = False
 
 
 class ItemUpdate(BaseModel):
@@ -161,7 +160,6 @@ class ItemUpdate(BaseModel):
     y: float | None = Field(default=None, ge=0)
     w: float | None = Field(default=None, ge=MIN_SIZE)
     h: float | None = Field(default=None, ge=MIN_SIZE)
-    pinned: bool | None = None
     # No ``parent_id`` and no ``page``. Both say which widgets are drawn beside
     # which, and both are a trade — a widget joining a folded group leaves the
     # board with nothing taking its place. ``services.groups`` and
@@ -259,7 +257,6 @@ class ItemRead(BaseModel):
     # is the whole of what folding does. Never another group: nesting stops at
     # one level.
     parent_id: str | None
-    pinned: bool
     created_at: datetime
 
 

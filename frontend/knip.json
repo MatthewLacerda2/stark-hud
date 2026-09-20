@@ -1,6 +1,21 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["src/main.tsx", "src/routes/**/*.tsx", "scripts/*.mjs"],
+  "entry": [
+    "src/main.tsx",
+    "src/routes/**/*.tsx",
+    "scripts/*.mjs",
+    "src/routeTree.gen.ts",
+    "src/components/ui/**/*.tsx",
+    "src/lib/schemas/**/*.ts"
+  ],
   "project": ["src/**/*.{ts,tsx}", "eslint-rules/**/*.ts", "scripts/**/*.mjs"],
-  "include": ["files", "dependencies", "unlisted", "unresolved"]
+  "include": [
+    "files",
+    "dependencies",
+    "unlisted",
+    "unresolved",
+    "exports",
+    "types"
+  ],
+  "ignoreExportsUsedInFile": { "interface": true, "type": true }
 }

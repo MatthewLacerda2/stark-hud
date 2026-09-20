@@ -170,11 +170,18 @@ front-lint:
 front-quick:
 	cd frontend && $(BUN) run lint
 
-# Unused files, unused dependencies, and imports that do not resolve. Not
-# unused *exports*: `lib/schemas/` mirrors the backend on purpose and
-# `components/ui/` is a vendored primitive library, so most of what knip finds
-# there is deliberate. A gate that has to be argued with is one that gets
-# switched off — `bun run dead` shows the exports for whoever wants to look.
+# Unused files, dependencies, imports that do not resolve — and unused exports
+# and types, which this used to leave off because `lib/schemas/` mirrors the
+# backend and `components/ui/` is a vendored primitive library, so knip found
+# dozens of deliberate exports there and a gate that has to be argued with is
+# one that gets switched off.
+#
+# Both are now named as entry points in `knip.json` instead, which says the same
+# thing to the tool rather than to a reader, and the argument is gone: a public
+# surface is a starting point, not a leftover. What is left has teeth — an
+# exported function or constant nothing imports fails the build. Types are the
+# one exemption, because a type naming an exported function's parameter is used
+# by everyone who calls it and imported by nobody.
 front-dead:
 	cd frontend && $(BUN) run dead
 

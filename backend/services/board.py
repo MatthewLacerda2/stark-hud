@@ -10,6 +10,7 @@ widget. See ``services.events``.
 from pathlib import Path
 
 from core.config import get_settings
+from core.refusal import BoardRefusal
 from repositories import board as repo
 from schemas.board import (
     Background,
@@ -31,7 +32,7 @@ from services.placement import (
 )
 
 
-class SlotTakenError(Exception):
+class SlotTakenError(BoardRefusal):
     """Raised when an explicit placement is out of bounds or already occupied."""
 
     def __init__(self, place: Placement) -> None:
@@ -42,7 +43,7 @@ class SlotTakenError(Exception):
         )
 
 
-class KeyTakenError(Exception):
+class KeyTakenError(BoardRefusal):
     """Raised when a key is given to a second widget.
 
     A key names one widget. Two widgets holding one name made the second
@@ -63,8 +64,12 @@ class KeyTakenError(Exception):
             f"Write to that widget instead — a key names one widget."
         )
 
+    def extra(self) -> dict[str, object]:
+        """The widget already holding the key, which is the one to write to."""
+        return {"holder": self.holder.id}
 
-class NotByPatchError(Exception):
+
+class NotByPatchError(BoardRefusal):
     """Raised when an update tries to change what only a service may change.
 
     A group's state is half of a trade — its widgets come off the board and it
@@ -83,8 +88,10 @@ class NotByPatchError(Exception):
         )
 
 
-class MissingFileError(Exception):
+class MissingFileError(BoardRefusal):
     """Raised when a background points at a path that is not a file."""
+
+    status = 404
 
     def __init__(self, path: str) -> None:
         self.path = path
@@ -226,9 +233,8 @@ async def create(data: ItemCreate) -> ItemRead:
         place.y,
         place.w,
         place.h,
-        data.parent_id,
-        data.pinned,
-        data.key,
+        parent_id=data.parent_id,
+        key=data.key,
         # A widget in a group is on the group's page, whatever is showing: the
         # two are one thing on one board.
         page=parent.page if parent is not None else None,
@@ -262,7 +268,6 @@ async def update(item: ItemRead, data: ItemUpdate) -> ItemRead:
                 "color": data.color if data.color is not None else item.color,
                 "border": data.border if data.border is not None else item.border,
                 "scale": data.scale if data.scale is not None else item.scale,
-                "pinned": data.pinned if data.pinned is not None else item.pinned,
             }
         )
     )

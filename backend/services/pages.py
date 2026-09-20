@@ -22,6 +22,7 @@ are always on the same page and move between pages as one.
 """
 
 from core.config import get_settings
+from core.refusal import BoardRefusal
 from repositories import board as repo
 from schemas.board import DEFAULT_PAGE, ItemRead
 from services import events, groups
@@ -40,7 +41,7 @@ __all__ = [
 ]
 
 
-class GroupSplitError(Exception):
+class GroupSplitError(BoardRefusal):
     """Raised when a widget is sent to another page without the group holding it.
 
     A group and what it holds are one thing on one page. Left behind, the group

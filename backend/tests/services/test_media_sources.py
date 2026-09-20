@@ -18,7 +18,7 @@ ALBUM = "AC DC - Greatest Hell's Hits/CD1"
 def _item(folder: str) -> ItemRead:
     """A media widget holding that folder's queue, as the board would hold it."""
     payload = MediaPayload(tracks=service.tracks_from([folder]))
-    return repo.add(payload, 0, 0, 10, 6, None, False)
+    return repo.add(payload, 0, 0, 10, 6)
 
 
 def _album(tmp_path: Path, tracks: int = 19) -> Path:

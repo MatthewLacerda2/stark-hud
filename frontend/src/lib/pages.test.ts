@@ -26,7 +26,6 @@ function item(id: string, page: string, parent: string | null = null): Item {
     h: 3,
     page,
     parent_id: parent,
-    pinned: false,
     created_at: "2026-09-01T00:00:00Z",
   };
 }

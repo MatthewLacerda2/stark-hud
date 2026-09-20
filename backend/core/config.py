@@ -28,11 +28,6 @@ class Settings(BaseSettings):
     GRID_COLS: int = Field(default=32, ge=1, le=96)
     GRID_ROWS: int = Field(default=18, ge=1, le=54)
 
-    # Served openly on the LAN by design: no auth, any device on the wifi may
-    # read and write the board.
-    HOST: str = "0.0.0.0"  # noqa: S104
-    PORT: int = 8000
-
     CORS_ORIGINS: str = "*"
 
     # Where the board is kept between runs. Empty means keep nothing, which is

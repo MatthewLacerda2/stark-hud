@@ -9,6 +9,7 @@ had vanished and told nobody, so the only way to see it was to reload the page.
 
 from pathlib import Path
 
+from core.refusal import BoardRefusal
 from repositories import notifications as repo
 from schemas import svg
 from schemas.icon import UNKNOWN
@@ -18,8 +19,10 @@ from services import events
 RETENTION_HOURS = repo.RETENTION.total_seconds() / 3600
 
 
-class BadIconError(Exception):
+class BadIconError(BoardRefusal):
     """Raised when an icon is neither a known name, a file that exists, nor SVG we can read."""
+
+    status = 422
 
     def __init__(self, icon: str, reason: str | None = None) -> None:
         self.icon = icon

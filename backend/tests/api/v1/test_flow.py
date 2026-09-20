@@ -190,7 +190,7 @@ def test_a_flow_comes_back_off_the_disk_intact(tmp_path: Path, monkeypatch) -> N
     """The board is restored from a file, so a diagram has to survive a restart."""
     monkeypatch.setattr(store, "path", lambda: tmp_path / "board.hud")
     payload = FlowPayload.model_validate(PIPELINE)
-    item = board.add(payload, 0, 0, 8, 6, None, False, key="deploy")
+    item = board.add(payload, 0, 0, 8, 6, key="deploy")
 
     assert persistence.save()
     board.clear()
