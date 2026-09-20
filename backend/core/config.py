@@ -134,6 +134,25 @@ class Settings(BaseSettings):
     # is far longer than the gap and far shorter than anybody notices the disk.
     UPLOAD_GRACE_SECONDS: float = Field(default=300.0, ge=0)
 
+    # How long a media widget that has finished playing stays on the board.
+    #
+    # A film that has played to its end holds a slot on a board that never
+    # scrolls and refuses new widgets when it is full, and from the sofa nobody
+    # takes it off. An hour is long enough that putting it back on is still the
+    # same evening, and short enough that the board is clear by morning.
+    #
+    # Finished, not merely quiet: a paused film is somebody who means to come
+    # back and never expires, and a looping queue never finishes at all.
+    # `services.media` holds the rule and the list of states that mean it.
+    MEDIA_EXPIRY_SECONDS: float = Field(default=3600.0, ge=0)
+
+    # How often the board is looked over for one. This is the granularity of the
+    # hour above rather than a second deadline: a widget goes between an hour and
+    # an hour and a minute after it finished, which is not a difference anybody
+    # in the room can see. The pass reads a list already in memory, so it is
+    # cheap, not free.
+    MEDIA_EXPIRY_CHECK_SECONDS: float = Field(default=60.0, gt=0)
+
     # Driving the board by typing at it, which is bought from Google a prompt at
     # a time. Empty is a working configuration, exactly like the voice above:
     # the bar refuses in one sentence and everything else on the board carries
