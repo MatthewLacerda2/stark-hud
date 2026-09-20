@@ -222,11 +222,11 @@ agent-types:
 # Frontend gates  (run from frontend/, driven by $(BUN))
 # ---------------------------------------------------------------------------
 .PHONY: front-lint front-quick front-dead front-build front-theme front-test front-install
-front-lint:
+front-lint: front-install
 	cd frontend && $(BUN) run check
 
 # The same linters without `tsc`, which is over half of what front-lint costs.
-front-quick:
+front-quick: front-install
 	cd frontend && $(BUN) run lint
 
 # Unused files, unused dependencies, and imports that do not resolve. Not
@@ -234,10 +234,10 @@ front-quick:
 # `components/ui/` is a vendored primitive library, so most of what knip finds
 # there is deliberate. A gate that has to be argued with is one that gets
 # switched off — `bun run dead` shows the exports for whoever wants to look.
-front-dead:
+front-dead: front-install
 	cd frontend && $(BUN) run dead
 
-front-build:
+front-build: front-install
 	cd frontend && $(BUN) run build
 
 # Reads the built stylesheet, not the source. Tailwind emits only the theme
@@ -245,11 +245,53 @@ front-build:
 # wire — so a name the backend accepts can be one the build dropped, which the
 # browser resolves to nothing and paints black. Runs after front-build for the
 # obvious reason: there is no artefact to read before it.
-front-theme:
+front-theme: front-install
 	cd frontend && $(BUN) run check-theme
 
-front-test:
+front-test: front-install
 	cd frontend && $(BUN) run test
 
+# ---------------------------------------------------------------------------
+# node_modules, and why a worktree does not get its own
+#
+# A fresh worktree has none, so every frontend gate in one used to begin with a
+# 430-package install: 14.4s and 356 MB, measured here on 2026-09-20, for a tree
+# byte-identical to the one the main checkout already has. Five worktrees is
+# 1.8 GB -- of RAM, because a worktree lives on tmpfs -- on the machine whose
+# load is the thing that makes gates lie.
+#
+# Both obvious answers were measured, and both are wrong. `--backend=hardlink`
+# is already bun's default and buys nothing: in the main checkout every
+# installed file is *already* a hardlink into bun's cache (nlink >= 2), and in a
+# worktree not one of them can be (nlink = 1, all 24,622 of them), because /tmp
+# is tmpfs, the cache is on ext4, and a hardlink does not cross a filesystem.
+# `--backend=symlink` does cross it, in 0.4s and 568 KB -- and then `bun run
+# check` fails with a dozen invented type errors, because every file is a
+# symlink into the cache, tsc resolves the realpath, and a package sitting in
+# the cache cannot see its peers.
+#
+# What survives is the whole tree, borrowed: 19 ms, nothing on disk, gates green.
+# It is correct only while the two trees are the same tree, so it is taken only
+# while this worktree's bun.lock and package.json are byte-identical to the main
+# checkout's -- checked on every run, so a branch that changes a dependency
+# quietly stops borrowing and installs its own. The main checkout has nobody to
+# borrow from and always installs; a fresh clone is that case, and
+# `make front-install` is still the one command it needs.
+#
+# Nothing is ever installed *through* the borrowed link: the symlink is removed
+# before `bun install` runs, so a worktree cannot write into another checkout.
+# ---------------------------------------------------------------------------
 front-install:
-	cd frontend && $(BUN) install
+	@cd frontend && \
+	if [ "$(MAIN)" != "$(CURDIR)" ] && [ -d "$(MAIN)/frontend/node_modules" ] \
+	   && cmp -s bun.lock "$(MAIN)/frontend/bun.lock" \
+	   && cmp -s package.json "$(MAIN)/frontend/package.json"; then \
+		if [ ! -L node_modules ]; then \
+			rm -rf node_modules; \
+			ln -s "$(MAIN)/frontend/node_modules" node_modules; \
+			echo "front-install: borrowing the main checkout's node_modules (lockfile matches)"; \
+		fi; \
+	else \
+		if [ -L node_modules ]; then rm -f node_modules; fi; \
+		$(BUN) install; \
+	fi
