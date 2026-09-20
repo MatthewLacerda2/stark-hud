@@ -25,8 +25,9 @@ import { Icon } from "@/components/board/icon";
 import {
   crossed,
   pick,
+  SWEEP_MS,
   toConfig,
-} from "@/components/board/items/chart-colours";
+} from "@/components/board/items/chart-marks";
 import { carriesAlpha } from "@/lib/colour";
 import { cn } from "@/lib/utils";
 
@@ -35,12 +36,14 @@ import { cn } from "@/lib/utils";
 // chart meant to be understood without reading. What a series is belongs in the
 // widget's own title, or in the icon beside it.
 
-// And nothing here tweens between samples. Recharts animates by default, and a
-// mark on the move is redrawn on every frame it is moving — which this board
-// then multiplies by the eight copies that give the marks their thickness
-// (`extrusion.tsx`). Four small charts easing to each new reading were about
-// nine tenths of everything the board cost, to redraw numbers that arrive once
-// every three seconds.
+// Two charts here move, and they move quickly. A mark on the move is redrawn on
+// every frame it is moving, and this board then multiplies that by the eight
+// copies which give the marks their thickness (`extrusion.tsx`) — so recharts'
+// own 1500 ms default, over readings that arrive every three seconds, left a
+// mark in motion half of all time and cost most of what the whole board cost.
+// The ring and the polygon still sweep; they sweep in `SWEEP_MS`, which is
+// decided once in `chart-marks.ts` and says there what it is trading. A line
+// and an area still do not move at all, for the reason written beside them.
 
 // Recharts paints axis labels with SVG `fill`, which the widget's `color` never
 // reaches. Handed to them by name instead, with shadcn's own muted-foreground as
@@ -169,17 +172,17 @@ function Body({ payload }: { payload: ChartPayload }) {
           tick={false}
           axisLine={false}
         />
-        {/* It used to be the one thing here that animated: a radar's spokes
-            stay put, so tweening the radius read as the polygon breathing
-            between one sample and the next. Every frame of that breath was
-            eight copies of the chart taken again behind it, and the board paid
-            for it all day. See the note at the top of the file. */}
+        {/* Animated, unlike a line or an area. Those carry history and would
+            morph the whole shape when the window slides; a radar's spokes stay
+            put, so tweening the radius is the polygon breathing between one
+            sample and the next — which is what it is here to show. What has
+            changed is the length of the breath, not whether there is one. */}
         <Radar
           dataKey={series[0]}
           stroke={color}
           fill={color}
           fillOpacity={carriesAlpha(pick(colors, 0)) ? 1 : 0.25}
-          isAnimationActive={false}
+          animationDuration={SWEEP_MS}
         />
       </RadarChart>
     );

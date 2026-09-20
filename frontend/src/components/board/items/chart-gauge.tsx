@@ -5,8 +5,9 @@ import { Icon } from "@/components/board/icon";
 import {
   crossed,
   pick,
+  SWEEP_MS,
   toConfig,
-} from "@/components/board/items/chart-colours";
+} from "@/components/board/items/chart-marks";
 import { cn } from "@/lib/utils";
 
 // The part of the ring the value has not reached: white, kept see-through so the
@@ -138,9 +139,12 @@ export function Gauge({ id, payload }: { id: string; payload: ChartPayload }) {
             background={{ style: { fill: payload.unfilled ?? UNFILLED } }}
             cornerRadius={999}
             fill={arc(drawn[0])}
-            // The ring used to sweep to each new reading. See the note at the
-            // top of `chart.tsx`: nothing on this board tweens between samples.
-            isAnimationActive={false}
+            // The ring sweeps to each new reading rather than cutting to it:
+            // it is the one part of a gauge that says the number is live. How
+            // long that takes is `SWEEP_MS`, decided in `chart-marks.ts`
+            // beside the radar's, because a board where two things move has to
+            // have them move alike.
+            animationDuration={SWEEP_MS}
           >
             {/* One cell per ring, so each takes its own colour and its own
                 threshold. A single ring needs none — `fill` above is already
