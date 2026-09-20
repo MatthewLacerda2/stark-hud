@@ -141,7 +141,7 @@ describe("a widget arriving on the board", () => {
   });
 
   it("does not change its mind when the board fills in around it", async () => {
-    // A widget flying in from the west, and then — inside the 700ms it takes —
+    // A widget flying in from the west, and then — inside the flight it takes —
     // four more widgets landing in every corridor it might have used. An
     // arrival is a fact about the moment it arrived: recomputed here, this one
     // would have no corridor left, and the class flipping from a flight to a

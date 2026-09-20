@@ -17,8 +17,9 @@ import type { Item } from "@/lib/schemas/board";
  * nothing in the middle of the board. The flight's starting point can move the
  * same way without restarting anything, which looks like the widget changing
  * its mind mid-air. Either needs only a second widget to land in the first's
- * corridor inside 700ms — which is what `arrange` does, and what a board being
- * rebuilt does, so it is an ordinary Tuesday rather than a corner case.
+ * corridor while the first is still in the air — which is what `arrange` does,
+ * and what a board being rebuilt does, so it is an ordinary Tuesday rather than
+ * a corner case.
  *
  * So an arrival is decided on the widget's first render and read from here
  * afterwards. A departure is decided the same way but separately, at the moment

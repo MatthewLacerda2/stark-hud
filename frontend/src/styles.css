@@ -176,23 +176,28 @@
      having been put there rather than having drifted to a stop. */
   --motion-settle-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   /* Growing out of nothing in its own place, for a widget boxed in on all four
-     sides. The same 420ms a settle takes: an arrival that covers no distance
-     should read as costing what a move across the board costs. */
-  --motion-arrive: 420ms;
-  --motion-leave: 300ms;
+     sides. It was 420ms for as long as a settle was, on the argument that an
+     arrival covering no distance should cost what a move across the board
+     costs. That tie is broken on purpose: a settle is a widget already on the
+     board being put somewhere else, and the eye is following it the whole way,
+     while an arrival is a thing that was not there at all and has to be found
+     before it can be read. Finding it is what the extra quarter buys. */
+  --motion-arrive: 525ms;
+  --motion-leave: 375ms;
   /* Flying in from off the screen. The corridor picked is the nearest one, so
      the travel is at most about half the board — six to eleven cells, which on
      a 1920-wide television is 400 to 700 pixels. One duration for the whole
      flight rather than a speed scaled by distance: a constant speed makes a
      widget arriving from just off the edge crawl, and the eye is reading "it
-     came from over there", not timing it. At 700ms that longest flight averages
-     a thousand pixels a second, and because the easing is nearly all at the
+     came from over there", not timing it. At 875ms that longest flight averages
+     eight hundred pixels a second, and because the easing is nearly all at the
      front it is thrown in and then glides the last tenth into place. Short
      enough that the board is never a thing you wait for. */
-  --motion-fly-in: 700ms;
-  /* Leaving is the arrival reversed and a departure should not hold the screen:
-     about two thirds of the way in, the same ratio the pair above have. */
-  --motion-fly-out: 460ms;
+  --motion-fly-in: 875ms;
+  /* Leaving is the arrival reversed, plus the step back the keyframes add at
+     the front of it, and a departure should not hold the screen: about two
+     thirds of the way in, the same ratio the pair above have. */
+  --motion-fly-out: 575ms;
   --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
   /* Exactly `--motion-ease` read backwards. Going is not coming played in
      reverse unless the easing is reversed too: a widget that eased *into* the
@@ -677,12 +682,38 @@
   }
 }
 
+/* A widget does not slide out of the plane the others are in — it steps back
+   out of that plane first, and only then drifts off. Seven percent, over the
+   first fifth of the departure: far enough that the widget's edges pull in
+   from the neighbours it was lined up with, not so far that it reads as a
+   wobble. What is left for the flight is still the 460ms the whole flight used
+   to be, so nothing about the travel got slower; the quarter this token gained
+   is spent entirely on the step back.
+
+   The step back is the one part of a departure that is not a departure — the
+   widget is being *put* somewhere, a hand's width behind the others, and then
+   released. So it borrows `--motion-settle-ease`, which is the curve for a
+   thing being put down, and only the flight uses `--motion-leave-ease`. This
+   matters more than it sounds: `--motion-leave-ease` is so front-loaded that
+   over 115ms it holds the widget at full size for seventy of them and then
+   snaps it back in the remaining forty, which is the wobble.
+
+   `translate()` is written before `scale()`, and that order is the distance.
+   Transform functions compose right to left, so this way the scale happens
+   first and the translate is still a percentage of the widget's own
+   untransformed box — exactly the corridor `lib/entrance.ts` measured. The
+   other way round the scale would multiply the travel, and on a nearly full
+   board a widget would stop short of the edge and sit there, in view. */
 @keyframes widget-fly-out {
   from {
-    transform: translate(0, 0);
+    animation-timing-function: var(--motion-settle-ease);
+    transform: translate(0, 0) scale(1);
+  }
+  20% {
+    transform: translate(0, 0) scale(0.93);
   }
   to {
-    transform: translate(var(--fly-x, 0), var(--fly-y, 0));
+    transform: translate(var(--fly-x, 0), var(--fly-y, 0)) scale(0.93);
   }
 }
 
