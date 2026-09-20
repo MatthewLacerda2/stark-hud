@@ -113,7 +113,7 @@ export default tseslint.config(
       "better-tailwindcss/no-unknown-classes": "off",
     },
   },
-  // Pages never fetch.
+  // Pages never fetch, and nothing spells the API base but `lib/api/`.
   //
   // `lib/api/client.ts` is the one place the base URL and the error shape live,
   // and everything else reaches the board through `lib/api/<domain>.ts`. That has
@@ -149,6 +149,12 @@ export default tseslint.config(
             "Pages never fetch. Call lib/api/<domain>.ts, which calls lib/api/client.ts.",
         },
       ],
+      // The same rule for the calls an element makes. An `<img src>` is an API
+      // call the browser makes on our behalf, so it never reached the ban
+      // above — and fourteen of them spelled `/api/v1` themselves while
+      // `client.ts` sat there owning the base. `lib/api/media.ts` hands those
+      // out now, and this is what stops them coming back.
+      "local/no-hand-built-api-url": "error",
     },
   },
   // Build-time gates. These run in Node after vite, so the browser globals the

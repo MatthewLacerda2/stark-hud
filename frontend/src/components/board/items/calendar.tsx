@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useClock } from "@/hooks/use-clock";
 import { initials, monthOf } from "@/lib/calendar";
 import { cn } from "@/lib/utils";
 
@@ -34,12 +34,7 @@ const TODAY = {
  */
 export function Calendar() {
   const { i18n } = useTranslation();
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), TICK_MS);
-    return () => clearInterval(id);
-  }, []);
+  const now = new Date(useClock(TICK_MS));
 
   const { days, weeks } = monthOf(now);
   const today = now.getDate();

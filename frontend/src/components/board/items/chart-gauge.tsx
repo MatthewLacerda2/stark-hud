@@ -2,6 +2,7 @@ import { Cell, PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
 import type { ChartPayload } from "@/lib/schemas/board";
 import { ChartContainer } from "@/components/ui/chart";
 import { Icon } from "@/components/board/icon";
+import { iconUrl } from "@/lib/api/media";
 import {
   crossed,
   pick,
@@ -192,7 +193,7 @@ export function Gauge({ id, payload }: { id: string; payload: ChartPayload }) {
                     payload.title ? undefined : "text-gauge-mark",
                   )}
                 >
-                  <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />
+                  <Icon name={payload.icon} src={iconUrl(id)} />
                 </span>
               ) : null}
               {payload.title ? (

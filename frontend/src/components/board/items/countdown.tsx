@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { CountdownPayload } from "@/lib/schemas/board";
 import { Icon } from "@/components/board/icon";
+import { WidgetHeading } from "@/components/board/widget-heading";
 import { useClock } from "@/hooks/use-clock";
 import { useFitting } from "@/hooks/use-fitting";
+import { iconUrl } from "@/lib/api/media";
 import { at, ordered, phaseOf, remaining, ticking } from "@/lib/countdown";
 import { cn } from "@/lib/utils";
 
@@ -51,12 +53,7 @@ export function Countdown({
 
   return (
     <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl widget-edge p-[4cqmin] widget-text">
-      {payload.title ? (
-        <h3 className="flex shrink-0 items-center gap-2 text-node font-semibold tracking-tight">
-          <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />
-          {payload.title}
-        </h3>
-      ) : null}
+      <WidgetHeading id={id} icon={payload.icon} title={payload.title} />
       {rows.length > 0 ? (
         <ul ref={ref} className="min-h-0 flex-1 overflow-hidden">
           {rows.map((entry, i) => {
@@ -77,10 +74,7 @@ export function Countdown({
               >
                 {entry.icon ? (
                   <span className="mt-[0.15em]">
-                    <Icon
-                      name={entry.icon}
-                      src={`/api/v1/media/${id}/icon/${i}`}
-                    />
+                    <Icon name={entry.icon} src={iconUrl(id, i)} />
                   </span>
                 ) : null}
                 <div className="min-w-0 flex-1">

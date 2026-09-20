@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { TableColumn, TablePayload } from "@/lib/schemas/board";
 import { cn } from "@/lib/utils";
-import { Icon } from "@/components/board/icon";
+import { WidgetHeading } from "@/components/board/widget-heading";
 
 /** The grid both halves are laid on, in shares rather than measured widths.
  *
@@ -82,26 +82,13 @@ export function Table({ id, payload }: { id: string; payload: TablePayload }) {
     // short, that padding was costing a readable gap between the name and the
     // first number.
     <div className="flex size-full flex-col gap-2 rounded-xl widget-edge p-[2cqmin] widget-text">
-      {payload.title || payload.icon ? (
-        <h3
-          className={cn(
-            "shrink-0 text-node font-semibold tracking-tight",
-            payload.icon && "flex items-center gap-2",
-          )}
-          style={
-            payload.title_color ? { color: payload.title_color } : undefined
-          }
-        >
-          {payload.icon ? (
-            <Icon
-              name={payload.icon}
-              src={`/api/v1/media/${id}/icon`}
-              color={payload.icon_color ?? undefined}
-            />
-          ) : null}
-          {payload.title}
-        </h3>
-      ) : null}
+      <WidgetHeading
+        id={id}
+        icon={payload.icon}
+        iconColor={payload.icon_color}
+        title={payload.title}
+        titleColor={payload.title_color}
+      />
       {payload.rows.length > 0 ? (
         <>
           <Row

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { GanttBar, GanttPayload } from "@/lib/schemas/board";
-import { Icon } from "@/components/board/icon";
+import { WidgetHeading } from "@/components/board/widget-heading";
 import { useClock } from "@/hooks/use-clock";
 import { useFitting } from "@/hooks/use-fitting";
 import { carriesAlpha } from "@/lib/colour";
@@ -73,12 +73,12 @@ export function Gantt({
 
   return (
     <div className="flex size-full flex-col gap-1 overflow-hidden rounded-xl widget-edge p-[4cqmin] widget-text">
-      {payload.title || payload.icon ? (
-        <h3 className="flex shrink-0 items-center gap-2 truncate text-node font-semibold tracking-tight">
-          <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />
-          {payload.title}
-        </h3>
-      ) : null}
+      <WidgetHeading
+        id={id}
+        icon={payload.icon}
+        title={payload.title}
+        className="truncate"
+      />
       {rows.length > 0 ? (
         <div className="flex shrink-0 items-stretch gap-2 text-node-sm">
           {/* The same two columns the rows below use, so a time sits over the

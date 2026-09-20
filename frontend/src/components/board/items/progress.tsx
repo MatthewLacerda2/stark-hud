@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next";
 import type { ProgressPayload } from "@/lib/schemas/board";
 import { Icon } from "@/components/board/icon";
+import { iconUrl } from "@/lib/api/media";
 import { endLabel, filled } from "@/lib/progress";
 
 // The same translucent white the gauges draw with, filled and unfilled, so a
@@ -42,7 +43,7 @@ export function Progress({
   const far = endLabel(payload.max_label, payload.max, false, i18n.language);
   const icon = payload.icon ? (
     <span className="flex shrink-0 text-progress-mark">
-      <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />
+      <Icon name={payload.icon} src={iconUrl(id)} />
     </span>
   ) : null;
 

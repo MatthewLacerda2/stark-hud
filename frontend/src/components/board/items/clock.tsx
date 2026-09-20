@@ -1,10 +1,14 @@
-import { useEffect, useState } from "react";
+import { useClock } from "@/hooks/use-clock";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
 // Below this the widget has no room for a second line, so the date is dropped
 // rather than shrunk into something nobody can read from the sofa.
 const ROWS_FOR_DATE = 2;
+
+// The one widget that earns a tick per second: it prints seconds, so anything
+// slower would print the wrong one.
+const SECOND = 1000;
 
 /**
  * The time now, with the date under it.
@@ -18,12 +22,7 @@ const ROWS_FOR_DATE = 2;
  * glances at, so it can afford to look like an object rather than like text.
  */
 export function Clock({ rows }: { rows: number }) {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
+  const now = new Date(useClock(SECOND));
 
   const time = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
   const date = `${pad(now.getDate())}/${pad(now.getMonth() + 1)}/${String(
