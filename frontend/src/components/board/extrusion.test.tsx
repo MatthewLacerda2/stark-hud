@@ -1,6 +1,8 @@
 /**
  * A chart's marks copied back into its pane: there on a depth board, absent off
- * one, and following the chart when it changes.
+ * one, and following the chart when it changes — by whichever of the two routes
+ * the change takes. A mark that moves is swapped into the copies that are
+ * standing; anything else has the copies taken again whole.
  */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -58,5 +60,45 @@ describe("a chart's marks run back into the pane", () => {
     await render(3);
     const copy = host.querySelector(".extrude-copy");
     expect(copy?.querySelectorAll("[data-mark]")).toHaveLength(3);
+  });
+
+  it("follows a mark that only moves, without taking the copy again", async () => {
+    const host = document.createElement("div");
+    host.className = "depth-board";
+    document.body.append(host);
+    const root = createRoot(host);
+    const paint = async (filled: string) => {
+      await act(async () => {
+        root.render(
+          <Extrusion>
+            {/* The words a widget draws beside its mark, which a copy hides and
+                which do not change here — and the mark itself, which does. That
+                is the shape of a gauge moving to a new reading. */}
+            <div data-scaffold>
+              <span>RAM</span>
+              <div data-extrude-mark>
+                <div data-fill style={{ width: filled }} />
+              </div>
+            </div>
+          </Extrusion>,
+        );
+      });
+      await act(async () => {
+        await new Promise((done) => requestAnimationFrame(() => done(null)));
+      });
+    };
+
+    await paint("10%");
+    const scaffold = host.querySelector(".extrude-copy [data-scaffold]");
+    await paint("70%");
+
+    const copies = host.querySelectorAll(".extrude-copy");
+    expect(copies.length).toBeGreaterThan(1);
+    for (const copy of copies)
+      expect(copy.querySelector<HTMLElement>("[data-fill]")?.style.width).toBe(
+        "70%",
+      );
+    // The same scaffold element, so the copy was not taken again around it.
+    expect(host.querySelector(".extrude-copy [data-scaffold]")).toBe(scaffold);
   });
 });
