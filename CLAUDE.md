@@ -153,6 +153,7 @@ exists while somebody remembers it, which is not a gate but a habit.
 ```
 make hooks      # once per clone. Points git at .githooks.
 make back-install  # once per clone too. Builds the venv at the project's Python.
+make front-install # once per clone as well. node_modules for the frontend gates.
 make gate       # fast: every linter, plus py-version. What pre-commit runs. ~9s
 make check      # everything. What pre-push runs. ~45s
 make backend    # py-version + back-lint + back-types + back-test + back-build
@@ -168,6 +169,26 @@ interpreter the gates are actually running on — a venv is not in git, so after
 a version bump it is whatever it was when it was made, and a gate quietly
 running on last year's Python describes a program nobody runs. If it tells you
 to, run `make back-install`.
+
+**A worktree is not a fresh clone, and does not pay like one.** `make
+back-install` and `make front-install` are the two commands a *clone* needs; a
+worktree needs neither, because both gates find what the main checkout already
+has. `$(PYTHON)` falls back to the main checkout's venv, and `front-install`
+borrows its `node_modules` outright whenever `bun.lock` and `package.json` are
+byte-identical to it — 20 ms and nothing on disk, instead of 356 MB of tmpfs per
+worktree. When they stop being identical it installs its own, so a branch that
+changes a dependency is never tested against somebody else's. Every frontend
+gate runs `front-install` first, so forgetting is not a failure mode.
+
+**A gate says what load it ran at, and heavy ones queue.** `make check`,
+`backend`, `agent` and `frontend` take a `flock` under `/tmp` — the machine is
+the contended resource, not the checkout — so two of them run one after another
+and a second arrival says it is waiting. Every run prints the load average at
+its start and its finish, because a result is evidence only if you know what it
+was taken under: a red test at load 12 is a re-run, not a diagnosis. `make gate`
+stays outside the lock deliberately; it is linters only, none of them has a
+clock, so none of them can go red for being busy, and `pre-commit` must not wait
+on somebody else's test suite.
 
 `back-build` builds the container, because that is what the backend ships as. It
 used to be `python -c "import main"`, which four test modules already do — a
