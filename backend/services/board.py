@@ -21,7 +21,7 @@ from schemas.board import (
     ItemUpdate,
     Placement,
 )
-from services import events, groups, pages
+from services import events, groups, pages, uploads
 from services.placement import (
     cells,
     default_size,
@@ -290,6 +290,10 @@ async def remove(item: ItemRead) -> None:
         return
     repo.remove(item.id)
     await events.removed(item.id)
+    # A queue that has just stopped existing is the moment an uploaded file may
+    # have become disk used for nothing. Only files inside the upload directory
+    # are ever candidates — `services.uploads.sweep` says why, and why it waits.
+    uploads.sweep()
 
 
 async def clear() -> int:
@@ -300,6 +304,7 @@ async def clear() -> int:
     """
     removed = repo.clear()
     await events.cleared(removed)
+    uploads.sweep()
     return removed
 
 

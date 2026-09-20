@@ -48,12 +48,19 @@ services:
       # next `up --build`, and a 404 for every URL the browser was already
       # handed. Only the newest few are kept.
       SPEECH_DIR: /data/speech
+      # A file somebody sent from a browser. Beside the spoken lines and for the
+      # same reason: /data is the one volume this container can write to, so a
+      # path left at its relative default would put a four-gigabyte film inside
+      # the container's own filesystem — gone on the next `up --build`, and
+      # taking the widget that played it with it. This is also the only
+      # directory on the host the board ever deletes from.
+      UPLOAD_DIR: /data/uploads
       # The board itself, kept across restarts. Plain JSON under a name of our
       # own, so it can be backed up, edited or swapped for another board.
       STATE_FILE: /data/board.hud
     volumes:
-      # Read-write, unlike the rest: the board file and the spoken lines are
-      # what the backend owns. The same directory is where this instance's own
+      # Read-write, unlike the rest: the board file, the spoken lines and the
+      # files a browser uploads are what the backend owns. The same directory is where this instance's own
       # data lives — sources.toml and the scripts it names — which the agent
       # reads on the host and the backend never looks at.
       - ./state:/data
