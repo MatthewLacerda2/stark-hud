@@ -49,7 +49,11 @@ function thing(title: string, startsIn: number, lasts?: number): Entry {
   };
 }
 
-async function show(items: Entry[], title: string | null = null) {
+async function show(
+  items: Entry[],
+  title: string | null = null,
+  icon: string | null = null,
+) {
   const host = document.createElement("div");
   document.body.appendChild(host);
   const root = createRoot(host);
@@ -58,7 +62,7 @@ async function show(items: Entry[], title: string | null = null) {
     root.render(
       <Countdown
         id="w1"
-        payload={{ kind: "countdown", title, icon: null, items, empty: null }}
+        payload={{ kind: "countdown", title, icon, items, empty: null }}
       />,
     );
   });
@@ -68,6 +72,7 @@ async function show(items: Entry[], title: string | null = null) {
       [...host.querySelectorAll("li")].map(
         (li) => li.querySelector("p")?.textContent ?? "",
       ),
+    heading: () => host.querySelector("h3"),
     text: () => host.textContent ?? "",
   };
 }
@@ -144,5 +149,44 @@ describe("a widget too short for its rows", () => {
     for (const row of rows()) {
       expect(row.className).not.toMatch(/\bhidden\b/);
     }
+  });
+});
+
+/**
+ * The heading is `WidgetHeading`, shared with five other widgets, so the rule
+ * about when a widget introduces itself is asserted once here rather than not
+ * at all. An icon with no title used to draw nothing: the gate outside the
+ * heading asked for a title while the markup inside it rendered the icon
+ * unconditionally, so an icon-only countdown silently dropped its icon.
+ */
+describe("how a countdown introduces itself", () => {
+  it("draws no heading when it has neither an icon nor a title", async () => {
+    const { heading } = await show([thing("a", HOUR)]);
+
+    expect(heading()).toBeNull();
+  });
+
+  it("draws its title", async () => {
+    const { heading } = await show([thing("a", HOUR)], "Tonight");
+
+    expect(heading()?.textContent).toBe("Tonight");
+  });
+
+  it("draws an icon it was given even with no title", async () => {
+    const { heading } = await show([thing("a", HOUR)], null, "bell");
+
+    expect(heading()?.querySelector("svg")).not.toBeNull();
+  });
+
+  it("asks for the icon by the widget's id, never by a path", async () => {
+    const { heading } = await show(
+      [thing("a", HOUR)],
+      "Tonight",
+      "/home/me/face.png",
+    );
+
+    expect(heading()?.querySelector("img")?.getAttribute("src")).toBe(
+      "/api/v1/media/w1/icon",
+    );
   });
 });

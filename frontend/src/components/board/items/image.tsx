@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Maximize } from "lucide-react";
 import type { ImagePayload } from "@/lib/schemas/board";
 import { Missing } from "@/components/board/items/missing";
+import { mediaUrl } from "@/lib/api/media";
 import { Button } from "@/components/ui/button";
 import { WHOLE, wheelFactor, zoomAt, type View } from "@/lib/zoom";
 import { cn } from "@/lib/utils";
@@ -94,7 +95,7 @@ export function Image({ id, payload }: { id: string; payload: ImagePayload }) {
       onDoubleClick={() => setView(WHOLE)}
     >
       <img
-        src={`/api/v1/media/${id}`}
+        src={mediaUrl(id)}
         alt={payload.alt ?? ""}
         draggable={false}
         onError={() => setFailed(true)}

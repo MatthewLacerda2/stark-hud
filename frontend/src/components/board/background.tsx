@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { backgroundUrl } from "@/lib/api/media";
 import { cn } from "@/lib/utils";
 import type { Background as BackgroundType } from "@/lib/schemas/board";
 
@@ -53,7 +54,7 @@ export function Background({
     <video
       ref={element}
       key={background.path}
-      src="/api/v1/media/background"
+      src={backgroundUrl()}
       autoPlay
       loop
       muted

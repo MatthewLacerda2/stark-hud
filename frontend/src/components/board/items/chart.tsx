@@ -22,6 +22,7 @@ import { ChartContainer } from "@/components/ui/chart";
 import { Card, CardContent } from "@/components/ui/card";
 import { Gauge } from "@/components/board/items/chart-gauge";
 import { Icon } from "@/components/board/icon";
+import { iconUrl } from "@/lib/api/media";
 import {
   crossed,
   pick,
@@ -99,6 +100,11 @@ const POLAR_FILL = { top: 0, right: 0, bottom: 0, left: 0 };
  * all for the slimmest a chart gets, an icon alone for the CPU strip, a title
  * alone where the header band used to be, or the two of them stacked as one
  * thing. That is the rule the gauge already keeps for its middle.
+ *
+ * Not `WidgetHeading`, on purpose. That is a row over the widget with a title
+ * beside an icon; this is a stack in the corner over the plot, at the chart's
+ * own mark size. Sharing them would mean one of the two changing shape, and a
+ * heading that quietly restyles a chart is worse than two small headings.
  */
 function Corner({ id, payload }: { id: string; payload: ChartPayload }) {
   if (!payload.icon && !payload.title) return null;
@@ -106,7 +112,7 @@ function Corner({ id, payload }: { id: string; payload: ChartPayload }) {
     <div className="pointer-events-none absolute top-0 left-0 flex max-w-[70%] flex-col items-start gap-[0.25em] text-chart-mark widget-text">
       {payload.icon ? (
         <span className="flex">
-          <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />
+          <Icon name={payload.icon} src={iconUrl(id)} />
         </span>
       ) : null}
       {payload.title ? (

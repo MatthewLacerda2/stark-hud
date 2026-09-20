@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import type { InboxPayload, Notification } from "@/lib/schemas/board";
 import { EntryRow } from "@/components/board/entry-row";
 import { Icon } from "@/components/board/icon";
+import { notificationIconUrl } from "@/lib/api/media";
 import { useClock } from "@/hooks/use-clock";
 
 const LEVEL_TINT: Record<Notification["level"], string> = {
@@ -66,7 +67,7 @@ export function Inbox({
               icon={
                 <Icon
                   name={notification.icon}
-                  src={`/api/v1/notifications/${notification.id}/icon`}
+                  src={notificationIconUrl(notification.id)}
                   fallback={LEVEL_GLYPH[notification.level]}
                   className={LEVEL_TINT[notification.level]}
                 />

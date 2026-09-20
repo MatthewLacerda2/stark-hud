@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import type { FlowLink, FlowNode, FlowPayload } from "@/lib/schemas/board";
-import { Icon } from "@/components/board/icon";
+import { WidgetHeading } from "@/components/board/widget-heading";
 import { useContainerSize } from "@/hooks/use-container-size";
 import { useFitText } from "@/hooks/use-fit-text";
 import { carriesAlpha } from "@/lib/colour";
@@ -102,12 +102,12 @@ export function Flow({
 
   return (
     <div ref={ref} className="relative size-full overflow-hidden widget-text">
-      {payload.title || payload.icon ? (
-        <h3 className="absolute inset-x-0 top-0 z-10 flex items-center gap-2 truncate text-node font-semibold tracking-tight">
-          <Icon name={payload.icon} src={`/api/v1/media/${id}/icon`} />
-          {payload.title}
-        </h3>
-      ) : null}
+      <WidgetHeading
+        id={id}
+        icon={payload.icon}
+        title={payload.title}
+        className="absolute inset-x-0 top-0 z-10 truncate"
+      />
       {payload.nodes.map((node) => (
         <Node
           key={node.id}

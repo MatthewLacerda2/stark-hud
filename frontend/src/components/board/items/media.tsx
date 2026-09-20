@@ -9,6 +9,7 @@ import { useTranslation } from "react-i18next";
 import { Film, Maximize, Minimize, Music } from "lucide-react";
 import type { MediaPayload, Playback } from "@/lib/schemas/board";
 import { reportPlayback } from "@/lib/api/board";
+import { trackUrl } from "@/lib/api/media";
 import { YouTubeTrack } from "@/components/board/items/youtube";
 import { APART_SECONDS, TICK_SECONDS } from "@/lib/playback";
 import { DUCKED, useDucked } from "@/lib/ducking";
@@ -33,26 +34,6 @@ const PLAYER_CELLS = 4;
  * this, asking for a bigger picture would restart the track.
  */
 const POSITIONS = new Map<string, { index: number; seconds: number }>();
-
-/**
- * Where the browser fetches a track's bytes, or the picture beside it.
- *
- * The stamp on the end is the whole reason this is a function. A track is
- * addressed by the widget's id and its place in the queue, so replacing a queue
- * leaves index 0 sitting behind the identical URL over entirely different bytes
- * — and the browser, quite correctly, goes on playing the file it already has,
- * right down to reporting the old one's duration. A URL that changes when the
- * file changes is the one thing a cache cannot argue with.
- */
-function trackUrl(
-  id: string,
-  index: number,
-  stamp: string | null,
-  part: "" | "/art" = "",
-): string {
-  const url = `/api/v1/media/${id}/track/${index}${part}`;
-  return stamp ? `${url}?v=${stamp}` : url;
-}
 
 /**
  * Why a media element gave up, in the browser's own vocabulary.

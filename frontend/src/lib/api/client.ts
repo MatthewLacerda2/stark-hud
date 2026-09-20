@@ -12,6 +12,20 @@
 const API_BASE =
   (import.meta.env.VITE_API_URL as string | undefined) ?? "/api/v1";
 
+/**
+ * Where a path on the API lives.
+ *
+ * `request()` uses it, and so does everything the browser fetches by putting a
+ * URL in an attribute rather than by calling `fetch` — a picture's `src`, a
+ * track's bytes, the background video. Those are still API calls; they are just
+ * made by the element instead of by us, which is exactly how fourteen of them
+ * came to spell `/api/v1` themselves and stayed behind when `VITE_API_URL`
+ * moved the JSON. See `lib/api/media.ts` for the ones that do.
+ */
+export function apiUrl(path: string): string {
+  return `${API_BASE}${path}`;
+}
+
 /** A non-2xx response, carrying the HTTP status and the backend's detail. */
 export class ApiError extends Error {
   status: number;
@@ -36,7 +50,7 @@ export async function request<T>(
   const headers: Record<string, string> = {};
   if (body !== undefined) headers["Content-Type"] = "application/json";
 
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(apiUrl(path), {
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
