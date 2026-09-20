@@ -152,12 +152,28 @@ exists while somebody remembers it, which is not a gate but a habit.
 
 ```
 make hooks      # once per clone. Points git at .githooks.
-make gate       # fast: every linter. What pre-commit runs. ~9s
+make back-install  # once per clone too. Builds the venv at the project's Python.
+make gate       # fast: every linter, plus py-version. What pre-commit runs. ~9s
 make check      # everything. What pre-push runs. ~45s
-make backend    # back-lint + back-build + back-test
-make agent      # agent-lint — ruff and house_lint over tools/
-make frontend   # front-lint + front-build + front-theme + front-test
+make backend    # py-version + back-lint + back-types + back-test + back-build
+make agent      # agent-lint + agent-types over tools/
+make frontend   # front-lint + front-dead + front-build + front-theme + front-test
 ```
+
+**The project runs one Python, and the `Makefile` names it once.**
+`PYTHON_VERSION` at the top is the only place the version is written; ruff's
+target and the container's base image cannot read a Makefile, so `py-version`
+checks them against it and says which one was left behind. It also checks the
+interpreter the gates are actually running on — a venv is not in git, so after
+a version bump it is whatever it was when it was made, and a gate quietly
+running on last year's Python describes a program nobody runs. If it tells you
+to, run `make back-install`.
+
+`back-build` builds the container, because that is what the backend ships as. It
+used to be `python -c "import main"`, which four test modules already do — a
+gate that proved nothing and was believed because of its name. It is cached, so
+it costs a second or two, and it is the one gate that needs a docker daemon,
+which is why `make gate` does not call it.
 
 **`make hooks` is the first thing to run in a fresh clone.** Until it has, the
 hooks are files nobody calls: `core.hooksPath` is not set by cloning, and a

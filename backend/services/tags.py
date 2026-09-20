@@ -54,7 +54,7 @@ def read(path: str) -> Tags:
     """
     try:
         found = mutagen.File(path, easy=True)
-    except (mutagen.MutagenError, OSError, ValueError):
+    except mutagen.MutagenError, OSError, ValueError:
         return Tags()
     if found is None or found.tags is None:
         return Tags()

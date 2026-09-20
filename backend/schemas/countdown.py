@@ -37,7 +37,7 @@ class Countdown(BaseModel):
     end: datetime | None = None
 
     @model_validator(mode="after")
-    def _ends_after_it_starts(self) -> "Countdown":
+    def _ends_after_it_starts(self) -> Countdown:
         """Refuse a pair of instants that do not make a span, in a sentence.
 
         Here rather than in the tool that writes it, because a countdown is

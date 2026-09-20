@@ -1,5 +1,5 @@
 [tool.ruff]
-target-version = "py312"
+target-version = "py314"
 line-length = 100
 
 [tool.ruff.lint]
@@ -39,15 +39,29 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.mypy]
-python_version = "3.12"
+# No `python_version`: mypy then checks against the interpreter it is running
+# under, which is the venv the Makefile built at $(PYTHON_VERSION). Pinning it
+# here is how a type check comes to describe a Python nobody runs.
+#
 # The package root is `backend/`, which is not itself a package — without this,
 # mypy finds `core.hub` and `backend.core.hub` and refuses to check anything.
 explicit_package_bases = true
 mypy_path = "."
+# The backend only. `tools/` is checked by `make agent-types`, which names it on
+# the command line — it is not part of this package and never will be.
 files = ["api", "core", "repositories", "schemas", "services", "hud_mcp", "lint", "main.py"]
 # Third-party packages that ship no stubs. Narrow on purpose: a blanket
 # ignore_missing_imports hides our own typos as readily as somebody else's
 # missing types.
 [[tool.mypy.overrides]]
 module = ["mcp.*", "mutagen.*"]
+ignore_missing_imports = true
+
+# What `tools/` imports and this venv deliberately does not have. Pillow is a
+# dependency of `letterbox.py` alone, which is run with whichever python has it;
+# `bpy` and `mathutils` exist only inside Blender. `convert` is ours, but
+# `mesh/samples.py` reaches it by putting its own directory on sys.path at
+# import time, which is not a thing a type checker can follow.
+[[tool.mypy.overrides]]
+module = ["PIL", "PIL.*", "bpy", "bpy.*", "mathutils", "convert"]
 ignore_missing_imports = true

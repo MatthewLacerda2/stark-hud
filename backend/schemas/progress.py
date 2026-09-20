@@ -56,7 +56,7 @@ class ProgressPayload(BaseModel):
     unfilled: Colour | None = None
 
     @model_validator(mode="after")
-    def _ends_in_order(self) -> "ProgressPayload":
+    def _ends_in_order(self) -> ProgressPayload:
         """Refuse a bar whose far end is not past its near one.
 
         A value outside the two ends is fine, and is drawn empty or full: a run

@@ -7,6 +7,12 @@ __pycache__/
 .venv/
 .ruff_cache/
 .pytest_cache/
+# The one that was missing, and the only one big enough to notice: a warm mypy
+# cache is well over a hundred megabytes, and every one of them was being sent
+# to the daemon and baked into the image. Now that `back-build` builds this on
+# every `make check`, that was six seconds of a gate spent copying a type
+# checker's notes.
+.mypy_cache/
 
 # Ignore environment files but keep the committed example.
 .env

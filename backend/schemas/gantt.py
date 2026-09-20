@@ -41,7 +41,7 @@ class GanttBar(BaseModel):
     color: Colour | None = None
 
     @model_validator(mode="after")
-    def _has_width(self) -> "GanttBar":
+    def _has_width(self) -> GanttBar:
         """Refuse a bar that could not be drawn, in a sentence naming which one.
 
         The rule itself is shared with the countdown — see ``schemas.spans``.
