@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { dragged, same, type Grip, type Rect } from "@/lib/drag";
+import { dragged, landed, same, type Grip, type Rect } from "@/lib/drag";
 
 /** A gesture in flight: what was taken hold of, from where, and where it is now. */
 type Hold = {
@@ -9,7 +9,12 @@ type Hold = {
   from: { x: number; y: number };
   start: Rect;
   rect: Rect;
+  /** Whether `rect` is somewhere the board could actually take it. */
+  fits: boolean;
 };
+
+/** A widget as a gesture sees one: four numbers and which widget they belong to. */
+type Seat = Rect & { id: string };
 
 /**
  * Dragging and resizing a widget with a pointer.
@@ -25,11 +30,29 @@ type Hold = {
  * refused and the widget goes back where it was. That snap *is* the refusal,
  * shown rather than reported.
  *
- * Holding Alt turns the snapping off, so a widget can be put anywhere at all.
+ * Holding Alt turns the snapping off, so a widget can be put anywhere at all —
+ * anywhere legal, that is. The magnet is a convenience and can be waved away;
+ * not overlapping is not.
+ *
+ * A widget held over a gap attaches to it rather than waiting to be refused:
+ * `landed` in `lib/drag.ts` aligns it to what it is beside, slides it off
+ * anything it clipped and shrinks it a little if the gap is nearly big enough,
+ * and it does all of that while the pointer is still down. So letting go
+ * changes nothing, which is what makes it a magnet rather than a jump. Nothing
+ * is drawn for any of it: the widget is its own preview, and the television has
+ * no pointer to draw for anyway.
+ *
+ * A drop with nowhere to go is the one case left, and it is the refusal: the
+ * widget follows the pointer over whatever it was put on and springs back when
+ * released. Nothing is sent, because a request the board already knows is an
+ * overlap is not a question worth asking — the server is still the judge of
+ * every rectangle that is asked about, and it still refuses.
  */
 export function useWidgetDrag(
   board: { cols: number; rows: number; width: number; height: number },
   commit: (id: string, rect: Rect) => Promise<unknown>,
+  /** Every widget on the board, the held one included: what it can bump into. */
+  seats: Seat[],
 ): {
   /** Start a gesture. Pass the widget's current rectangle and what was grabbed. */
   grab: (event: React.PointerEvent, id: string, rect: Rect, grip: Grip) => void;
@@ -43,6 +66,13 @@ export function useWidgetDrag(
   const hold = useRef<Hold | null>(null);
   const [shown, setShown] = useState<{ id: string; rect: Rect } | null>(null);
   const [holding, setHolding] = useState<string | null>(null);
+  // The board changes under the pointer — a panel refreshes, a session moves
+  // something — and the gesture wants the latest of it without re-subscribing a
+  // pointer handler every time a clock ticks.
+  const seated = useRef(seats);
+  useEffect(() => {
+    seated.current = seats;
+  }, [seats]);
 
   const grab = useCallback(
     (event: React.PointerEvent, id: string, rect: Rect, grip: Grip) => {
@@ -62,6 +92,7 @@ export function useWidgetDrag(
         from: { x: event.clientX, y: event.clientY },
         start: rect,
         rect,
+        fits: true,
       };
       setShown({ id, rect });
       setHolding(id);
@@ -77,7 +108,8 @@ export function useWidgetDrag(
     const onMove = (event: PointerEvent) => {
       const held = hold.current;
       if (!held || cell.w <= 0 || cell.h <= 0) return;
-      held.rect = dragged(
+      const snap = !event.altKey;
+      const wanted = dragged(
         held.start,
         held.grip,
         {
@@ -85,8 +117,22 @@ export function useWidgetDrag(
           y: (event.clientY - held.from.y) / cell.h,
         },
         board,
-        !event.altKey,
+        snap,
       );
+      // Moving only. A resize is somebody working on one widget rather than
+      // putting it somewhere, and an edge that shrank itself out of the way
+      // would be fighting the hand that is dragging it.
+      const rest =
+        held.grip === "move"
+          ? landed(
+              wanted,
+              seated.current.filter((seat) => seat.id !== held.id),
+              board,
+              snap,
+            )
+          : wanted;
+      held.rect = rest ?? wanted;
+      held.fits = rest !== null;
       setShown({ id: held.id, rect: held.rect });
     };
 
@@ -95,7 +141,7 @@ export function useWidgetDrag(
       hold.current = null;
       setHolding(null);
       if (!held) return;
-      if (same(held.rect, held.start)) {
+      if (!held.fits || same(held.rect, held.start)) {
         setShown(null);
         return;
       }

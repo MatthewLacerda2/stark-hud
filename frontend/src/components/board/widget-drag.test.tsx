@@ -80,6 +80,11 @@ function note(): Item {
   };
 }
 
+/** A second widget, three columns to the right of the first with a gap between. */
+function neighbour(): Item {
+  return { ...note(), id: "b", x: 13, y: 2, w: 8, h: 6 };
+}
+
 /** jsdom has no PointerEvent; React only cares about the name and the coords. */
 function pointer(
   type: string,
@@ -96,7 +101,8 @@ function pointer(
   });
 }
 
-async function board() {
+async function board(others: Item[] = []) {
+  const items = [note(), ...others];
   const host = document.createElement("div");
   document.body.appendChild(host);
   const root = createRoot(host);
@@ -104,8 +110,8 @@ async function board() {
   await act(async () => {
     root.render(
       <BoardGrid
-        items={[note()]}
-        everything={[note()]}
+        items={items}
+        everything={items}
         notifications={[]}
         wakes={{}}
         reloads={{}}
@@ -203,5 +209,34 @@ describe("a pointer on the widget itself", () => {
     await drag(body(), 66, 0, true);
 
     expect(patched()?.body).toEqual({ x: 5.1, y: 2, w: 8, h: 6 });
+  });
+});
+
+/**
+ * The other half of issue #154, which `drag.test.ts` cannot see: that the
+ * gesture is actually told what is on the board. The arithmetic was right and
+ * unused for as long as nothing handed it the neighbours.
+ */
+describe("a widget dropped onto another one", () => {
+  it("comes to rest against it rather than springing back", async () => {
+    // Two columns east puts a column of this widget inside the neighbour that
+    // starts at 13. It backs out by that column and stops flush against it —
+    // 5, not the 6 the pointer asked for.
+    const { drag, body, patched } = await board([neighbour()]);
+
+    await drag(body(), 120, 0);
+
+    expect(patched()?.body).toEqual({ x: 5, y: 2, w: 8, h: 6 });
+  });
+
+  it("is not sent at all when it was put squarely on top", async () => {
+    // Eight columns east is most of this widget inside the other one. That is
+    // a refusal, and the board does not ask a question it knows the answer to:
+    // the widget springs back and nothing reaches the server.
+    const { drag, body, patched } = await board([neighbour()]);
+
+    await drag(body(), 480, 0);
+
+    expect(patched()).toBeUndefined();
   });
 });

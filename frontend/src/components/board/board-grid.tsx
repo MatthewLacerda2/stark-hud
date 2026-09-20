@@ -162,9 +162,13 @@ export function BoardGrid({
     (id: string, rect: Rect) => updateItem(id, rect).catch(() => {}),
     [],
   );
+  // `items` is already the page that is showing, less whatever is folded away
+  // inside a group on it — so it is exactly what a dragged widget can bump
+  // into, and the gesture attaches to the gaps between them.
   const { grab, placed, holding } = useWidgetDrag(
     { cols, rows, width, height },
     persist,
+    items,
   );
   // Removal is the one change with nothing left to animate by the time the
   // board hears about it, so what has just gone is held for as long as it takes
