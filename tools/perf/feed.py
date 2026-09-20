@@ -21,6 +21,7 @@ from __future__ import annotations
 import functools
 import http.server
 import json
+import sys
 import threading
 from pathlib import Path
 from typing import Any
@@ -80,6 +81,20 @@ class Feed:
     def hold(self) -> None:
         """Stop the readings. The board settles, and its picture can be compared."""
         self._held.set()
+
+    def push(self, items: list[dict[str, Any]]) -> None:
+        """Write these exact widgets, whatever this feed's own board was showing.
+
+        Two arms hold and resume at different moments, so by the end of a sweep
+        each one has taken a different number of readings and is drawing
+        different numbers. Comparing those pictures compares the data. So the
+        last thing before a comparison is one identical reading, sent to
+        everybody.
+        """
+        for item in items:
+            message = {"event": "item.updated", "data": item}
+            for conn in list(self._clients):
+                self.send(conn, message)
 
     def resume(self) -> None:
         self._held.clear()
@@ -175,6 +190,22 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
         return resolved if Path(resolved).exists() else str(Path(self.directory) / "index.html")
 
 
+class _Http(http.server.ThreadingHTTPServer):
+    """A server that does not print a stack trace when a browser changes its mind.
+
+    Chromium cancels requests — a video it decided not to fetch, a page it
+    navigated away from — and the default handler prints the resulting broken
+    pipe as an unhandled exception. In the middle of a measurement report that
+    reads like the rig failed.
+    """
+
+    daemon_threads = True
+
+    def handle_error(self, request: Any, client_address: Any) -> None:
+        if not isinstance(sys.exc_info()[1], ConnectionError):
+            super().handle_error(request, client_address)
+
+
 class Server:
     """A built bundle, served with a live board behind it, on a port of its own."""
 
@@ -185,8 +216,7 @@ class Server:
         # the class is quietly overwritten per request and the server goes on
         # serving the working directory, which on this project is a git checkout.
         handler = functools.partial(bound, directory=str(dist))
-        self._http = http.server.ThreadingHTTPServer(("127.0.0.1", port), handler)
-        self._http.daemon_threads = True
+        self._http = _Http(("127.0.0.1", port), handler)
         self.port = self._http.server_address[1]
         self._threads: list[threading.Thread] = []
 

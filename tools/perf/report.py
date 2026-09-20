@@ -22,9 +22,16 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Landmark:
+    """One figure worth remembering, with what it was a figure of.
+
+    `other` is the GPU column where a GPU figure means anything, and the frame
+    rate where it does not — which is every headless row, and every row taken
+    on a day the card was busy with something else.
+    """
+
     what: str
     cpu: str
-    gpu: str
+    other: str
 
 
 # On the television, over the kiosk on port 9222, 12 s samples. GPU from
@@ -50,6 +57,27 @@ HEADLESS = [
     Landmark("with no movement at all", "8 - 11 %", "not reported"),
 ]
 
+# What this rig read on the day it was written, on its own fixture board, so
+# that a run next year has something it is actually comparable to. The two
+# blocks above were taken on other boards and are shape, not scale.
+#
+# Headless, two arms interleaved, four rounds of 20 s, load around 6 on 8 cores.
+FIXTURE = [
+    Landmark("the fixture board, before #133 (868314c)", "168 - 181 %", "31 fps"),
+    Landmark("the fixture board, master of 2026-09-20", "140 - 153 %", "51 fps"),
+    Landmark("...and with the pie and bar animations off", "55 - 60 %", "56 fps"),
+]
+
+# The television, re-measured 2026-09-20 after that day's deploy, 12 s samples.
+# Lower than 2026-09-19 throughout, because #133 had landed and the board had
+# changed; the shape is the same and the split still adds up.
+TELEVISION_TODAY = [
+    Landmark("the board as it is", "104 %", "unreadable"),
+    Landmark("background video paused, widgets drawn", "54 %", "unreadable"),
+    Landmark("widgets hidden, video playing", "56 %", "unreadable"),
+    Landmark("both stopped - the floor", "1.5 %", "unreadable"),
+]
+
 NOTES = [
     "The background video is about 70 % of a core on its own, decoded in",
     "software: this machine has no libva-nvidia-driver, so 1080p30 costs a core's",
@@ -57,18 +85,32 @@ NOTES = [
     "The floor - nothing drawn, video paused - is 3.3 % of a core and no GPU.",
     "An earlier run put that floor at 67 %. It was wrong: the video had been",
     "hidden with display:none, and a hidden video goes on decoding.",
+    "",
+    "On 2026-09-20 no GPU figure could be taken at all: a training run held the",
+    "card at 77 % through every state, including the one with nothing drawn. A",
+    "gpu column that reads the same in all four rows is the card's, not the",
+    "board's, and the rig prints who else is on it so you can see that coming.",
+    "",
+    "The pie and the bar still take recharts' 1500 ms default animation - the",
+    "gauge and the radar were given `SWEEP_MS` in #133 and these two were not.",
+    "On the fixture board that is about ninety points of a core, and the settled",
+    "picture is identical mark for mark. Measured, not guessed; see #142/#143.",
 ]
 
 
 def baseline_lines() -> list[str]:
     """The baseline, printed against every run so a number lands somewhere."""
     out = ["baseline, 2026-09-19", "", "  on the television (board of that day, video on):"]
-    out += [f"    {m.what:<42} {m.cpu:>9} cpu  {m.gpu:>9} gpu" for m in TELEVISION]
+    out += [f"    {m.what:<42} {m.cpu:>9} cpu  {m.other:>9} gpu" for m in TELEVISION]
     after = TELEVISION_AFTER
-    out.append(f"    {after.what:<42} {after.cpu:>9} cpu  {after.gpu:>9} gpu")
+    out.append(f"    {after.what:<42} {after.cpu:>9} cpu  {after.other:>9} gpu")
+    out += ["", "  and again on 2026-09-20, after that day's deploy:"]
+    out += [f"    {m.what:<42} {m.cpu:>9} cpu  {m.other:>11} gpu" for m in TELEVISION_TODAY]
     out += ["", "  headless, four charts at the real cadence:"]
-    out += [f"    {m.what:<42} {m.cpu:>9} cpu  {m.gpu:>9} gpu" for m in HEADLESS]
-    out += [""] + [f"  {n}" for n in NOTES]
+    out += [f"    {m.what:<42} {m.cpu:>9} cpu  {m.other:>9} gpu" for m in HEADLESS]
+    out += ["", "  this rig's own fixture board, 2026-09-20 - the comparable one:"]
+    out += [f"    {m.what:<42} {m.cpu:>11} cpu  {m.other:>7}" for m in FIXTURE]
+    out += ["", *(f"  {n}" if n else "" for n in NOTES)]
     return out
 
 

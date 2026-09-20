@@ -149,10 +149,23 @@ def run(arms: list[Arm], rounds: int, seconds: float) -> None:
             )
 
 
+# How many readings the board has taken when its picture is compared. Any fixed
+# number does; it is fixed so that two runs compare the same drawing.
+PICTURE_TICK = 3
+
+
 def picture(arms: list[Arm]) -> list[str]:
-    """Hold every arm still and ask whether they are all drawing the same board."""
+    """Hold every arm still, give them all the same reading, and compare what they drew."""
+    settled = Board()
+    for _ in range(PICTURE_TICK):
+        settled.advance()
     for arm in arms:
         arm.hold()
+    # A tick already on its way out cannot be recalled, so the hold is given a
+    # moment to take before the one reading everybody is judged on is sent.
+    time.sleep(0.5)
+    for arm in arms:
+        arm.server.feed.push(settled.panels())
     quiet = True
     dumps: list[tuple[str, list[surfaces.Surface]]] = []
     for arm in arms:

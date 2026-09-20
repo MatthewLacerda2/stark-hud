@@ -39,7 +39,12 @@ BASE_PORT = 9411
 def parse(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="perf", description=__doc__)
     parser.add_argument("--repo", type=Path, default=Path.cwd(), help="the checkout to measure")
-    parser.add_argument("--ref", default=None, help="a git ref to measure this tree against")
+    parser.add_argument(
+        "--ref",
+        action="append",
+        default=None,
+        help="a git ref to measure this tree against; give it twice for two of them",
+    )
     parser.add_argument("--rounds", type=int, default=DEFAULT_ROUNDS)
     parser.add_argument("--seconds", type=float, default=DEFAULT_SECONDS)
     parser.add_argument("--live", action="store_true", help="measure the running kiosk instead")

@@ -72,6 +72,19 @@ def test_a_generated_clip_path_id_is_not_a_difference_in_the_picture():
     assert surfaces.compare([before], [after]) == []
 
 
+def test_a_react_id_is_not_a_difference_in_the_picture_either():
+    """`useId` numbers a component by where it sits in the render tree.
+
+    Move anything above a chart and every one of them changes, and recharts
+    writes them into the markup as `data-recharts-item-id`. They name nothing
+    that is drawn, and left alone they report every chart on the board as
+    changed by a refactor that changed no chart at all.
+    """
+    before = surfaces.Surface(at=(0, 0, 1, 1), svg='<path data-recharts-item-id="pie-_r_e_"/>')
+    after = surfaces.Surface(at=(0, 0, 1, 1), svg='<path data-recharts-item-id="pie-_r_d_"/>')
+    assert surfaces.compare([before], [after]) == []
+
+
 def test_a_mark_that_moved_is_reported_with_where_it_went():
     before = surfaces.Surface(at=(0, 0, 10, 10), svg="<svg/>")
     after = surfaces.Surface(at=(0, 4, 10, 10), svg="<svg/>")
@@ -87,6 +100,19 @@ def test_a_changed_path_is_reported_as_a_redraw():
     before = surfaces.Surface(at=(0, 0, 10, 10), svg='<path d="M0 0"/>')
     after = surfaces.Surface(at=(0, 0, 10, 10), svg='<path d="M0 1"/>')
     assert "redrew" in surfaces.compare([before], [after])[0]
+
+
+def test_the_same_board_asked_twice_answers_the_same():
+    """`items()` is a view of the last reading, not a new one.
+
+    It drew its numbers inline for an afternoon, so the snapshot, each tick and
+    the picture check all got a different board — and two arms running
+    identical code were reported as drawing different pictures. Nothing about
+    that looked like a bug from the outside.
+    """
+    fixture = board.Board()
+    fixture.advance()
+    assert fixture.items() == fixture.items()
 
 
 def test_two_runs_of_the_fixture_board_see_the_same_numbers():

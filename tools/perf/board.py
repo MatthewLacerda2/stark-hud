@@ -36,6 +36,9 @@ CADENCE_S = 3.0
 
 HISTORY = 24
 
+MOUNTS = ("root", "home", "data", "snap")
+SHARES = ("app", "cache", "free")
+
 
 def _item(
     ident: str, key: str, payload: dict[str, Any], box: tuple[float, float, float, float]
@@ -82,15 +85,24 @@ def _chart(
 
 
 class Board:
-    """The fixture board, and the next reading for every panel on it.
+    """The fixture board, and the reading every panel on it is currently showing.
 
-    Holds its own random source so a run is reproducible, and holds the history
-    windows so a line chart slides rather than being redrawn from nothing.
+    A reading is taken in `advance()` and nowhere else. `items()` is a pure
+    view of it, and that is not a stylistic preference: this class drew its
+    numbers inside `items()` for an afternoon, so every caller — the snapshot,
+    each tick, the picture check — got a *different* board, and two arms
+    running identical code were reported as drawing different pictures. The
+    rig's own fixture was the first thing it caught lying.
     """
 
     def __init__(self, cores: int = 8) -> None:
         self._rng = random.Random(SEED)
         self._cores = cores
+        self._cpu = [28.0] * cores
+        self._mem = 56.6
+        self._gpu = 78.0
+        self._disk = [50.0] * len(MOUNTS)
+        self._pie = [25.0] * len(SHARES)
         self._history: dict[str, list[dict[str, Any]]] = {
             "net": [{"t": str(i), "in": 40.0, "out": 12.0} for i in range(HISTORY)],
             "load": [{"t": str(i), "load": 3.0} for i in range(HISTORY)],
@@ -98,15 +110,15 @@ class Board:
         self._tick = 0
 
     def items(self) -> list[dict[str, Any]]:
-        """Every widget, with whatever reading it is showing now."""
+        """Every widget, showing the current reading. Same answer until `advance()`."""
         return [
-            _item("radar0000cpu", "cpu", self._cpu(), (0, 0, 6, 6)),
-            _item("radial000mem", "mem", self._gauge("RAM", 56.6), (6, 0, 5, 5)),
-            _item("radial000gpu", "gpu", self._gauge("GPU", 78.0), (11, 0, 5, 5)),
-            _item("bar00000disk", "disk", self._disk(), (16, 0, 8, 6)),
+            _item("radar0000cpu", "cpu", self._radar(), (0, 0, 6, 6)),
+            _item("radial000mem", "mem", self._gauge("RAM", self._mem), (6, 0, 5, 5)),
+            _item("radial000gpu", "gpu", self._gauge("GPU", self._gpu), (11, 0, 5, 5)),
+            _item("bar00000disk", "disk", self._bar(), (16, 0, 8, 6)),
             _item("line00000net", "net", self._line(), (0, 6, 10, 6)),
             _item("area0000load", "load", self._area(), (10, 6, 10, 6)),
-            _item("pie00000mem2", "split", self._pie(), (20, 6, 8, 6)),
+            _item("pie00000mem2", "split", self._pie_chart(), (20, 6, 8, 6)),
             _item("note00000one", "note", {"kind": "note", "text": "the rig"}, (0, 12, 8, 3)),
             _item(
                 "text00000two",
@@ -125,32 +137,33 @@ class Board:
         return [i for i in self.items() if i["payload"]["kind"] == "chart"]
 
     def advance(self) -> None:
-        """Take the next reading. Jitter, not noise: the numbers stay plausible."""
+        """Take the next reading. The one place in this class that draws a number."""
         self._tick += 1
+        self._cpu = [self._jitter(28, 12) for _ in range(self._cores)]
+        self._mem = self._jitter(56.6, 8)
+        self._gpu = self._jitter(78, 8)
+        self._disk = [self._jitter(50, 25) for _ in MOUNTS]
+        self._pie = [self._jitter(25, 10) for _ in SHARES]
         for window in self._history.values():
             window.pop(0)
             last = window[-1]
             nxt: dict[str, Any] = {"t": str(self._tick + HISTORY)}
             for series, value in last.items():
-                if series == "t":
-                    continue
-                nxt[series] = round(
-                    max(0.0, min(100.0, float(value) + self._rng.uniform(-6, 6))), 1
-                )
+                if series != "t":
+                    nxt[series] = self._jitter(float(value), 6)
             window.append(nxt)
 
     def _jitter(self, mid: float, spread: float) -> float:
         return round(max(0.0, min(100.0, mid + self._rng.uniform(-spread, spread))), 1)
 
-    def _cpu(self) -> dict[str, Any]:
-        data = [{"core": str(c), "use": self._jitter(28, 12)} for c in range(self._cores)]
+    def _radar(self) -> dict[str, Any]:
+        data = [{"core": str(c), "use": use} for c, use in enumerate(self._cpu)]
         return _chart("radar", data, "core", ["use"], icon="cpu", max=100.0)
 
-    def _gauge(self, title: str, mid: float) -> dict[str, Any]:
-        data = [{"label": "", "use": self._jitter(mid, 8)}]
+    def _gauge(self, title: str, value: float) -> dict[str, Any]:
         return _chart(
             "radial",
-            data,
+            [{"label": "", "use": value}],
             "label",
             ["use"],
             title=title,
@@ -159,9 +172,8 @@ class Board:
             thresholds=[{"at": 77.0, "color": "#ff2b1c"}],
         )
 
-    def _disk(self) -> dict[str, Any]:
-        names = ("root", "home", "data", "snap")
-        data = [{"mount": n, "used": self._jitter(50, 25)} for n in names]
+    def _bar(self) -> dict[str, Any]:
+        data = [{"mount": m, "used": u} for m, u in zip(MOUNTS, self._disk, strict=True)]
         return _chart("bar", data, "mount", ["used"], title="disk", max=100.0)
 
     def _line(self) -> dict[str, Any]:
@@ -170,6 +182,6 @@ class Board:
     def _area(self) -> dict[str, Any]:
         return _chart("area", list(self._history["load"]), "t", ["load"], title="load", axes="y")
 
-    def _pie(self) -> dict[str, Any]:
-        data = [{"what": w, "share": self._jitter(25, 10)} for w in ("app", "cache", "free")]
+    def _pie_chart(self) -> dict[str, Any]:
+        data = [{"what": w, "share": s} for w, s in zip(SHARES, self._pie, strict=True)]
         return _chart("pie", data, "what", ["share"], title="memory")

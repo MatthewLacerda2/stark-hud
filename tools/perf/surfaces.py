@@ -33,6 +33,11 @@ from perf.cdp import Page
 # below it and show as a difference in every surface on the board.
 _GENERATED_ID = re.compile(r"recharts\d+")
 
+# React's `useId` values, which recharts puts in `data-recharts-item-id`. They
+# come from a component's position in the render tree, so any change anywhere
+# above a chart renumbers them. They name nothing that is drawn.
+_REACT_ID = re.compile(r"_r_[0-9a-z]+_")
+
 MARKS = ".recharts-surface, [data-extrude-mark]"
 
 SETTLE_JS = """
@@ -93,7 +98,7 @@ def dump(page: Page) -> list[Surface]:
 
 
 def _normalise(svg: str) -> str:
-    return _GENERATED_ID.sub("recharts#", svg)
+    return _REACT_ID.sub("_r#_", _GENERATED_ID.sub("recharts#", svg))
 
 
 def compare(before: list[Surface], after: list[Surface]) -> list[str]:
