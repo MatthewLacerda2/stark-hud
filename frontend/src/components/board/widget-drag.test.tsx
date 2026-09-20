@@ -67,6 +67,7 @@ function note(): Item {
     color: null,
     border: null,
     scale: null,
+    flat: false,
     payload: { kind: "note", text: "hello" },
     playback: null,
     x: 4,

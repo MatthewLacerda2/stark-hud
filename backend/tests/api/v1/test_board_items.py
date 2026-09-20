@@ -21,6 +21,7 @@ STYLES = {
     "color": "#ff0000",
     "border": "#0000ff",
     "scale": 2.0,
+    "flat": True,
 }
 
 # Everything on an update that is not a style: geometry, identity, and content.
@@ -148,6 +149,20 @@ async def test_a_style_set_later_sticks(client: AsyncClient) -> None:
     item = (await client.post(ITEMS, json=NOTE)).json()
     updated = (await client.patch(f"{ITEMS}/{item['id']}", json=STYLES)).json()
     assert {name: updated[name] for name in STYLES} == STYLES
+
+
+async def test_the_glass_goes_back_on(client: AsyncClient) -> None:
+    """``false`` is a value here, not the absence of one.
+
+    Every other style says "leave me alone" with null, so a boolean had to be
+    three-state to be sayable at all: without that, taking the glass off a
+    widget would be the one styling on this board that could not be undone.
+    """
+    item = (await client.post(ITEMS, json={**NOTE, "flat": True})).json()
+    url = f"{ITEMS}/{item['id']}"
+
+    assert (await client.patch(url, json={"x": 4})).json()["flat"] is True
+    assert (await client.patch(url, json={"flat": False})).json()["flat"] is False
 
 
 async def test_a_patch_cannot_open_a_group(client: AsyncClient) -> None:

@@ -59,6 +59,12 @@ def describe(item: ItemRead) -> str:
     if item.key:
         named = f"{named} keyed {item.key!r}"
     line = f"{named} at ({cells(item.x)},{cells(item.y)}) size {size(item.w, item.h)}"
+    # The one thing about a widget's look that is said here, because it is the
+    # only one a session is ever asked to put back. A colour or a scale is read
+    # off the television; whether a widget has an edge at all is what somebody
+    # asked for, and set_style is how it goes back.
+    if item.flat:
+        line = f"{line} [flat]"
     line = f"{line}{_grouping(item)}{_elsewhere(item)}"
     if item.playback is not None:
         line = f"{line} [{_playing(item)}]"
