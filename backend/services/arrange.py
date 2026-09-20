@@ -23,7 +23,7 @@ half-rearranged board on a television nobody is standing at.
 from core.config import get_settings
 from repositories import board as repo
 from schemas.board import Change, ItemRead
-from services import pages
+from services import events, pages
 from services.placement import NoRoomError, illegal
 
 
@@ -93,12 +93,16 @@ def _proposed(changes: dict[str, Change]) -> list[ItemRead]:
     return [i.model_copy(update={"parent_id": None}) if i.parent_id in gone else i for i in kept]
 
 
-def rearrange(changes: list[Change]) -> list[ItemRead]:
+async def rearrange(changes: list[Change]) -> list[ItemRead]:
     """Apply a batch as one transaction, and return the board it produced.
 
     Returned here specifically, where you most want to know what you got —
     rather than on every mutation, which would make every response larger for
     the many calls that do not care.
+
+    One event, carrying the board whole: ten ``item.updated`` would render ten
+    times and a simultaneous rearrangement would still crawl across the
+    television a widget at a time.
     """
     settings = get_settings()
     board = _proposed(_targets(changes))
@@ -110,4 +114,6 @@ def rearrange(changes: list[Change]) -> list[ItemRead]:
         why = illegal(pages.drawn(board, page), settings.GRID_COLS, settings.GRID_ROWS)
         if why is not None:
             raise NoRoomError(f"Not rearranged: {why}")
-    return repo.swap(board)
+    settled = repo.swap(board)
+    await events.arranged(settled)
+    return settled

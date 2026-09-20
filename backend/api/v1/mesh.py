@@ -12,7 +12,6 @@ the board go on showing the old one.
 
 from fastapi import APIRouter, HTTPException, status
 
-from core.hub import hub
 from repositories import board as repo
 from schemas.mesh import MeshPayload, Wireframe
 from services import mesh as service
@@ -29,17 +28,16 @@ async def get_mesh(item_id: str) -> Wireframe:
     which is what the owner of this board asked for. ``services.mesh.forget``
     records why, and what it costs on a machine with a bind-mounted drive.
 
-    The removal is broadcast here rather than in the service for the reason every
-    other mutation is: the service decides and mutates, the handler tells the
-    room. Clients drop the widget on ``item.removed`` without waiting for this
-    response, which is just as well — this one is a 404.
+    ``services.mesh.forget`` takes the widget off the board and says so on the
+    socket itself, the way every write on this board does. Clients drop the
+    widget on ``item.removed`` without waiting for this response, which is just
+    as well — this one is a 404.
     """
     item = repo.get(item_id)
     if item is None or not isinstance(item.payload, MeshPayload):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No mesh for that id")
     found = service.read(item.payload.path)
     if found is None:
-        gone = service.forget(item, item.payload.path)
-        await hub.broadcast("item.removed", {"id": item_id})
+        gone = await service.forget(item, item.payload.path)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=gone)
     return found

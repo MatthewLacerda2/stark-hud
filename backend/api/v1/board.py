@@ -1,26 +1,28 @@
-"""Board endpoints. Every mutation is broadcast to connected clients."""
+"""Board endpoints.
+
+Every mutation reaches the television, and none of it is announced from here:
+the service that makes the change sends the event, so this router and the MCP
+tools cannot disagree about what a write says and neither can forget to say it.
+See ``services.events``.
+"""
 
 from collections.abc import AsyncIterator
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 
-from core.hub import hub
 from repositories import board as repo
 from schemas.board import (
     Arrangement,
     Background,
-    BoardArranged,
     BoardStatus,
     Ink,
     ItemCreate,
     ItemRead,
     ItemUpdate,
-    PlaybackReport,
 )
 from services import arrange as arrange_service
 from services import board as service
-from services import media as media_service
-from services import origin, pages
+from services import origin
 
 
 async def _telling(request: Request) -> AsyncIterator[None]:
@@ -69,8 +71,7 @@ async def get_background() -> Background | None:
 @router.put("/background", response_model=Background)
 async def set_background(payload: Background) -> Background:
     """Set the looping video behind the board. Always silent."""
-    background = service.set_background(payload)
-    await hub.broadcast("background.changed", payload.model_dump(mode="json"))
+    background = await service.set_background(payload)
     assert background is not None
     return background
 
@@ -78,8 +79,7 @@ async def set_background(payload: Background) -> Background:
 @router.delete("/background", status_code=status.HTTP_204_NO_CONTENT)
 async def clear_background() -> None:
     """Go back to the plain dark ground."""
-    service.set_background(None)
-    await hub.broadcast("background.changed", None)
+    await service.set_background(None)
 
 
 @router.get("/ink", response_model=Ink | None)
@@ -91,8 +91,7 @@ async def get_ink() -> Ink | None:
 @router.put("/ink", response_model=Ink)
 async def set_ink(payload: Ink) -> Ink:
     """Set the colour every widget writes in unless it was given one of its own."""
-    ink = service.set_ink(payload)
-    await hub.broadcast("ink.changed", payload.model_dump(mode="json"))
+    ink = await service.set_ink(payload)
     assert ink is not None
     return ink
 
@@ -100,16 +99,13 @@ async def set_ink(payload: Ink) -> Ink:
 @router.delete("/ink", status_code=status.HTTP_204_NO_CONTENT)
 async def clear_ink() -> None:
     """Go back to the board's own ink, which is white at 65%."""
-    service.set_ink(None)
-    await hub.broadcast("ink.changed", None)
+    await service.set_ink(None)
 
 
 @router.post("/items", response_model=ItemRead, status_code=status.HTTP_201_CREATED)
 async def create_item(payload: ItemCreate) -> ItemRead:
     """Add an item, auto-placing it when coordinates are omitted."""
-    item = service.create(payload)
-    await origin.created(item)
-    return item
+    return await service.create(payload)
 
 
 @router.put("/items/by-key/{key}", response_model=ItemRead)
@@ -130,21 +126,14 @@ async def upsert_by_key(key: str, payload: ItemCreate) -> ItemRead:
     """
     existing = repo.get_by_key(key)
     if existing is None:
-        item = service.create(payload.model_copy(update={"key": key}))
-        await origin.created(item)
-        return item
-
-    item = service.update(existing, ItemUpdate(payload=payload.payload))
-    await hub.broadcast("item.updated", item.model_dump(mode="json"))
-    return item
+        return await service.create(payload.model_copy(update={"key": key}))
+    return await service.update(existing, ItemUpdate(payload=payload.payload))
 
 
 @router.patch("/items/{item_id}", response_model=ItemRead)
 async def update_item(item_id: str, payload: ItemUpdate) -> ItemRead:
     """Apply a partial update to an item."""
-    item = service.update(_get_or_404(item_id), payload)
-    await hub.broadcast("item.updated", item.model_dump(mode="json"))
-    return item
+    return await service.update(_get_or_404(item_id), payload)
 
 
 @router.post("/arrange", response_model=list[ItemRead])
@@ -156,51 +145,20 @@ async def arrange(payload: Arrangement) -> list[ItemRead]:
     the end. On a full board there is nowhere to park one of them, so without
     this the swap is not slow, it is impossible.
 
-    Atomic — a rejected batch changes nothing — and broadcast as one event
+    Atomic — a rejected batch changes nothing — and announced as one event
     carrying the whole board, because ten `item.updated` would make a
     simultaneous rearrangement crawl across the television one widget at a time.
     """
-    items = arrange_service.rearrange(payload.changes)
-    arranged = BoardArranged(items=items, showing=pages.showing())
-    await hub.broadcast("board.arranged", arranged.model_dump(mode="json"))
-    return items
-
-
-@router.post("/items/{item_id}/playback", response_model=ItemRead)
-async def report_playback(item_id: str, payload: PlaybackReport) -> ItemRead:
-    """Record what the browser says a media widget is doing.
-
-    The only route on this board that runs the other way. Everything else is
-    written by whoever drives the board and drawn by the TV; a file that is gone,
-    or in a codec the browser refuses, is a thing only the TV can find out — and
-    without somewhere to say it, it would be visible from the sofa and nowhere
-    else.
-
-    It lands on the item rather than in the payload, so a widget rewritten by its
-    owner keeps it. A finished track is also how the queue moves on: the rule for
-    what follows the last one lives in the service, not in the page.
-    """
-    item = _get_or_404(item_id)
-    if item.payload.kind != "media":
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Item {item_id} is a {item.payload.kind}, which plays nothing",
-        )
-    item = media_service.report(item, payload)
-    await hub.broadcast("item.updated", item.model_dump(mode="json"))
-    return item
+    return await arrange_service.rearrange(payload.changes)
 
 
 @router.delete("/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_item(item_id: str) -> None:
     """Delete an item. A group's widgets are put back on the board, never deleted."""
-    service.remove(_get_or_404(item_id))
-    await hub.broadcast("item.removed", {"id": item_id})
+    await service.remove(_get_or_404(item_id))
 
 
 @router.delete("/items", response_model=dict[str, int])
 async def clear_board() -> dict[str, int]:
     """Remove every item."""
-    removed = repo.clear()
-    await hub.broadcast("board.cleared", {"removed": removed})
-    return {"removed": removed}
+    return {"removed": await service.clear()}

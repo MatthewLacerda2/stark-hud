@@ -33,6 +33,7 @@ fold is doing with the room, and one of the two has to be the plain half.
 from core.config import get_settings
 from repositories import board as repo
 from schemas.board import GroupPayload, GroupState, ItemRead, Payload, Placement
+from services import events
 from services.placement import NoRoomError, illegal
 
 __all__ = [
@@ -177,16 +178,26 @@ def _turn(group: ItemRead, state: GroupState, place: Placement | None = None) ->
     return repo.replace(turned)
 
 
-def fold(group: ItemRead) -> ItemRead:
-    """Close a group: its widgets come off the board and it takes their place."""
+async def fold(group: ItemRead) -> ItemRead:
+    """Close a group: its widgets come off the board and it takes their place.
+
+    One event carrying the whole board, like every change here that moves more
+    than one widget: a fold takes several off the board at once, and the
+    television has to see that as one change or the fold crawls across the
+    screen a widget at a time.
+    """
     if not is_group(group):
         raise NotAGroupError(group)
-    return _turn(group, "folded", _where_it_folds(group, members(group)))
+    shut = _turn(group, "folded", _where_it_folds(group, members(group)))
+    await events.arranged()
+    return shut
 
 
-def unfold(group: ItemRead) -> ItemRead:
+async def unfold(group: ItemRead) -> ItemRead:
     """Open a group: it gives its room back and its widgets return to theirs."""
-    return _turn(group, "open")
+    opened = _turn(group, "open")
+    await events.arranged()
+    return opened
 
 
 def _open_enough(item: ItemRead, items: list[ItemRead]) -> None:
@@ -224,7 +235,7 @@ def joining(parent_id: str) -> ItemRead:
     return parent
 
 
-def gather(group: ItemRead, items: list[ItemRead]) -> list[ItemRead]:
+async def gather(group: ItemRead, items: list[ItemRead]) -> list[ItemRead]:
     """Put these widgets in this group, and return them as they now stand.
 
     Everything joins the group's page as it joins the group: a group and its
@@ -252,15 +263,19 @@ def gather(group: ItemRead, items: list[ItemRead]) -> list[ItemRead]:
     why = illegal(on_board([i for i in board.values() if i.page == group.page]), *_grid())
     if why is not None:
         raise NoRoomError(f"Not grouped: {why}")
-    return [repo.replace(i) for i in joined]
+    held_now = [repo.replace(i) for i in joined]
+    await events.arranged()
+    return held_now
 
 
-def scatter(items: list[ItemRead]) -> list[ItemRead]:
+async def scatter(items: list[ItemRead]) -> list[ItemRead]:
     """Take these widgets out of whatever group they are in."""
     everything = repo.list_items()
     for item in items:
         _open_enough(item, everything)
-    return [repo.replace(i.model_copy(update={"parent_id": None})) for i in items]
+    loose = [repo.replace(i.model_copy(update={"parent_id": None})) for i in items]
+    await events.arranged()
+    return loose
 
 
 def disband(group: ItemRead) -> None:
@@ -269,10 +284,14 @@ def disband(group: ItemRead) -> None:
     Losing a container never silently takes its contents with it, so a group
     that is folded can only be removed while there is still room for what is
     inside it.
+
+    Says nothing itself: ``services.board.remove`` is the only caller and sends
+    one ``board.arranged`` once the group and its widgets have both settled,
+    rather than an unfold's event and then a removal's.
     """
     held = _as_group(group)
     if held is None:
         raise NotAGroupError(group)
     if held.state != "open":
-        unfold(group)
+        _turn(group, "open")
     repo.remove(group.id)

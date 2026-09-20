@@ -11,8 +11,7 @@ can use.
 
 from mcp.server.mcpserver import MCPServer
 
-from core.hub import hub
-from hud_mcp.common import arranged, describe
+from hud_mcp.common import describe
 from repositories import board as repo
 from schemas.board import GroupPayload, ItemCreate, ItemRead
 from services import board as service
@@ -30,15 +29,15 @@ def register(server: MCPServer) -> None:
     """Attach the group tools to the server."""
 
     async def _refold(group: ItemRead, shut: bool) -> str:
-        """Fold or unfold, and say what the board looks like afterwards."""
+        """Fold or unfold, and say what the board looks like afterwards.
+
+        The one event carrying the whole board goes out from ``services.groups``,
+        which is where the several widgets a fold moves actually move.
+        """
         try:
-            turned = groups.fold(group) if shut else groups.unfold(group)
+            turned = await (groups.fold(group) if shut else groups.unfold(group))
         except (NotAGroupError, NoRoomError) as exc:
             return str(exc)
-        # One event carrying the whole board: a fold moves several widgets at
-        # once and the browser has to see it as one change, or a fold crawls
-        # across the television one widget at a time.
-        await hub.broadcast("board.arranged", arranged())
         held = len(groups.members(turned))
         return f"{'Folded' if shut else 'Unfolded'} {describe(turned)} — {held} widgets inside"
 
@@ -68,13 +67,17 @@ def register(server: MCPServer) -> None:
             return missing[0]
         wanted = [f for f in found if isinstance(f, ItemRead)]
 
-        group = service.create(ItemCreate(payload=GroupPayload(), description=description))
+        # Two calls and so two events, which is the one place on this board that
+        # happens: the group appears, and then the board it changed goes out
+        # whole. Both are true and they arrive in the same tick. A group nothing
+        # could be put into is taken off again the same way it was put on, so a
+        # refused grouping leaves the television as it found it.
+        group = await service.create(ItemCreate(payload=GroupPayload(), description=description))
         try:
-            groups.gather(group, wanted)
+            await groups.gather(group, wanted)
         except (NestedGroupError, NoRoomError) as exc:
-            repo.remove(group.id)
+            await service.remove(group)
             return str(exc)
-        await hub.broadcast("board.arranged", arranged())
         return f"Grouped {len(wanted)} widgets into {describe(repo.get(group.id) or group)}"
 
     @server.tool()
@@ -115,10 +118,9 @@ def register(server: MCPServer) -> None:
         if missing:
             return missing[0]
         try:
-            joined = groups.gather(group, [f for f in found if isinstance(f, ItemRead)])
+            joined = await groups.gather(group, [f for f in found if isinstance(f, ItemRead)])
         except (NotAGroupError, NestedGroupError, NoRoomError) as exc:
             return str(exc)
-        await hub.broadcast("board.arranged", arranged())
         return f"{len(joined)} widgets are now in {group.id}"
 
     @server.tool()
@@ -129,8 +131,7 @@ def register(server: MCPServer) -> None:
         if missing:
             return missing[0]
         try:
-            loose = groups.scatter([f for f in found if isinstance(f, ItemRead)])
+            loose = await groups.scatter([f for f in found if isinstance(f, ItemRead)])
         except NoRoomError as exc:
             return str(exc)
-        await hub.broadcast("board.arranged", arranged())
         return f"{len(loose)} widgets are in no group now"

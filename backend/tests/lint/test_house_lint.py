@@ -82,3 +82,28 @@ def test_the_layer_is_found_whether_the_root_is_relative_or_absolute():
     assert house_lint.layer_of(Path("/srv/backend/services/board.py"), root) == "services"
     assert house_lint.layer_of(Path("/srv/backend/main.py"), root) is None
     assert house_lint.layer_of(Path("/elsewhere/thing.py"), root) is None
+
+
+def test_a_surface_may_not_reach_the_socket_hub():
+    """Rule 5: announcing a change belongs to the service that makes it.
+
+    Nothing can check for a broadcast that was never written, so what is checked
+    is that there is one place left in the stack to write one.
+    """
+    source = "from core.hub import hub\n"
+    violations = house_lint.check_source(Path("api/v1/board.py"), source, "api")
+
+    assert any("services/events.py may do" in v for v in violations)
+
+
+def test_the_events_module_is_the_one_that_may():
+    """And it is the only file in the stack that can, named rather than inferred."""
+    source = "from core.hub import hub\n"
+    violations = house_lint.check_source(Path("services/events.py"), source, "services")
+
+    assert violations == []
+
+
+def test_outside_the_stack_still_holds_the_socket():
+    """main.py owns the websocket route and the tests listen on it."""
+    assert house_lint.check_source(Path("main.py"), "import core.hub\n", None) == []

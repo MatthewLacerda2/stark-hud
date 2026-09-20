@@ -1,4 +1,11 @@
-"""Notification rules: what an icon may be, and turning one into an inbox."""
+"""Notification rules: what an icon may be, and turning one into an inbox.
+
+Writing to the inbox is ``async`` here for the reason every write in this
+package is: the line goes out on the socket as part of being recorded, so the
+shade on the television fills as things happen rather than on the next reload.
+``services.mesh`` is what taught that lesson — it wrote a line saying which model
+had vanished and told nobody, so the only way to see it was to reload the page.
+"""
 
 from pathlib import Path
 
@@ -6,6 +13,7 @@ from repositories import notifications as repo
 from schemas import svg
 from schemas.icon import UNKNOWN
 from schemas.notifications import ICONS, Inbox, Notification, NotificationCreate
+from services import events
 
 RETENTION_HOURS = repo.RETENTION.total_seconds() / 3600
 
@@ -42,11 +50,28 @@ def _stored(icon: str) -> str:
     raise BadIconError(icon)
 
 
-def create(data: NotificationCreate) -> Notification:
+async def create(data: NotificationCreate) -> Notification:
     """Record a notification, refusing an icon that would not draw."""
     if data.icon is not None:
         data = data.model_copy(update={"icon": _stored(data.icon)})
-    return repo.add(data)
+    notification = repo.add(data)
+    await events.notified(notification)
+    return notification
+
+
+async def dismiss(notification_id: str) -> bool:
+    """Take one line out of the inbox. Returns whether it was there."""
+    if not repo.remove(notification_id):
+        return False
+    await events.dismissed(notification_id)
+    return True
+
+
+async def clear() -> int:
+    """Empty the inbox. Returns how many lines went."""
+    removed = repo.clear()
+    await events.inbox_cleared(removed)
+    return removed
 
 
 def inbox() -> Inbox:

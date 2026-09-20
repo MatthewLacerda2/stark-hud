@@ -1,7 +1,9 @@
 """Helpers shared by the MCP tools.
 
-Tools run in the same process as the API, so they call the services directly and
-broadcast on the same hub. There is no HTTP hop and no second copy of the board.
+Tools run in the same process as the API, so they call the services directly.
+There is no HTTP hop and no second copy of the board — and no broadcasting from
+here either: a service announces its own change, and this surface only turns the
+result into the sentence a model reads back. See ``services.events``.
 
 Placement failures come back as readable text rather than exceptions: the caller
 is a model, and "no room, 12 cells free" is something it can act on.
@@ -9,11 +11,10 @@ is a model, and "no room, 12 cells free" is something it can act on.
 
 from mcp_types import ToolAnnotations
 
-from core.hub import hub
 from repositories import board as repo
-from schemas.board import BoardArranged, ItemCreate, ItemRead, Payload
+from schemas.board import ItemCreate, ItemRead, Payload
 from services import board as service
-from services import groups, origin, pages
+from services import events, groups, pages
 from services.board import SlotTakenError
 from services.placement import BoardFullError, cells, size
 
@@ -112,17 +113,6 @@ def carried() -> str:
     return line if not rest else f"{line} Also here, drawn by nothing until you turn to it: {rest}."
 
 
-def arranged(items: list[ItemRead] | None = None) -> dict:
-    """The whole board and the page it is turned to, for one ``board.arranged``.
-
-    Sent whole, and sent by everything that changes several widgets at once: a
-    fold, a regrouping, a page turn. Ten ``item.updated`` would render ten
-    times, and the change would crawl across the television a widget at a time.
-    """
-    board = items if items is not None else repo.list_items()
-    return BoardArranged(items=board, showing=pages.showing()).model_dump(mode="json")
-
-
 async def add(
     payload: Payload,
     x: float | None = None,
@@ -132,9 +122,14 @@ async def add(
     parent_id: str | None = None,
     description: str | None = None,
 ) -> str:
-    """Create an item, broadcast it, and describe what happened."""
+    """Create an item and describe what happened.
+
+    The widget reaches the television from inside ``services.board.create``,
+    with whatever call made it, so none of the sixteen ``add_`` tools above this
+    has anything to remember.
+    """
     try:
-        item = service.create(
+        item = await service.create(
             ItemCreate(
                 payload=payload, x=x, y=y, w=w, h=h, parent_id=parent_id, description=description
             )
@@ -147,7 +142,6 @@ async def add(
     except SlotTakenError as exc:
         return f"Not added: {exc}. Omit x and y to let the board place it."
 
-    await origin.created(item)
     return f"Added {describe(item)}"
 
 
@@ -170,4 +164,23 @@ async def wake(item: ItemRead) -> None:
     acknowledge while the answer is still being worked out; one told alongside
     the answer has nothing left to acknowledge.
     """
-    await hub.broadcast("item.waking", {"id": item.id})
+    await events.waking(item.id)
+
+
+def typed[P: Payload](target: str, kind: type[P]) -> tuple[ItemRead, P] | None:
+    """The widget with this id or key, when its payload is the kind asked for.
+
+    One helper for what used to be three that disagreed: a list's, a player's
+    and a countdown stack's, of which only the countdown's also accepted a key —
+    so a panel a collector feeds could be added to by name but not requeued or
+    appended to by name, for no reason anybody had chosen.
+
+    The payload comes back beside the item because the check that it *is* that
+    kind happens here, and handing back only the item throws that away: every
+    caller would then read ``.items`` or ``.tracks`` off a union of thirteen
+    payload kinds, most of which have no such field.
+    """
+    item = find(target)
+    if item is None or not isinstance(item.payload, kind):
+        return None
+    return item, item.payload

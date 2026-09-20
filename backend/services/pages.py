@@ -24,7 +24,7 @@ are always on the same page and move between pages as one.
 from core.config import get_settings
 from repositories import board as repo
 from schemas.board import DEFAULT_PAGE, ItemRead
-from services import groups
+from services import events, groups
 from services.placement import NoRoomError, illegal
 
 __all__ = [
@@ -105,7 +105,7 @@ def names(items: list[ItemRead]) -> list[str]:
     return sorted({DEFAULT_PAGE, repo.showing(), *(i.page for i in items)})
 
 
-def show(page: str) -> list[ItemRead]:
+async def show(page: str) -> list[ItemRead]:
     """Turn the board to a page, and return it whole.
 
     Nothing is validated and nothing moves: a page keeps its own layout, which
@@ -117,7 +117,9 @@ def show(page: str) -> list[ItemRead]:
     whole, and the television cuts rather than dealing widgets out one by one.
     """
     repo.set_showing(_named(page))
-    return repo.list_items()
+    board = repo.list_items()
+    await events.arranged(board)
+    return board
 
 
 def _whole(items: list[ItemRead]) -> list[ItemRead]:
@@ -136,7 +138,7 @@ def _whole(items: list[ItemRead]) -> list[ItemRead]:
     return list(going.values())
 
 
-def send(items: list[ItemRead], page: str) -> list[ItemRead]:
+async def send(items: list[ItemRead], page: str) -> list[ItemRead]:
     """Move these widgets to another page, keeping their size and their place.
 
     Refused, whole, when they would not fit where they are going — nothing is
@@ -151,4 +153,8 @@ def send(items: list[ItemRead], page: str) -> list[ItemRead]:
     why = illegal(drawn(proposed, name), *_grid())
     if why is not None:
         raise NoRoomError(f"Not sent to {name!r}: {why}")
-    return [i for i in repo.swap(proposed) if i.id in going]
+    settled = [i for i in repo.swap(proposed) if i.id in going]
+    # The whole board again: widgets have left the page that is showing, or
+    # arrived on it, and either way several of them moved at once.
+    await events.arranged()
+    return settled

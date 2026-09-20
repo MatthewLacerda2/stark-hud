@@ -160,7 +160,7 @@ async def test_a_patch_cannot_open_a_group(client: AsyncClient) -> None:
     """
     group = (await client.post(ITEMS, json={"payload": {"kind": "group"}})).json()
     await client.post(ITEMS, json={**NOTE, "parent_id": group["id"]})
-    folded = groups.fold(repo.get(group["id"]))
+    folded = await groups.fold(repo.get(group["id"]))
     await client.post(ITEMS, json={**NOTE, "x": folded.x, "y": folded.y})
 
     refused = await client.patch(

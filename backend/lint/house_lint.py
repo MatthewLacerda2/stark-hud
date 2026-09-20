@@ -12,6 +12,10 @@ Rules enforced:
   4. An import that crosses a layer boundary the wrong way fails. The stack runs
      one direction and `CLAUDE.md` has always said so; this is where saying it
      stops being the only enforcement.
+  5. Only ``services/events.py`` may import the socket hub. Telling the
+     television is part of making a change, not something a handler or a tool
+     remembers afterwards — and the way that rots is one more call site typing
+     one more event name.
 
 The module is importable (rules return violation lists) and runnable as
 ``python lint/house_lint.py`` to scan the backend tree, or with paths to scan
@@ -47,6 +51,18 @@ _MARKER_SCAN_LINES = 15
 # moving, quietly, in a codebase whose entire claim is that swapping how the
 # board persists is a rewrite of one module. `main.py` and `tests/` are outside
 # the stack and unlisted, which is how they stay free to import anything.
+# Who may reach the socket. ``core.hub`` is fan-out and nothing else, but a
+# module that can reach it can announce a change — which means a module that
+# forgets to is a board on a television showing the old thing and looking fine.
+# Nothing checks for a missing broadcast and nothing can, so the enforceable
+# half is this: the hub has one caller, the services announce their own writes,
+# and a surface that wants to send an event has to go and add one there.
+#
+# ``main.py`` is outside the stack and unlisted, which is how it stays free to
+# hold the socket itself; ``tests/`` listens on the hub to read events back.
+HUB_MODULE = "core.hub"
+HUB_CALLER = ("services", "events.py")
+
 LAYERS: dict[str, frozenset[str]] = {
     "api": frozenset({"core", "schemas", "services", "repositories"}),
     "hud_mcp": frozenset({"core", "schemas", "services", "repositories"}),
@@ -168,12 +184,40 @@ def check_layers(path: Path, source: str, layer: str | None) -> list[str]:
     ]
 
 
+def _imports_hub(source: str) -> list[int]:
+    """The lines on which this file pulls in the socket hub, if any."""
+    found = []
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.ImportFrom) and node.module == HUB_MODULE:
+            found.append(node.lineno)
+        elif isinstance(node, ast.Import) and any(a.name == HUB_MODULE for a in node.names):
+            found.append(node.lineno)
+    return found
+
+
+def check_hub(path: Path, source: str, layer: str | None) -> list[str]:
+    """Rule 5: keep the one module that talks to every connected board alone.
+
+    Files outside the stack — ``main.py``, which owns the socket, and the tests,
+    which listen on it — are not checked, the same as every other rule here.
+    """
+    if layer is None or (layer, path.name) == HUB_CALLER:
+        return []
+    return [
+        f"{path}:{line}: {layer}/ imports {HUB_MODULE}, which only "
+        f"{HUB_CALLER[0]}/{HUB_CALLER[1]} may do — announce the change from the "
+        f"service that makes it, through services.events"
+        for line in _imports_hub(source)
+    ]
+
+
 def check_source(path: Path, source: str, layer: str | None = None) -> list[str]:
     """Run every rule against a single file's source text."""
     return (
         check_file_length(path, source)
         + check_function_lengths(path, source)
         + check_layers(path, source, layer)
+        + check_hub(path, source, layer)
     )
 
 

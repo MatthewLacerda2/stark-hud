@@ -22,9 +22,7 @@ from typing import cast
 
 from mcp.server.mcpserver import MCPServer
 
-from core.hub import hub
-from hud_mcp.common import ON_HOST, add, wake
-from repositories import board as repo
+from hud_mcp.common import ON_HOST, add, typed, wake
 from schemas.board import ItemRead, ItemUpdate, MediaPayload
 from schemas.media import MEDIA_ACTIONS, MediaAction
 from services import board as service
@@ -72,24 +70,15 @@ def register(server: MCPServer) -> None:
     """Attach the media tools to the server."""
 
     def _media(item_id: str) -> tuple[ItemRead, MediaPayload] | None:
-        """The item with that id, when it is a media widget and not something else.
-
-        The payload comes back beside the item: the check that it *is* a player
-        happens here, and returning only the item throws that away — every
-        caller would then read `.tracks` off a union of thirteen payload kinds.
-        """
-        item = repo.get(item_id)
-        if item is None or not isinstance(item.payload, MediaPayload):
-            return None
-        return item, item.payload
+        """The widget with that id or key, when it is a player and not something else."""
+        return typed(item_id, MediaPayload)
 
     async def _write(item: ItemRead, payload: MediaPayload, verb: str) -> str:
-        """Put a new payload on the widget, tell every board, and say what it is doing."""
+        """Put a new payload on the widget and say what it is now doing."""
         try:
-            updated = service.update(item, ItemUpdate(payload=payload))
+            await service.update(item, ItemUpdate(payload=payload))
         except SlotTakenError as exc:
             return f"Not {verb}: {exc}"
-        await hub.broadcast("item.updated", updated.model_dump(mode="json"))
         # The payload just written, not `updated.payload`: they are the same
         # object and only this one is known to be a player's.
         return f"{verb.capitalize()} {item.id}: {_describe(payload)}"

@@ -4,7 +4,6 @@ from typing import cast
 
 from mcp.server.mcpserver import MCPServer
 
-from core.hub import hub
 from repositories import notifications as repo
 from schemas.notifications import ICONS, NotificationCreate, NotifyLevel
 from services import notifications as service
@@ -50,7 +49,7 @@ def register(server: MCPServer) -> None:
         if level not in LEVELS:
             return f"Not sent: level must be info, success, warn or error (got {level!r})"
         try:
-            notification = service.create(
+            await service.create(
                 NotificationCreate(
                     title=title,
                     body=body,
@@ -64,7 +63,6 @@ def register(server: MCPServer) -> None:
             )
         except BadIconError as exc:
             return f"Not sent: {exc}"
-        await hub.broadcast("notification.created", notification.model_dump(mode="json"))
         return f"Notified: {title}"
 
     @server.tool()
@@ -90,12 +88,10 @@ def register(server: MCPServer) -> None:
     async def dismiss_notification(notification_id: str) -> str:
         """Remove one notification. Use an empty id to clear the whole inbox."""
         if not notification_id:
-            removed = repo.clear()
-            await hub.broadcast("notifications.cleared", {"removed": removed})
+            removed = await service.clear()
             return f"Inbox cleared ({removed} removed)"
-        if not repo.remove(notification_id):
+        if not await service.dismiss(notification_id):
             return f"No notification {notification_id}."
-        await hub.broadcast("notification.removed", {"id": notification_id})
         return f"Dismissed {notification_id}"
 
     _ = ICONS  # the docstring above is the vocabulary; keep them together

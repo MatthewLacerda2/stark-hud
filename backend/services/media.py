@@ -21,6 +21,7 @@ from schemas.media import (
     kind_of,
     youtube_id,
 )
+from services import events
 from services import tags as tag_reader
 
 # A picture beside the tracks, in the order we would rather have it. Windows
@@ -204,7 +205,7 @@ def commanded(payload: MediaPayload, action: MediaAction, seconds: float = 0.0) 
     return stepped(payload, 1 if action == "next" else -1)
 
 
-def report(item: ItemRead, incoming: PlaybackReport) -> ItemRead:
+async def report(item: ItemRead, incoming: PlaybackReport) -> ItemRead:
     """Record what the browser says it is doing, and act on a finished track.
 
     A finished track is the only report that changes anything: it is how a queue
@@ -241,4 +242,6 @@ def report(item: ItemRead, incoming: PlaybackReport) -> ItemRead:
         moved = stepped(moved, 1)
     if moved is not payload:
         updates["payload"] = moved
-    return repo.replace(item.model_copy(update=updates))
+    written = repo.replace(item.model_copy(update=updates))
+    await events.updated(written)
+    return written

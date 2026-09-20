@@ -5,7 +5,6 @@ from typing import cast
 from mcp.server.mcpserver import MCPServer
 from pydantic import ValidationError
 
-from core.hub import hub
 from hud_mcp.common import DESTRUCTIVE, carried, describe
 from repositories import board as repo
 from schemas.board import Arrangement, Change, ItemUpdate
@@ -20,15 +19,18 @@ def register(server: MCPServer) -> None:
     """Attach the layout and inspection tools to the server."""
 
     async def _patch(item_id: str, data: ItemUpdate, verb: str) -> str:
-        """Apply an update, broadcast it, and describe the result."""
+        """Apply an update and describe the result.
+
+        The television is told inside ``services.board.update``, which is why
+        nothing here says anything about it.
+        """
         item = repo.get(item_id)
         if item is None:
             return f"No item {item_id}. Call list_items to see what is there."
         try:
-            updated = service.update(item, data)
+            updated = await service.update(item, data)
         except SlotTakenError as exc:
             return f"Not {verb}: {exc}"
-        await hub.broadcast("item.updated", updated.model_dump(mode="json"))
         return f"{verb.capitalize()} {describe(updated)}"
 
     @server.tool()
@@ -70,15 +72,11 @@ def register(server: MCPServer) -> None:
         try:
             # Pydantic turns the dicts into Changes on the way in; the cast says so.
             batch = Arrangement(changes=cast(list[Change], [dict(c) for c in changes]))
-            items = arrange_service.rearrange(batch.changes)
+            items = await arrange_service.rearrange(batch.changes)
         except ValidationError as exc:
             return f"Not rearranged: {exc.error_count()} bad change(s) — {exc.errors()[0]['msg']}"
         except (NoRoomError, RepeatedTargetError, UnknownTargetError) as exc:
             return str(exc)
-        # One event carrying the board whole. Ten `item.updated` would render
-        # ten times, and a simultaneous rearrangement would still crawl across
-        # the television one widget at a time.
-        await hub.broadcast("board.arranged", {"items": [i.model_dump(mode="json") for i in items]})
         return "Rearranged:\n" + "\n".join(describe(i) for i in items)
 
     @server.tool()
@@ -157,10 +155,9 @@ def register(server: MCPServer) -> None:
         if item is None:
             return f"No item {item_id}; nothing removed."
         try:
-            service.remove(item)
+            await service.remove(item)
         except NoRoomError as exc:
             return str(exc)
-        await hub.broadcast("item.removed", {"id": item_id})
         return f"Removed {item_id}"
 
     @server.tool(annotations=DESTRUCTIVE)
@@ -170,8 +167,7 @@ def register(server: MCPServer) -> None:
         The whole board, not the page that is showing: a page is where a widget
         is, not a board of its own to be emptied.
         """
-        removed = repo.clear()
-        await hub.broadcast("board.cleared", {"removed": removed})
+        removed = await service.clear()
         return f"Cleared the board ({removed} items removed)"
 
     @server.tool()
