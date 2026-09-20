@@ -113,7 +113,9 @@ class Change(BaseModel):
     entry are one thought rather than two operations that have to be ordered.
 
     ``remove`` is the one verb, because taking a widget off the board is not a
-    place it ends up in.
+    place it ends up in. ``folded`` is the one state, because a group is the
+    one widget with two of them, and which one it is in is exactly as much a
+    part of the arrangement as where it sits.
 
     There is no ``add``. A new widget has no id to be named by yet, and adding
     never had the problem a batch exists to solve.
@@ -133,6 +135,16 @@ class Change(BaseModel):
     border: Colour | None = None
     scale: float | None = Field(default=None, ge=0.25, le=4)
     flat: bool | None = None
+    # Whether this group ends up closed. Only a group has this to say, and
+    # saying it here is what lets "move the calendar off their room, then open
+    # the training widgets" be one arrangement and one cut on the television
+    # instead of a move, a look, and an unfold.
+    #
+    # A bool rather than the payload's own ``"open"``/``"folded"``: a group has
+    # two states and no more, and every other field here is a value a widget
+    # ends up at rather than a word for a mode. ``None`` leaves the group as it
+    # is, the same as everywhere else on this model.
+    folded: bool | None = None
 
 
 class Arrangement(BaseModel):

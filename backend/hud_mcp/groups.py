@@ -88,6 +88,10 @@ def register(server: MCPServer) -> None:
         The room they were using is free again, and the group draws where they
         were. Refused if something has since taken that corner — nothing on this
         board is ever shoved aside to make space.
+
+        Use the room while it is folded: that is what folding is for. Anything
+        put there is told it is standing in the way, so the bill for the way
+        back arrives while you are still holding the thing that blocks it.
         """
         group = _found(group_id)
         return group if isinstance(group, str) else await _refold(group, True)
@@ -96,8 +100,13 @@ def register(server: MCPServer) -> None:
     async def unfold_group(group_id: str) -> str:
         """Open a group: its widgets come back exactly where they were.
 
-        Refused if something has moved into the room they left, which names what
-        is in the way so you can move it first.
+        Refused if something has moved into the room they left. The refusal
+        names every widget in the way and how far into that room it is, so a
+        quarter of a column can be told from a board somebody has rebuilt.
+
+        A sliver is not a reason to go back to the user: `arrange` takes
+        `{"target": "<this group>", "folded": false}` beside the moves and
+        removals that clear the room, and does both in one call.
         """
         group = _found(group_id)
         return group if isinstance(group, str) else await _refold(group, False)

@@ -16,7 +16,7 @@ from schemas.board import ItemCreate, ItemRead, Payload
 from services import board as service
 from services import events, groups, pages
 from services.board import SlotTakenError
-from services.placement import BoardFullError, cells, size
+from services.placement import BoardFullError, cells, crowding, size
 
 # Tools that reach past the board: a path on the host, a file it reads, a URL it
 # fetches. `open_world_hint` is MCP's own word for exactly this, and the honest
@@ -102,6 +102,41 @@ def _elsewhere(item: ItemRead) -> str:
     return "" if item.page == pages.showing() else f" [on page {item.page!r}, not showing]"
 
 
+def room_wanted(watch: list[str]) -> str:
+    """What any of these widgets is now standing in the way of, as a line.
+
+    A folded group's widgets are off the board and their coordinates are only a
+    note of where they come back to, so the room is free and using it is the
+    whole point of folding. Nothing here refuses that. What this says is that
+    the way back is blocked, at the moment it is blocked — before, the only
+    moment anybody learned it was the unfold itself, by which time the widget
+    in the way had been there long enough for nobody to remember putting it
+    there.
+
+    Widgets are named by id or by key, because a batch may name them either way.
+    """
+    items = repo.list_items()
+    shut = groups.folded(items)
+    taken = []
+    for group in (i for i in items if i.id in shut):
+        standing = [
+            (comes_back, here, dx, dy)
+            for comes_back, here, dx, dy in groups.blocked(group, items)
+            if here.id in watch or here.key in watch
+        ]
+        if standing:
+            taken.append(f"folded group {group.id} will want this room back — {crowding(standing)}")
+    if not taken:
+        return ""
+    # A line of its own: what comes before it is one widget's line, or a whole
+    # board's worth of them, and this is about neither of those exactly.
+    return (
+        f"\nHeads up: {'; '.join(taken)}. That is allowed and the room is yours while the "
+        f"group is folded, but unfold_group refuses until it is clear — and one arrange can "
+        f"move this and unfold in the same call."
+    )
+
+
 def _holding(name: str, items: list[ItemRead]) -> str:
     """One page the board is carrying and is not showing, in a few words.
 
@@ -163,7 +198,7 @@ async def add(
     except SlotTakenError as exc:
         return f"Not added: {exc}. Omit x and y to let the board place it."
 
-    return f"Added {describe(item)}"
+    return f"Added {describe(item)}{room_wanted([item.id])}"
 
 
 def find(target: str) -> ItemRead | None:

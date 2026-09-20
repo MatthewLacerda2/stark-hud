@@ -35,23 +35,28 @@ from core.refusal import BoardRefusal
 from repositories import board as repo
 from schemas.board import GroupPayload, GroupState, ItemRead, Payload, Placement
 from services import events
-from services.placement import NoRoomError, illegal
+from services.placement import Clash, NoRoomError, UnfoldBlockedError, clashes, illegal
 
 __all__ = [
     "NestedGroupError",
-    # Raised from here as often as from anywhere, and imported from here by
-    # everything that folds: it lives in ``placement`` because it is about
-    # rectangles, and is named here because this is where callers meet it.
+    # Both of these are raised from here as often as from anywhere, and
+    # imported from here by everything that folds: they live in ``placement``
+    # because they are about rectangles, and are named here because this is
+    # where callers meet them.
     "NoRoomError",
     "NotAGroupError",
+    "UnfoldBlockedError",
+    "blocked",
     "disband",
     "fold",
+    "folded",
     "gather",
     "is_group",
     "joining",
     "members",
     "on_board",
     "scatter",
+    "turned",
     "unfold",
     "weightless",
 ]
@@ -99,7 +104,7 @@ def _as_group(item: ItemRead) -> GroupPayload | None:
     return item.payload if isinstance(item.payload, GroupPayload) else None
 
 
-def _folded(items: list[ItemRead]) -> set[str]:
+def folded(items: list[ItemRead]) -> set[str]:
     """The ids of the groups that are closed.
 
     One set answers both halves of the trade, which is what having two states
@@ -119,8 +124,8 @@ def on_board(items: list[ItemRead]) -> list[ItemRead]:
     Callers pass the page they mean; ``services.pages.drawn`` is the two rules
     together and is what the rest of the backend actually calls.
     """
-    folded = _folded(items)
-    return [i for i in items if i.parent_id not in folded and (not is_group(i) or i.id in folded)]
+    shut = folded(items)
+    return [i for i in items if i.parent_id not in shut and (not is_group(i) or i.id in shut)]
 
 
 def weightless(payload: Payload, parent_id: str | None, items: list[ItemRead]) -> bool:
@@ -133,7 +138,7 @@ def weightless(payload: Payload, parent_id: str | None, items: list[ItemRead]) -
     """
     if payload.kind == "group":
         return payload.state == "open"
-    return parent_id in _folded(items)
+    return parent_id in folded(items)
 
 
 def members(group: ItemRead, items: list[ItemRead] | None = None) -> list[ItemRead]:
@@ -159,24 +164,70 @@ def _where_it_folds(group: ItemRead, inside: list[ItemRead]) -> Placement:
     )
 
 
-def _turn(group: ItemRead, state: GroupState, place: Placement | None = None) -> ItemRead:
-    """Fold or unfold, but only if the arrangement it produces is a legal board.
+def turned(
+    group: ItemRead, state: GroupState, board: list[ItemRead], stays: bool = False
+) -> ItemRead:
+    """This group folded or open, as an arrangement rather than a change made.
 
-    Legal on the group's own page, which is the only board this can disturb: a
-    group folds where its widgets are, and they are all on that page with it.
+    Nothing is written and nothing is judged here: the caller gets the group as
+    it would stand and judges the whole board it stands on. That is what lets a
+    fold or an unfold be one entry in a batch, beside the moves that make room
+    for it — see ``services.arrange``.
+
+    A fold lands where its widgets are, worked out from the board it is handed
+    rather than from the one on disk, because the batch asking for the fold may
+    be moving those widgets in the same breath. ``stays`` is the caller saying
+    it named a place of its own, which then wins: an entry in an arrangement is
+    where a widget ends up, and overruling one quietly is what this board does
+    not do.
     """
     if not is_group(group):
         raise NotAGroupError(group)
     changed: dict[str, object] = {"payload": group.payload.model_copy(update={"state": state})}
-    if place is not None:
-        changed |= {"x": place.x, "y": place.y, "w": place.w, "h": place.h}
-    turned = group.model_copy(update=changed)
+    if state == "folded" and not stays:
+        changed |= _where_it_folds(group, members(group, board)).model_dump()
+    return group.model_copy(update=changed)
 
-    board = [turned if i.id == group.id else i for i in repo.list_items()]
+
+def blocked(group: ItemRead, items: list[ItemRead]) -> list[Clash]:
+    """Who is standing in the room this group needs to open into, and by how much.
+
+    Its widgets are off the board while it is folded and their coordinates are
+    a note of where they come back to; everything else drawn on that page is
+    standing somewhere. This is the one against the other, on the group's own
+    page — a page is a whole board, so a fold on another one is not here at
+    all. The group and its own widgets are left out of what is standing,
+    because both of those are what the unfold trades, and that also makes the
+    answer the same whichever state the group is in right now: a batch can ask
+    it of a group it has only opened on paper.
+    """
+    inside = members(group, items)
+    trading = {i.id for i in inside} | {group.id}
+    here = [i for i in items if i.page == group.page and i.id not in trading]
+    return clashes(inside, on_board(here))
+
+
+def _turn(group: ItemRead, state: GroupState) -> ItemRead:
+    """Fold or unfold, but only if the arrangement it produces is a legal board.
+
+    Legal on the group's own page, which is the only board this can disturb: a
+    group folds where its widgets are, and they are all on that page with it.
+
+    An unfold that is refused says more than the general judge does: ``illegal``
+    names the first two widgets in the same place, which cannot tell a sliver
+    from a board somebody has rebuilt, so every blocker is named with the room
+    it is short by.
+    """
+    everything = repo.list_items()
+    shifted = turned(group, state, everything)
+    board = [shifted if i.id == group.id else i for i in everything]
     why = illegal(on_board([i for i in board if i.page == group.page]), *_grid())
     if why is not None:
+        standing = blocked(shifted, board) if state == "open" else []
+        if standing:
+            raise UnfoldBlockedError(group.id, standing)
         raise NoRoomError(f"Not {'unfolded' if state == 'open' else 'folded'}: {why}")
-    return repo.replace(turned)
+    return repo.replace(shifted)
 
 
 async def fold(group: ItemRead) -> ItemRead:
@@ -189,7 +240,7 @@ async def fold(group: ItemRead) -> ItemRead:
     """
     if not is_group(group):
         raise NotAGroupError(group)
-    shut = _turn(group, "folded", _where_it_folds(group, members(group)))
+    shut = _turn(group, "folded")
     await events.arranged()
     return shut
 
@@ -210,7 +261,7 @@ def _open_enough(item: ItemRead, items: list[ItemRead]) -> None:
     while a group is open, which is also the only time anybody can see what
     they did.
     """
-    if item.parent_id in _folded(items):
+    if item.parent_id in folded(items):
         raise NoRoomError(
             f"Not regrouped: {item.id} is inside {item.parent_id}, which is folded. "
             f"Unfold that group first."

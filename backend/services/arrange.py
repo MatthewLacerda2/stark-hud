@@ -24,8 +24,8 @@ from core.config import get_settings
 from core.refusal import BoardRefusal
 from repositories import board as repo
 from schemas.board import Change, ItemRead
-from services import events, pages
-from services.placement import NoRoomError, illegal
+from services import events, groups, pages
+from services.placement import NoRoomError, UnfoldBlockedError, illegal
 
 
 class UnknownTargetError(BoardRefusal):
@@ -66,8 +66,14 @@ class RepeatedTargetError(BoardRefusal):
 
 
 def _changed(item: ItemRead, change: Change) -> ItemRead:
-    """The widget as the batch asks for it. Anything left out is left alone."""
-    asked = change.model_dump(exclude={"target", "remove"}, exclude_none=True)
+    """The widget as the batch asks for it. Anything left out is left alone.
+
+    Every field but one is written straight onto the widget. ``folded`` is not
+    a field a widget has — it is half of the trade folding makes, and the other
+    half is the room its widgets give back — so it is applied afterwards, by
+    ``services.groups``, once the rest of the batch has landed.
+    """
+    asked = change.model_dump(exclude={"target", "remove", "folded"}, exclude_none=True)
     return item.model_copy(update=asked)
 
 
@@ -96,7 +102,40 @@ def _proposed(changes: dict[str, Change]) -> list[ItemRead]:
     # it — the same rule the repository keeps — which is also why removing a
     # folded group can be refused: its widgets come back to the board here, and
     # the arrangement is judged with them on it.
-    return [i.model_copy(update={"parent_id": None}) if i.parent_id in gone else i for i in kept]
+    kept = [i.model_copy(update={"parent_id": None}) if i.parent_id in gone else i for i in kept]
+
+    # Folding last, and against the board the rest of the batch produced: a
+    # group folds where its widgets are, and this may be the batch that moved
+    # them. A change that also names a place folds there instead — an entry
+    # says where a widget ends up, and that one said.
+    turning = {item_id: c for item_id, c in changes.items() if c.folded is not None}
+    return [_folding(item, turning[item.id], kept) if item.id in turning else item for item in kept]
+
+
+def _folding(group: ItemRead, change: Change, board: list[ItemRead]) -> ItemRead:
+    """The group as this entry asks for it: closed, or open, on that board."""
+    return groups.turned(
+        group,
+        "folded" if change.folded else "open",
+        board,
+        stays=change.x is not None or change.y is not None,
+    )
+
+
+def _opening(board: list[ItemRead], changes: dict[str, Change]) -> None:
+    """Refuse an unfold in this batch by name, before the general judge speaks.
+
+    ``illegal`` names the first two widgets in the same place, which is the
+    right answer for a batch of moves and a thin one for a batch that asked a
+    group to open: there the caller wants every blocker and the size of each
+    overlap, because it is deciding between nudging one widget and telling the
+    user the room is spoken for.
+    """
+    asked_open = [i for i in board if (c := changes.get(i.id)) is not None and c.folded is False]
+    for group in asked_open:
+        standing = groups.blocked(group, board)
+        if standing:
+            raise UnfoldBlockedError(group.id, standing)
 
 
 async def rearrange(changes: list[Change]) -> list[ItemRead]:
@@ -111,7 +150,9 @@ async def rearrange(changes: list[Change]) -> list[ItemRead]:
     television a widget at a time.
     """
     settings = get_settings()
-    board = _proposed(_targets(changes))
+    asked = _targets(changes)
+    board = _proposed(asked)
+    _opening(board, asked)
     # Every page, not just the one showing. A batch may move a panel on a page
     # nobody is looking at, and that page has to be a board somebody could turn
     # back to — the bill for it arriving on the turn would be a refusal with

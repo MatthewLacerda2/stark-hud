@@ -148,3 +148,67 @@ async def test_a_widget_is_not_grouped_onto_a_page_with_no_room_for_it():
     with pytest.raises(NoRoomError):
         await groups.gather(repo.get(group.id), [elsewhere])
     assert repo.get(elsewhere.id).page == "planning"
+
+
+async def test_the_refusal_names_every_blocker_and_how_far_in_it_is():
+    """A quarter of a column is a nudge; half a widget is a conversation.
+
+    Both are "no" to ``illegal``, which names the first pair it finds and stops.
+    A caller deciding between moving something and going back to the user needs
+    all of them, and the size of each.
+    """
+    held = [await _note(0, 0), await _note(8, 0), await _note(16, 0)]
+    group = await groups.fold(await _group(*held))
+    sliver = await _note(11.75, 0, 4, 3)  # a quarter of a column into the second
+    squarely = await _note(16, 0, 4, 3)  # the whole of the third
+
+    with pytest.raises(NoRoomError) as excinfo:
+        await groups.unfold(repo.get(group.id))
+
+    said = str(excinfo.value)
+    assert "2 widgets are in the room" in said
+    assert f"{sliver.id} is 0.25x3 into" in said
+    assert f"{squarely.id} is 4x3 into" in said
+
+
+async def test_the_refusal_hands_back_the_blockers_as_well_as_the_sentence():
+    """Every caller here is blind, so a refusal that can be read as data is."""
+    note = await _note(20, 10)
+    # The group also holds the corner, so it folds there rather than over the
+    # room this test is about.
+    group = await groups.fold(await _group(await _note(0, 0), note))
+    squatter = await _note(20, 10)
+
+    with pytest.raises(NoRoomError) as excinfo:
+        await groups.unfold(repo.get(group.id))
+
+    assert excinfo.value.extra() == {
+        "group": group.id,
+        "blockers": [{"id": squatter.id, "over": note.id, "overlap": [4.0, 3.0]}],
+    }
+
+
+async def test_the_room_a_fold_is_holding_is_measured_on_its_own_page():
+    """A page is a whole board, so a widget on another one is not in the way."""
+    note = await _note(20, 10)
+    group = await groups.fold(await _group(await _note(0, 0), note))
+    await pages.show("planning")
+    await _note(20, 10)  # the same corner of a different board
+
+    await groups.unfold(repo.get(group.id))
+
+    assert repo.get(group.id).payload.state == "open"
+    assert note.id in {i.id for i in groups.on_board(pages.on(repo.list_items(), "main"))}
+
+
+async def test_somebody_standing_in_the_room_is_named_before_the_unfold():
+    """The whole point: told while you are still holding the thing in the way."""
+    note = await _note(20, 10)
+    group = await groups.fold(await _group(await _note(0, 0), note))
+    squatter = await _note(20, 10)
+
+    crowding = groups.blocked(repo.get(group.id), repo.list_items())
+    assert [(a.id, b.id) for a, b, _dx, _dy in crowding] == [(note.id, squatter.id)]
+    # And nothing refused it. The room is free while the group is folded, which
+    # is what folding is for.
+    assert repo.get(squatter.id) is not None
