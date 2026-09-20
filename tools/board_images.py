@@ -86,6 +86,11 @@ def hang(board: Board, picture: Picture, image: pathlib.Path, where: dict) -> No
     is the same, and a widget rewritten under one id would show its first
     picture for ever. A new id is a new URL. A mesh has `mesh.reloaded` for
     exactly this; an image has no equivalent.
+
+    That is also why `where` carries the page. Every other panel is written by
+    key and keeps its page because the board never re-creates it; a picture is
+    re-created every redraw, and without this one it would land on whatever page
+    was showing at that moment and leave the page it belongs to blank.
     """
     take_down(board, [picture.key])
     board.call(
@@ -105,9 +110,11 @@ def hang_all(
 ) -> None:
     """Put up every picture that exists, each padded to its own widget's shape.
 
-    Where a widget already is wins over where it was first put: somebody may
-    have dragged it, and a picture padded to its old shape would be letterboxed
-    against the wrong edges.
+    Where a widget already is wins over where it was first put — its page as
+    much as its rectangle. Somebody may have dragged it, and a picture padded to
+    its old shape would be letterboxed against the wrong edges; somebody may
+    have moved it to another page, and a picture that came back on the page that
+    happened to be up would have walked off the screen it belongs to.
     """
     cache.mkdir(parents=True, exist_ok=True)
     up = standing(board)
@@ -116,7 +123,7 @@ def hang_all(
             log(f"no {picture.image.name}")
             continue
         where = (
-            {k: up[picture.key][k] for k in ("x", "y", "w", "h")}
+            {k: up[picture.key][k] for k in ("x", "y", "w", "h", "page")}
             if picture.key in up
             else picture.first
         )

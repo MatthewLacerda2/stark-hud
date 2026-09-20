@@ -96,6 +96,20 @@ def _elsewhere(item: ItemRead) -> str:
     return "" if item.page == pages.showing() else f" [on page {item.page!r}, not showing]"
 
 
+def _holding(name: str, items: list[ItemRead]) -> str:
+    """One page the board is carrying and is not showing, in a few words.
+
+    Its panels are named, not just counted. A panel is born on the page its
+    writer says it belongs to, which may not be the page anybody is looking at,
+    and a session driving this board over a wire cannot see the television to
+    find out. A count alone says a widget is somewhere and leaves the question
+    worth asking — which one, and is it the one I am feeding — unanswered.
+    """
+    held = f"{len(items)} widget" if len(items) == 1 else f"{len(items)} widgets"
+    panels = ", ".join(repr(item.key) for item in items if item.key)
+    return f"{name!r} ({held})" if not panels else f"{name!r} ({held}, panels {panels})"
+
+
 def carried() -> str:
     """Which page is showing and what else this board is holding, as a sentence.
 
@@ -104,11 +118,12 @@ def carried() -> str:
     vanished unless the report says where the rest of it is and what to call it.
     """
     everything = repo.list_items()
-    counts = {name: 0 for name in pages.names(everything)}
-    for item in everything:
-        counts[item.page] = counts.get(item.page, 0) + 1
     showing = pages.showing()
-    rest = ", ".join(f"{name!r} ({held})" for name, held in counts.items() if name != showing)
+    rest = ", ".join(
+        _holding(name, [item for item in everything if item.page == name])
+        for name in pages.names(everything)
+        if name != showing
+    )
     line = f" Showing page {showing!r}."
     return line if not rest else f"{line} Also here, drawn by nothing until you turn to it: {rest}."
 

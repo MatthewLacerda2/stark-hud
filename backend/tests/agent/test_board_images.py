@@ -62,7 +62,7 @@ def test_a_picture_goes_where_it_was_first_put(tmp_path, padded):
 
 def test_a_picture_somebody_dragged_stays_dragged_and_is_padded_to_that_shape(tmp_path, padded):
     """Padding it to its first shape would letterbox it against the wrong edges."""
-    moved = {"id": "old", "key": "curve", "x": 0.0, "y": 0.0, "w": 10.0, "h": 5.0}
+    moved = {"id": "old", "key": "curve", "x": 0.0, "y": 0.0, "w": 10.0, "h": 5.0, "page": "main"}
     board = _Wall([moved])
 
     hang_all(board, [_picture(tmp_path)], tmp_path / "cache", pathlib.Path("python"))
@@ -79,7 +79,8 @@ def test_a_picture_somebody_dragged_stays_dragged_and_is_padded_to_that_shape(tm
 def test_a_picture_is_re_hung_under_a_new_id_rather_than_rewritten(tmp_path, padded):
     """The board serves an image at /media/<id>, so a browser has no reason to
     fetch it again while the id is the same: one URL would freeze on picture one."""
-    board = _Wall([{"id": "old", "key": "curve", "x": 0.0, "y": 0.0, "w": 10.0, "h": 5.0}])
+    up = {"id": "old", "key": "curve", "x": 0.0, "y": 0.0, "w": 10.0, "h": 5.0, "page": "main"}
+    board = _Wall([up])
 
     hang_all(board, [_picture(tmp_path)], tmp_path / "cache", pathlib.Path("python"))
 
@@ -106,3 +107,19 @@ def test_taking_a_widget_down_is_only_a_delete_of_what_is_there():
     assert [call for call in board.calls if call[0] == "DELETE"] == [
         ("DELETE", "/board/items/retired")
     ]
+
+
+def test_a_picture_comes_back_on_the_page_it_was_on(tmp_path, padded):
+    """The other half of re-hanging under a new id.
+
+    Every other panel is written by key and keeps its page for free, because the
+    board never re-creates it. A picture is taken down and put up again on every
+    redraw, so without this one it would land on whichever page was showing at
+    that moment and leave the page it belongs to blank.
+    """
+    up = {"id": "old", "key": "curve", "x": 0.0, "y": 0.0, "w": 10.0, "h": 5.0, "page": "trm"}
+    board = _Wall([up])
+
+    hang_all(board, [_picture(tmp_path)], tmp_path / "cache", pathlib.Path("python"))
+
+    assert board.posted["curve"]["page"] == "trm"

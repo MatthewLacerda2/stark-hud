@@ -129,3 +129,52 @@ async def test_a_panel_on_a_page_that_is_not_showing_still_takes_writes(
     assert written["payload"]["data"][0]["use"] == 90
     # And it is still not on the board: writing to it did not bring it back.
     assert pages.drawn(repo.list_items()) == []
+
+
+async def test_a_panel_that_names_no_page_is_born_on_the_default_one(
+    client: AsyncClient,
+) -> None:
+    """The bug this file's page tests exist for.
+
+    Before this, a first write landed on whatever page was showing — so turning
+    the board to a planning page for an evening built the board's own furniture
+    into it, and the panel looked perfectly fine on a screen it did not belong
+    to. Nothing that writes by key is looking at the television.
+    """
+    await pages.show("planning")
+
+    panel = (await client.put(KEY, json=chart(10))).json()
+
+    assert panel["page"] == "main"
+    assert pages.drawn(repo.list_items()) == []
+
+
+async def test_a_panel_is_born_on_the_page_it_names(client: AsyncClient) -> None:
+    """Where a fed panel goes is the source's to say, not the television's."""
+    panel = (await client.put(KEY, json={**chart(10), "page": "machine"})).json()
+
+    assert panel["page"] == "machine"
+    assert pages.drawn(repo.list_items()) == []
+
+
+async def test_a_panel_is_placed_against_the_page_it_is_born_on(client: AsyncClient) -> None:
+    """A full board is not in the way of a panel that is not landing on it."""
+    await client.post("/api/v1/board/items", json={**chart(1), "x": 0, "y": 0, "w": 32, "h": 18})
+
+    elsewhere = await client.put(KEY, json={**chart(10), "page": "machine", "x": 0, "y": 0})
+
+    assert elsewhere.status_code == 200
+    assert (elsewhere.json()["x"], elsewhere.json()["y"]) == (0, 0)
+
+
+async def test_the_page_is_ignored_after_the_first_write(client: AsyncClient) -> None:
+    """Same rule as position: a refresher sends the same body forever.
+
+    Otherwise a panel somebody moved to another page would be dragged back by
+    the next pass, seconds later.
+    """
+    panel = (await client.put(KEY, json={**chart(10), "page": "machine"})).json()
+    await pages.send([repo.get(panel["id"])], "planning")
+
+    again = (await client.put(KEY, json={**chart(50), "page": "machine"})).json()
+    assert again["page"] == "planning"

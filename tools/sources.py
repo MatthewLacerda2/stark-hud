@@ -157,6 +157,13 @@ class Source:
         self.name: str = spec["name"]
         self.every: float = float(spec.get("every", 30))
         self.place: dict = spec.get("place", {})
+        # Which page this source's panel belongs on, said here because this file
+        # is the only thing that knows: the board would otherwise be deciding
+        # where the board's own furniture goes, and it has nothing to decide it
+        # by. Blank names none, and the board then puts the panel on its own
+        # default page — so a source written before this line existed lands
+        # exactly where it always did.
+        self.page: str = str(spec.get("page", "")).strip()
         self.due = 0.0
         self.runs = "command" in spec or "url" in spec
         self.kind = (

@@ -6,6 +6,8 @@ from mcp.server.mcpserver import MCPServer
 from core.hub import hub
 from hud_mcp.server import build_server
 from repositories import board as repo
+from schemas.board import ItemCreate, NotePayload
+from services import board
 from tests.hud_mcp.test_tools import Listener, call
 
 
@@ -68,7 +70,7 @@ async def test_board_status_says_which_page_and_what_else_is_here(server: MCPSer
     status = await call(server, "board_status")
     assert "0 items" in status
     assert "Showing page 'planning'." in status
-    assert "'main' (1)" in status
+    assert "'main' (1 widget)" in status
 
 
 async def test_a_widget_says_when_it_is_on_a_page_that_is_not_showing(
@@ -101,3 +103,18 @@ async def test_a_move_that_will_not_fit_is_refused_whole(server: MCPServer) -> N
     message = await call(server, "move_to_page", item_ids=[note], page="planning")
     assert "would be in the same place" in message
     assert repo.get(note).page == "main"
+
+
+async def test_board_status_names_the_panels_that_are_not_on_this_page(
+    server: MCPServer,
+) -> None:
+    """A session over a wire cannot see the television to find a panel.
+
+    A panel is born where its writer said it belongs, which need not be the page
+    anybody is looking at, so a count alone leaves the only question worth
+    asking — which one, and is it the one I am feeding — unanswered.
+    """
+    await board.create(ItemCreate(payload=NotePayload(text="91%"), key="disk", page="machine"))
+    await call(server, "add_note", text="here", x=0, y=0, w=4, h=3)
+
+    assert "'machine' (1 widget, panels 'disk')" in await call(server, "board_status")

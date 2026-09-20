@@ -143,3 +143,25 @@ def test_a_job_writes_its_own_widgets_and_the_agent_writes_none(tmp_path):
     job.process.wait()
 
     assert board.written == []
+
+
+def test_a_panel_declaring_no_page_says_nothing_about_pages(tmp_path):
+    """The board decides, exactly as it did before a source could say.
+
+    Which means the default page, not the one showing: nothing that writes by
+    key is looking at the television. See `tests/api/v1/test_by_key.py`.
+    """
+    board = _Spy()
+
+    tick(board, [_source(place={"x": 1})], tmp_path, 0.0)
+
+    assert "page" not in board.written[0][1]
+
+
+def test_a_panel_that_declares_a_page_is_written_to_it(tmp_path):
+    """A reading worth keeping, on a screen the ordinary board never gives up."""
+    board = _Spy()
+
+    tick(board, [_source(page="machine")], tmp_path, 0.0)
+
+    assert board.written[0][1]["page"] == "machine"
