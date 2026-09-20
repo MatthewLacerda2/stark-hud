@@ -2,7 +2,6 @@ import { useTranslation } from "react-i18next";
 import type { TableColumn, TablePayload } from "@/lib/schemas/board";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/board/icon";
-import { Scrolling } from "@/components/board/scrolling";
 
 /** The grid both halves are laid on, in shares rather than measured widths.
  *
@@ -60,16 +59,29 @@ function Row({
  * all, because whoever measured the number knows how it should read and this
  * does not.
  *
- * The headings stay while the rows scroll. They are a size down and faded: a
- * column heading is the least important thing here — it is read once and then
- * never again — and the rows are what somebody is actually looking at.
+ * It does not scroll, which is the one place this departs from the list. A list
+ * scrolls because every line in it matters and nobody can scroll this screen,
+ * so a line left off would simply be lost. A table's rows are in the order
+ * whoever sent them chose, and a panel refreshing every few seconds that also
+ * creeps up and down is a thing in the corner of the eye rather than something
+ * read — so what does not fit is not drawn, and the rows that fall off the
+ * bottom are the ones their own order put last. Send more rows than fit and
+ * this draws the top of them.
+ *
+ * The headings are a size down and faded: a column heading is the least
+ * important thing here — it is read once and then never again — and the rows
+ * are what somebody is actually looking at.
  */
 export function Table({ id, payload }: { id: string; payload: TablePayload }) {
   const { t } = useTranslation();
   const empty = payload.empty ?? t("board.emptyList");
 
   return (
-    <div className="flex size-full flex-col gap-2 rounded-xl widget-edge p-[4cqmin] widget-text">
+    // Half the inset the other widgets keep. A table is columns, and its own
+    // margin is width the columns do not get — on a panel this wide and this
+    // short, that padding was costing a readable gap between the name and the
+    // first number.
+    <div className="flex size-full flex-col gap-2 rounded-xl widget-edge p-[2cqmin] widget-text">
       {payload.title || payload.icon ? (
         <h3
           className={cn(
@@ -97,10 +109,9 @@ export function Table({ id, payload }: { id: string; payload: TablePayload }) {
             className="shrink-0 text-node-sm font-semibold tracking-wide uppercase opacity-50"
             cell={(column) => column.label ?? column.key}
           />
-          <Scrolling
-            content={payload.rows}
-            className="flex-1 text-node-sm font-semibold opacity-85"
-            color={payload.row_color ?? undefined}
+          <div
+            className="min-h-0 flex-1 overflow-hidden text-node-sm font-semibold opacity-85"
+            style={payload.row_color ? { color: payload.row_color } : undefined}
           >
             {payload.rows.map((row, i) => (
               <Row
@@ -109,7 +120,7 @@ export function Table({ id, payload }: { id: string; payload: TablePayload }) {
                 cell={(column) => row[column.key] ?? ""}
               />
             ))}
-          </Scrolling>
+          </div>
         </>
       ) : (
         <p className="text-node-sm font-semibold italic opacity-70">{empty}</p>
