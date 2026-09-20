@@ -42,11 +42,19 @@ API tests drive the real app through `httpx.ASGITransport` with nothing mocked.
 
 ## Gate before pushing
 
-`make backend` = `back-lint` (ruff + ruff-format + `house_lint.py`) ·
-`back-build` (imports `main`) · `back-test` (pytest). Green before you push.
+`make backend` = `py-version` (one Python, everywhere it is named) ·
+`back-lint` (ruff + ruff-format + `house_lint.py`) · `back-types` (mypy) ·
+`back-test` (pytest) · `back-build` (`docker compose build backend`). Green
+before you push.
+
+`back-build` builds the container rather than importing `main`, because the
+container is what this package ships as and four test modules import `main`
+already. It needs a docker daemon, which is the one thing in `make check` that
+`make gate` cannot have.
 
 `back-test` also runs `tests/agent/`, which tests `tools/` at the repository
-root — the agent that feeds the panels. Those files are linted by `make agent`
-instead, with this package's ruff settings passed explicitly. The linter itself
-lives in `lint/` rather than a `tools/` of its own, because two directories
-called `tools` is how it came to be checking a tree nobody had pointed it at.
+root — the agent that feeds the panels. Those files are linted and type-checked
+by `make agent` instead, with this package's ruff and mypy settings passed
+explicitly. The linter itself lives in `lint/` rather than a `tools/` of its
+own, because two directories called `tools` is how it came to be checking a
+tree nobody had pointed it at.

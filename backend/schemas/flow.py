@@ -112,7 +112,7 @@ class FlowNode(BaseModel):
     h: float | None = None
 
     @model_validator(mode="after")
-    def _a_whole_rectangle_or_none_of_one(self) -> "FlowNode":
+    def _a_whole_rectangle_or_none_of_one(self) -> FlowNode:
         """Refuse half a box, and one that would be drawn off the widget."""
         given = [n for n, v in self._rect().items() if v is not None]
         if given and len(given) < 4:
@@ -211,7 +211,7 @@ class FlowPayload(BaseModel):
     links: list[FlowLink] = []
 
     @model_validator(mode="after")
-    def _a_diagram_that_can_be_drawn(self) -> "FlowPayload":
+    def _a_diagram_that_can_be_drawn(self) -> FlowPayload:
         """Refuse the four ways a flow is wrong, each in a sentence naming it.
 
         Refused rather than patched up, for the reason the radial refuses a

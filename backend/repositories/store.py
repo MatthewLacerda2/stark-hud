@@ -274,7 +274,7 @@ def read() -> HudFile | None:
         document = json.loads(raw)
         if not isinstance(document, dict):
             raise ValueError("a board is an object")
-    except (ValueError, UnicodeDecodeError):
+    except ValueError, UnicodeDecodeError:
         spoiled = source.with_suffix(source.suffix + ".bad")
         logger.exception("%s is not a readable board; moved to %s", source, spoiled)
         source.replace(spoiled)

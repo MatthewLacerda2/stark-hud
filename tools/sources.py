@@ -172,7 +172,7 @@ class Source:
         self.said: set[str] = set()
         self.process: subprocess.Popen | None = None
 
-    def remember(self, old: "Source | None") -> "Source":
+    def remember(self, old: Source | None) -> Source:
         """Take over from the source of this name the last config declared.
 
         What a reload must not do is undo the running. A saved file should not

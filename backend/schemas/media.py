@@ -165,7 +165,7 @@ class MediaTrack(BaseModel):
     kind: TrackKind | None = None
 
     @model_validator(mode="after")
-    def _fill_in(self) -> "MediaTrack":
+    def _fill_in(self) -> MediaTrack:
         """Derive what the source already says, and refuse what cannot be played."""
         if (self.path is None) == (self.youtube is None):
             raise ValueError("a track is either a path or a youtube video, and not both")
@@ -247,7 +247,7 @@ class MediaPayload(BaseModel):
     title: str | None = None
 
     @model_validator(mode="after")
-    def _clamp(self) -> "MediaPayload":
+    def _clamp(self) -> MediaPayload:
         """Keep ``index`` pointing at a track, or at 0 when there are none."""
         if self.index >= len(self.tracks):
             self.index = 0

@@ -48,7 +48,7 @@ def _clear() -> None:
     bpy.ops.object.delete()
 
 
-def _named(name: str) -> "bpy.types.Object":
+def _named(name: str) -> bpy.types.Object:
     """Name whatever was just added, and hand it back.
 
     The name matters more here than it looks: the OBJ exporter writes it as an
@@ -62,7 +62,7 @@ def _named(name: str) -> "bpy.types.Object":
     return made
 
 
-def _ring(name: str, radius: float, thickness: float, z: float) -> "bpy.types.Object":
+def _ring(name: str, radius: float, thickness: float, z: float) -> bpy.types.Object:
     """A torus lying flat, at a height."""
     bpy.ops.mesh.primitive_torus_add(
         major_radius=radius,
@@ -76,7 +76,7 @@ def _ring(name: str, radius: float, thickness: float, z: float) -> "bpy.types.Ob
 
 def _disc(
     name: str, radius: float, depth: float, z: float, segments: int = SEGMENTS
-) -> "bpy.types.Object":
+) -> bpy.types.Object:
     """A cylinder standing on the Z axis, centred at a height."""
     bpy.ops.mesh.primitive_cylinder_add(
         radius=radius, depth=depth, vertices=segments, location=(0.0, 0.0, z)
@@ -84,7 +84,7 @@ def _disc(
     return _named(name)
 
 
-def _coils() -> "bpy.types.Object":
+def _coils() -> bpy.types.Object:
     """The ring of little cylinders, as one object rather than eight.
 
     Joined because a part is a thing that moves as a unit in the exploded view,

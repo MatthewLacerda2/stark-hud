@@ -17,6 +17,13 @@ driver and a worker, because the export settings below are the whole of "only
 the mesh matters" and they should exist exactly once.
 """
 
+# The one file here that runs under an interpreter this project does not pick:
+# Blender's own. Annotations below name `bpy.types`, and outside Blender `bpy`
+# is None — which is fine on 3.14, where an annotation is never evaluated, and
+# an AttributeError at import on anything older. This line makes it fine on
+# both.
+from __future__ import annotations
+
 import argparse
 import shutil
 import subprocess
@@ -85,7 +92,7 @@ def export_obj(path: Path) -> None:
     )
 
 
-def _meshes() -> list["bpy.types.Object"]:
+def _meshes() -> list[bpy.types.Object]:
     """Every mesh in the scene."""
     return [one for one in bpy.context.scene.objects if one.type == "MESH"]
 

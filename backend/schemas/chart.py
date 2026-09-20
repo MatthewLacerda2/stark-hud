@@ -140,7 +140,7 @@ class ChartPayload(BaseModel):
     thresholds: list[ChartThreshold] = []
 
     @model_validator(mode="after")
-    def _rings_that_can_be_read(self) -> "ChartPayload":
+    def _rings_that_can_be_read(self) -> ChartPayload:
         """Refuse a radial with more rows than it can draw as rings.
 
         Refused rather than truncated, because a widget that silently shows

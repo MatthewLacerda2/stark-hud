@@ -20,7 +20,7 @@ def read() -> str:
             timeout=5,
             check=True,
         ).stdout
-    except (OSError, subprocess.SubprocessError):
+    except OSError, subprocess.SubprocessError:
         return ""
 
 
