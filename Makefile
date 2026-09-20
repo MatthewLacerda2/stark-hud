@@ -148,7 +148,7 @@ py-version:
 back-lint:
 	cd backend && $(PYTHON) -m ruff check .
 	cd backend && $(PYTHON) -m ruff format --check .
-	cd backend && $(PYTHON) lint/house_lint.py .
+	cd backend && $(PYTHON) -m lint.house_lint .
 
 # The annotations are already required by ruff's ANN rules; this is what checks
 # they are true. Not in `gate` — it is the second most expensive thing here, and
@@ -203,7 +203,7 @@ back-install:
 agent-lint:
 	cd backend && $(PYTHON) -m ruff check --config pyproject.toml ../tools
 	cd backend && $(PYTHON) -m ruff format --check --config pyproject.toml ../tools
-	cd backend && $(PYTHON) lint/house_lint.py ../tools
+	cd backend && $(PYTHON) -m lint.house_lint ../tools
 
 # The same argument as `back-types`, and more of it out here: ruff's ANN rules
 # have demanded annotations in `tools/` from the day this target existed, and
