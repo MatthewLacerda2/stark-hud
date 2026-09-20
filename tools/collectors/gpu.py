@@ -12,6 +12,7 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+from typing import TextIO
 
 QUERY = "utilization.gpu,memory.used,memory.total"
 
@@ -40,8 +41,11 @@ def row(reading: str, mode: str) -> dict[str, object]:
     return {"label": "", "pct": util}
 
 
-def take(path: Path = LOCK) -> object | None:
+def take(path: Path = LOCK) -> TextIO | None:
     """The lock, or None if somebody else has it.
+
+    An open file, annotated as one: `object` was wider than the truth, and the
+    one caller outside this file cannot close what it is not told it has.
 
     Returned rather than released so the caller keeps it open: an open file is
     the lock. Anything else on this machine that is about to run nvidia-smi
@@ -57,7 +61,7 @@ def take(path: Path = LOCK) -> object | None:
     return lock
 
 
-def held() -> object:
+def held() -> TextIO:
     """Take the lock, or give up — which for a one-shot gauge means saying so."""
     lock = take()
     if lock is None:

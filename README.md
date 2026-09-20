@@ -119,7 +119,8 @@ the one thing this repository must not hold — where the checkout is — into a
 drop-in beside the unit.
 
 `make check` is the only quality gate and the whole of it — there is no CI,
-so nothing catches a push whose gates were never run.
+so nothing catches a push whose gates were never run. It reaches into `state/`
+as well when this machine has one, and says nothing at all when it does not.
 
 <details>
 <summary>Architecture</summary>

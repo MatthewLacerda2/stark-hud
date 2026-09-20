@@ -91,7 +91,7 @@ endef
 # ---------------------------------------------------------------------------
 .PHONY: check gate hooks backend agent frontend
 check:
-	$(call heavy,backend agent units-lint frontend)
+	$(call heavy,backend agent units-lint state frontend)
 
 # Fast enough to run on every commit: what a linter can say without compiling,
 # building or executing anything, plus `py-version`, which is two greps. The
@@ -217,6 +217,53 @@ agent-lint:
 # nobody runs.
 agent-types:
 	cd backend && MYPYPATH=../tools $(PYTHON) -m mypy --config-file pyproject.toml ../tools
+
+# ---------------------------------------------------------------------------
+# state/, when this machine has one
+#
+# `state/` is the instance: the sources file, the board file, and the scripts a
+# source runs. It is gitignored, it is a git repository of its own with no
+# remote, and keeping it out of this one was the right call — a change of focus
+# should not need a pull request. The price was that it sat outside every gate,
+# and what is in it is not scratch work: `trm_watch.py` is what puts four sheets
+# and a progress bar on the television, and when it breaks the board goes stale
+# while still looking fine, which is the failure this project is worst at
+# noticing.
+#
+# So the gate reaches in when there is something to reach into, and says nothing
+# at all when there is not: a fresh clone has no `state/` and passes without a
+# word. This repository knows `state/` may exist. It does not know what is in
+# it — whatever Python is there is linted and type-checked, and whatever tests
+# are there are run.
+#
+# Two of this project's own gates are deliberately not pointed at it.
+# `ruff format --check` is house style, and `state/` is not this house.
+# `lint/house_lint.py` is more so: every rule in it is about this backend's
+# layers and this repository's ceilings, and the instance never agreed to them.
+# What is left — ruff's lint rules, mypy, and the tests — is the half that
+# catches a break rather than a preference.
+#
+# Found from a worktree as well as from the checkout, because there is one
+# `state/` on this machine and the worktrees are where the work happens. A gate
+# that only fires in the main checkout is a gate nobody runs, which is the same
+# as not having one.
+# ---------------------------------------------------------------------------
+STATE := $(firstword $(wildcard $(CURDIR)/state $(MAIN)/state))
+
+.PHONY: state
+ifeq ($(STATE),)
+state:
+	@echo "state: nothing here to gate (no state/ - this clone feeds no board yet)"
+else
+state:
+	@echo "state: gating $(STATE)"
+	cd backend && $(PYTHON) -m ruff check --config pyproject.toml $(STATE)
+	cd backend && MYPYPATH=../tools:../tools/mesh $(PYTHON) -m mypy --config-file pyproject.toml $(STATE)
+# pytest's own config, because `state/` has none and is not getting one; its
+# exit code 5 is "no tests here", which is a fresh instance and not a failure.
+# Nothing of pytest's is left behind in a directory this repository does not own.
+	cd backend && $(PYTHON) -m pytest -c pytest.ini -p no:cacheprovider $(STATE) || [ $$? = 5 ]
+endif
 
 # ---------------------------------------------------------------------------
 # What runs this board on a machine  (`units/`)
