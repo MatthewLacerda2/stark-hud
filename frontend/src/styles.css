@@ -445,6 +445,46 @@
   cursor: nwse-resize;
 }
 
+/* --------------------------------------------------------------------------
+   The space a held widget is about to take.
+
+   Drawn only while a pointer is held down on a widget, which is why it is
+   allowed to exist at all on a board whose rule is that nothing is added to the
+   screen to make something easier to move — the television has no pointer, so
+   this can never appear there. The whole argument is in `drop-preview.tsx`,
+   beside the component; this is only its paint.
+
+   Two colours and they mean two different things. `ring` is the grey the corner
+   grips above are drawn in: the pointer's business, no hue, no meaning spent.
+   `destructive` is the drop that will spring back, and there red means refused.
+
+   No transition and no animation. It follows the hand by being re-placed, so
+   easing it would make it lag the way `widget-settle` is taken off a held
+   widget — and a preview that does not move on its own is also the answer to
+   `prefers-reduced-motion`: there is nothing here to turn off.
+   -------------------------------------------------------------------------- */
+
+@utility drop-preview {
+  border-radius: var(--radius-lg);
+  /* Enough to read as a filled space over a moving video, and not so much that
+     it reads as a widget that is already there. */
+  background: color-mix(in oklab, var(--preview-ink) 20%, transparent);
+  /* The edge does the work at a glance; the fill says which rectangle it is.
+     Two pixels, the same weight as `widget-edge`, so the preview and a widget
+     with a border are the same object drawn at different strengths. */
+  border: 2px solid color-mix(in oklab, var(--preview-ink) 60%, transparent);
+}
+
+/* Where the widget will land. */
+@utility drop-preview-fits {
+  --preview-ink: var(--color-ring);
+}
+
+/* Where it will land because it is going home: the seat it came from. */
+@utility drop-preview-home {
+  --preview-ink: var(--color-destructive);
+}
+
 /* Text too tall for its widget drifts down and back, with a pause at each end.
    Nobody can scroll this screen, so the alternative is losing the bottom. */
 @keyframes node-scroll {

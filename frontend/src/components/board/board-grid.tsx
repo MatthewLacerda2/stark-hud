@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import type { Item, Notification, Origin } from "@/lib/schemas/board";
 import { updateItem } from "@/lib/api/board";
 import { ItemView } from "@/components/board/item-view";
+import { DropPreview } from "@/components/board/drop-preview";
 import { OriginCall } from "@/components/board/origin-call";
 import { WidgetWake } from "@/components/board/widget-wake";
 import { Slab } from "@/components/board/slab";
@@ -95,6 +96,12 @@ function widgetVars(item: Item): React.CSSProperties {
  * fall off the board — nothing arrives, `items` never changes, and the widget
  * snaps back to where it was.
  *
+ * A held widget is drawn where the pointer is, and the space it will take when
+ * the hand opens is drawn as a rectangle beside it — see `drop-preview.tsx`,
+ * which carries the argument for why the board draws anything for a gesture at
+ * all. It is the only thing a gesture puts on the screen, it exists only while
+ * a pointer is down, and there is no pointer on the television.
+ *
  * While a widget has the whole board the others stay exactly where they are and
  * draw almost nothing — see `drawn`. Nothing about the layout changes, so giving
  * the room back is one render and the board comes back as it was.
@@ -165,7 +172,7 @@ export function BoardGrid({
   // `items` is already the page that is showing, less whatever is folded away
   // inside a group on it — so it is exactly what a dragged widget can bump
   // into, and the gesture attaches to the gaps between them.
-  const { grab, placed, holding } = useWidgetDrag(
+  const { grab, placed, holding, landing } = useWidgetDrag(
     { cols, rows, width, height },
     persist,
     items,
@@ -198,7 +205,9 @@ export function BoardGrid({
                 "absolute p-1 depth-carry",
                 holding === item.id ? "cursor-grabbing" : "cursor-grab",
                 // Not while a pointer is holding it: a widget easing towards
-                // where the hand already is lags behind the hand.
+                // where the hand already is lags behind the hand. Letting go
+                // hands it back, which is what carries the widget the last
+                // quarter cell from the hand to the rectangle it was shown.
                 holding === item.id ? undefined : "widget-settle",
                 entranceClass(flight, going),
               )}
@@ -251,6 +260,17 @@ export function BoardGrid({
             </div>
           );
         })}
+
+        {/* Over the widgets rather than under them, which is what a resize
+            needs: there the preview sits exactly where the widget is, and
+            underneath it would be a rectangle nobody ever sees. It takes no
+            pointer, so nothing about the gesture running over it changes. */}
+        {landing ? (
+          <DropPreview
+            style={frame(landing.rect, cols, rows)}
+            fits={landing.fits}
+          />
+        ) : null}
 
         {/* Last in the coordinate space and so on top of every widget in it.
             A widget flying in from an edge is still travelling while its call
