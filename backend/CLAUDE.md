@@ -5,13 +5,23 @@ governs how we work; this file governs how this package is built.
 
 ## Layers
 
-`api/` (handlers) → `schemas/` (Pydantic I/O) → `services/` (rules) →
-`repositories/` (state).
+`api/` and `hud_mcp/` (the surfaces, one speaking HTTP and one MCP) →
+`services/` (rules) → `repositories/` (state), with `schemas/` (Pydantic I/O)
+and `core/` underneath everything, reaching for nothing.
 
 - **State lives only in `repositories/`.** There is no database — the board is a
-  dict in `repositories/board.py` — but the boundary is kept anyway. Nothing
-  outside that module reads or writes the store, so adding a `.hudtv` file later
-  is a rewrite of one file and nothing else.
+  dict in `repositories/board.py`, written out as a `.hud` file — but the
+  boundary is kept anyway, so changing how the board persists stays a rewrite of
+  one module and nothing else.
+- **A read may come straight from `repositories/`; a write goes through
+  `services/`.** A handler fetching the widget it is about to act on calls
+  `repo.get` directly, and every one of them always has: a pass-through function
+  per read would be a layer with no behaviour of its own, and reading does not
+  threaten the boundary above. Writing does — it is where the rules are applied
+  and where the television gets told — so a write goes through a service.
+  `lint/house_lint.py` rule 6 fails the build on a non-read call to a repository
+  from `api/` or `hud_mcp/`, which is why this paragraph cannot quietly stop
+  being true again.
 - **Placement rules live in `services/`.** `placement.py` decides where an item
   may sit; `board.py` composes that with the repository. Handlers stay thin.
 - All request/response bodies are Pydantic models. Payloads are a discriminated
