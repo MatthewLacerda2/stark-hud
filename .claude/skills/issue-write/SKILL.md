@@ -34,6 +34,23 @@ plainly: a key is unique 'by convention, not by constraint; the first match
 wins'"* — nobody has to re-derive that. #31 names the four gate commands and says
 which directory each one actually opens. "We should lint `tools/`" is worth less.
 
+**A cause is a hypothesis; say which half is which.** The rule above is about
+the *problem* — the file, the rule, the failing test. It is the half an issue can
+actually observe. The other half is the *diagnosis*, the reason the problem is
+happening, and that is the part most likely to be wrong and most likely to be
+believed anyway, because an issue reads with the authority of a decision. #133
+said `extrusion.tsx` rebuilt its clones "continuously, not at the 3 s cadence the
+data arrives at". It did not; two recharts animations nobody had turned off were
+moving the marks. The claim came from reading a profile and reasoning, and it was
+stated as fact.
+
+So name the cause — an issue that suppresses its best guess wastes it — but name
+it *as* a guess: say what it rests on, and tell the implementer to confirm it
+before building on it. "I think X, because Y; measure it first" costs one clause
+and is the difference between an agent that finds the real cause and one that
+rewrites a mechanism that was working. A diagnosis written as fact is obeyed: it
+is the one part of an issue nobody re-derives.
+
 **Say what it looks like.** This is a board on a television, and most work here is
 finally judged by looking at it. When a change is visible, describe what a person
 across the room sees afterwards. When it is not visible at all, say that too.

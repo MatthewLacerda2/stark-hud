@@ -131,7 +131,12 @@ Give it, in this order:
    polite way.
 4. **The siblings and their files.**
 5. **No docker builds, no deploy.** Say it plainly.
-6. **What to measure**, and what it is allowed to use to measure it.
+6. **What to measure**, and what it is allowed to use to measure it. If the
+   issue names a cause, hand it over as the **first thing to check, not the
+   thing to implement** — #133's stated cause was wrong, and the only reason it
+   ended well is that the brief said measure rather than trust. An agent that
+   confirms a diagnosis before building on it costs a few minutes; one that
+   inherits a wrong one ships a rewrite of something that worked.
 7. **What is out of scope**, stated once.
 
 Tell it to open a pull request and **not merge** — merging is the batch's job,
