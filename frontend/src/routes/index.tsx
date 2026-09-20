@@ -1,8 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { boardStatus } from "@/lib/api/board";
 import { Background } from "@/components/board/background";
 import { BoardGrid } from "@/components/board/board-grid";
 import { CommandBar } from "@/components/board/command-bar";
@@ -11,6 +9,7 @@ import { BloomFilter } from "@/components/board/bloom-filter";
 import { Stage } from "@/components/board/stage";
 import { LookMenu, type MenuAt } from "@/components/board/look-menu";
 import { useBoard } from "@/hooks/use-board";
+import { useGrid } from "@/hooks/use-grid";
 import { useLook } from "@/hooks/use-look";
 import { useSpeech } from "@/hooks/use-speech";
 import { onBoard } from "@/lib/groups";
@@ -25,8 +24,14 @@ import { cn } from "@/lib/utils";
  * no chrome: nothing here is meant to be clicked. The two exceptions appear only
  * where an input device already is — the command bar on a key, and the look
  * menu on the right mouse button.
+ *
+ * Exported so `components/board/first-frame.test.tsx` can render the page
+ * itself: what happens before the server has answered is a fact about this
+ * whole page, not about any piece of it. The router plugin says while the tests
+ * run that an export beside `Route` cannot be code-split. True, and it costs
+ * nothing: this board is one route, and the build already ships as one chunk.
  */
-function BoardPage() {
+export function BoardPage() {
   const { t } = useTranslation();
   const {
     items,
@@ -49,13 +54,10 @@ function BoardPage() {
   const look = useLook();
   const [menu, setMenu] = useState<MenuAt | null>(null);
   const closeMenu = useCallback(() => setMenu(null), []);
-  const status = useQuery({
-    queryKey: ["board", "status"],
-    queryFn: boardStatus,
-  });
-
-  const cols = status.data?.cols ?? 12;
-  const rows = status.data?.rows ?? 8;
+  // The grid the board is drawn on, or nothing until the server has said. The
+  // page draws no widget before it knows — see `use-grid.ts` for why there is
+  // no default to fall back on.
+  const grid = useGrid();
 
   // What is actually on the board: the page that is showing, less whatever is
   // folded away inside a group on it. An open group is a bracket rather than a
@@ -90,19 +92,21 @@ function BoardPage() {
         )}
       >
         <Stage depth={look.depth} still={covered}>
-          <BoardGrid
-            items={shown}
-            everything={items}
-            notifications={notifications}
-            wakes={wakes}
-            reloads={reloads}
-            origins={origins}
-            tape={look.tape}
-            bloom={look.bloom}
-            glass={look.depth.glass > 0}
-            cols={cols}
-            rows={rows}
-          />
+          {grid ? (
+            <BoardGrid
+              items={shown}
+              everything={items}
+              notifications={notifications}
+              wakes={wakes}
+              reloads={reloads}
+              origins={origins}
+              tape={look.tape}
+              bloom={look.bloom}
+              glass={look.depth.glass > 0}
+              cols={grid.cols}
+              rows={grid.rows}
+            />
+          ) : null}
         </Stage>
 
         {shown.length === 0 && connected ? (
