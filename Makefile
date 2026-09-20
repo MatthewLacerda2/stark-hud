@@ -91,7 +91,7 @@ endef
 # ---------------------------------------------------------------------------
 .PHONY: check gate hooks backend agent frontend
 check:
-	$(call heavy,backend agent frontend)
+	$(call heavy,backend agent units-lint frontend)
 
 # Fast enough to run on every commit: what a linter can say without compiling,
 # building or executing anything, plus `py-version`, which is two greps. The
@@ -101,7 +101,7 @@ check:
 # machine where the daemon is not up.
 gate:
 	@echo "gate: linters only, at load $(LOAD) on $(CORES) cores"
-	@$(MAKE) --no-print-directory py-version back-lint agent-lint front-quick
+	@$(MAKE) --no-print-directory py-version back-lint agent-lint units-lint front-quick
 
 hooks:
 	git config core.hooksPath .githooks
@@ -217,6 +217,77 @@ agent-lint:
 # nobody runs.
 agent-types:
 	cd backend && MYPYPATH=../tools $(PYTHON) -m mypy --config-file pyproject.toml ../tools
+
+# ---------------------------------------------------------------------------
+# What runs this board on a machine  (`units/`)
+#
+# The containers need no unit: `restart: unless-stopped` plus a docker daemon
+# enabled at boot is the whole of their autostart story. Two things are left,
+# and until now they lived only in one person's home directory, where nothing
+# reviewed them, nothing gated them, and a clone could not reproduce them —
+# which is how the agent's unit came to say the board was in memory two months
+# after the board became a file.
+#
+#   units/stark-hud-agent.service   the agent, as a systemd user service
+#   units/stark-hud.desktop         the kiosk, as an XDG autostart entry
+#
+# The kiosk is not a unit because it cannot be one: it needs the graphical
+# session, and an autostart entry is what starts after that session exists
+# rather than beside it. `tv-remote.service` is not here either, and that is a
+# decision rather than an oversight — it is the owner's own tool, it lives in
+# ~/.local/share/tv-video/, and it is not this board.
+#
+# Both are symlinked rather than copied, so the repository stays the copy of
+# record and an edit here is an edit there. The one thing the agent needs that
+# this repository must not hold — where the checkout is — is written into a
+# drop-in instead, beside the `orgs.conf` somebody wrote by hand for the same
+# reason. This file is public; a home directory and a LAN address are not.
+#
+# `$(MAIN)` and not `$(CURDIR)`: run from a worktree, this still points systemd
+# at the checkout the board runs from, rather than at a branch that will be
+# deleted next week.
+#
+# Point UNITS_DIR and AUTOSTART_DIR at a scratch directory and this installs
+# there and leaves systemd alone, which is how it is tested without touching a
+# running board.
+# ---------------------------------------------------------------------------
+UNITS_DIR     ?= $(HOME)/.config/systemd/user
+AUTOSTART_DIR ?= $(HOME)/.config/autostart
+DROP_IN        = $(UNITS_DIR)/stark-hud-agent.service.d
+
+.PHONY: units units-lint
+units:
+	@mkdir -p $(UNITS_DIR) $(DROP_IN) $(AUTOSTART_DIR)
+	ln -sfn $(MAIN)/units/stark-hud-agent.service $(UNITS_DIR)/stark-hud-agent.service
+	ln -sfn $(MAIN)/units/stark-hud.desktop $(AUTOSTART_DIR)/stark-hud.desktop
+	@printf '%s\n' \
+	  '# Written by `make units`, and not in the repository: where this checkout' \
+	  '# is, which belongs to this machine and to nobody else.' \
+	  '[Service]' \
+	  'WorkingDirectory=$(MAIN)' > $(DROP_IN)/10-checkout.conf
+	@if [ "$(UNITS_DIR)" = "$(HOME)/.config/systemd/user" ]; then \
+		systemctl --user daemon-reload; \
+		systemctl --user enable stark-hud-agent.service; \
+		echo "units: installed and enabled. The running agent is still the old one:"; \
+		echo "       systemctl --user restart stark-hud-agent   when the board can blink."; \
+	else \
+		echo "units: installed into $(UNITS_DIR) and $(AUTOSTART_DIR), systemd left alone."; \
+	fi
+
+# Both files are read by something that is not here when it is wrong: systemd at
+# boot, and the session manager at login. The kiosk's Exec line already went in
+# wrong once and was caught by this rather than by a television showing nothing.
+#
+# Each check is skipped when its tool is missing, because neither is worth a
+# dependency on a machine that only ever builds this repository — and both ship
+# with the desktop that runs the board.
+units-lint:
+	@if command -v systemd-analyze >/dev/null; then \
+		systemd-analyze --user verify units/stark-hud-agent.service; \
+	else echo "units-lint: no systemd-analyze here - unit not verified"; fi
+	@if command -v desktop-file-validate >/dev/null; then \
+		desktop-file-validate units/stark-hud.desktop; \
+	else echo "units-lint: no desktop-file-validate here - entry not verified"; fi
 
 # ---------------------------------------------------------------------------
 # Frontend gates  (run from frontend/, driven by $(BUN))

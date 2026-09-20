@@ -104,6 +104,20 @@ the repository's; a fresh clone has no `state/` and runs from
 `tools/sources.example.toml` until that is copied across. The agent re-reads it
 whenever it changes, so a new panel is a save rather than a restart.
 
+To keep it running across reboots:
+
+```bash
+make units                                 # the agent as a systemd user service,
+                                           # the kiosk as an autostart entry
+systemctl --user restart stark-hud-agent
+```
+
+The containers need nothing of their own: `restart: unless-stopped` and a docker
+daemon enabled at boot is the whole of their story. `make units` symlinks
+`units/` into `~/.config/systemd/user/` and `~/.config/autostart/`, and writes
+the one thing this repository must not hold — where the checkout is — into a
+drop-in beside the unit.
+
 `make check` is the only quality gate and the whole of it — there is no CI,
 so nothing catches a push whose gates were never run.
 

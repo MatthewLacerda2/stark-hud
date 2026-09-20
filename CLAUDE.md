@@ -153,6 +153,7 @@ exists while somebody remembers it, which is not a gate but a habit.
 ```
 make hooks      # once per clone. Points git at .githooks.
 make back-install  # once per clone too. Builds the venv at the project's Python.
+make units      # once per machine. Symlinks units/ into systemd and autostart.
 make front-install # once per clone as well. node_modules for the frontend gates.
 make gate       # fast: every linter, plus py-version. What pre-commit runs. ~9s
 make check      # everything. What pre-push runs. ~45s
@@ -201,6 +202,13 @@ hooks are files nobody calls: `core.hooksPath` is not set by cloning, and a
 repository that looks defended and is not is worse than one that never claimed
 to be. The template shipped a husky `pre-commit` that had never once run for
 exactly this reason.
+
+**What runs this board lives in `units/`.** The agent's systemd unit and the
+kiosk's autostart entry, installed by `make units`, which symlinks them so that
+the repository stays the copy of record and an edit here is an edit there.
+Anything a public repository should not hold — where the checkout is, which
+GitHub organisations the feed reads — is a drop-in beside the unit instead.
+`tv-remote` is the owner's own tool and is deliberately not here.
 
 `tools/` is inside the gates too. It is not part of the backend package — the
 agent is standard library only so cron can run it with no virtualenv — but it
