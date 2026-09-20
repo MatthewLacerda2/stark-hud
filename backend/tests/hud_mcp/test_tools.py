@@ -30,6 +30,7 @@ EXPECTED = {
     "add_to_list",
     "add_note",
     "add_progress",
+    "add_table",
     "add_text",
     "add_to_countdown",
     "add_to_group",

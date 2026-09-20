@@ -50,6 +50,9 @@ _DEFAULT_SIZES: dict[str, tuple[float, float]] = {
     # A strip: long enough for the fill to read as a proportion, and one row
     # and a bit for a title over the bar.
     "progress": (8, 1.5),
+    # Wide before tall: columns need room across, and a table too short for
+    # its rows scrolls rather than overflowing.
+    "table": (9, 7),
 }
 
 # Two edges that ought to meet arrive as sums of decimals, and 0.1 + 0.2 is not

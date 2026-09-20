@@ -28,6 +28,7 @@ from hud_mcp import (
     pages,
     progress,
     speech,
+    table,
     wake,
 )
 from hud_mcp.origin import OriginServer
@@ -144,6 +145,7 @@ def build_server() -> MCPServer:
     charts.register(server)
     countdowns.register(server)
     progress.register(server)
+    table.register(server)
     gantts.register(server)
     flows.register(server)
     layout.register(server)

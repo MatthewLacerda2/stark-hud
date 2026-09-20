@@ -16,6 +16,7 @@ import { Inbox } from "@/components/board/items/inbox";
 import { List } from "@/components/board/items/list";
 import { Note } from "@/components/board/items/note";
 import { Progress } from "@/components/board/items/progress";
+import { Table } from "@/components/board/items/table";
 import { Text } from "@/components/board/items/text";
 
 /** Render one item by kind. The union is exhaustive, so a new kind will not compile. */
@@ -44,6 +45,8 @@ export function ItemView({
       return <Text payload={payload} />;
     case "list":
       return <List id={item.id} payload={payload} />;
+    case "table":
+      return <Table id={item.id} payload={payload} />;
     case "box":
       return <Box payload={payload} />;
     case "image":

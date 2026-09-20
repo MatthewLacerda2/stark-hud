@@ -20,6 +20,7 @@ from schemas.icon import Icon
 from schemas.media import MediaPayload, MediaTrack
 from schemas.mesh import MeshPayload
 from schemas.progress import IconSide, ProgressPayload
+from schemas.table import Align, TableColumn, TablePayload
 
 
 class _Payload(BaseModel):
@@ -247,7 +248,8 @@ Payload = Annotated[
     | CountdownPayload
     | GanttPayload
     | FlowPayload
-    | ProgressPayload,
+    | ProgressPayload
+    | TablePayload,
     Field(discriminator="kind"),
 ]
 
@@ -257,6 +259,7 @@ Payload = Annotated[
 # payloads made of two further models — and all of them are named here because
 # this is where every layer already looks for a payload.
 __all__ = [
+    "Align",
     "BoxPayload",
     "ChartAxes",
     "ChartKind",
@@ -286,5 +289,7 @@ __all__ = [
     "NotePayload",
     "Payload",
     "ProgressPayload",
+    "TableColumn",
+    "TablePayload",
     "TextPayload",
 ]

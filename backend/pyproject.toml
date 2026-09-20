@@ -59,9 +59,13 @@ ignore_missing_imports = true
 
 # What `tools/` imports and this venv deliberately does not have. Pillow is a
 # dependency of `letterbox.py` alone, which is run with whichever python has it;
-# `bpy` and `mathutils` exist only inside Blender. `convert` is ours, but
-# `mesh/samples.py` reaches it by putting its own directory on sys.path at
-# import time, which is not a thing a type checker can follow.
+# `bpy` and `mathutils` exist only inside Blender. `convert` and `gpu` are ours,
+# but each is reached the way a script reaches the file beside it rather than as
+# part of a package — `mesh/samples.py` puts its own directory on sys.path at
+# import time, and a collector simply is run from `collectors/`, so `gpu` is a
+# top-level module there and nowhere else. Neither is a thing a type checker can
+# follow, and widening MYPYPATH to cover the second makes the two `__init__.py`
+# under `tools/` collide on the root module.
 [[tool.mypy.overrides]]
-module = ["PIL", "PIL.*", "bpy", "bpy.*", "mathutils", "convert"]
+module = ["PIL", "PIL.*", "bpy", "bpy.*", "mathutils", "convert", "gpu"]
 ignore_missing_imports = true

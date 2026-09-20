@@ -12,6 +12,7 @@ import {
   Rss,
   Square,
   StickyNote,
+  Table2,
   Timer,
   Type,
   Workflow,
@@ -49,6 +50,7 @@ const GLYPH: Record<
   feed: Rss,
   // A bar part filled, which is all a progress bar is.
   progress: BatteryMedium,
+  table: Table2,
   // A group never holds a group, so this is only ever the fallback a folded
   // group draws for itself when it is holding nothing at all.
   group: Square,
