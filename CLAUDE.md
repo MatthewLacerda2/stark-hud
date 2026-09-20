@@ -169,6 +169,16 @@ a version bump it is whatever it was when it was made, and a gate quietly
 running on last year's Python describes a program nobody runs. If it tells you
 to, run `make back-install`.
 
+**A gate says what load it ran at, and heavy ones queue.** `make check`,
+`backend`, `agent` and `frontend` take a `flock` under `/tmp` — the machine is
+the contended resource, not the checkout — so two of them run one after another
+and a second arrival says it is waiting. Every run prints the load average at
+its start and its finish, because a result is evidence only if you know what it
+was taken under: a red test at load 12 is a re-run, not a diagnosis. `make gate`
+stays outside the lock deliberately; it is linters only, none of them has a
+clock, so none of them can go red for being busy, and `pre-commit` must not wait
+on somebody else's test suite.
+
 `back-build` builds the container, because that is what the backend ships as. It
 used to be `python -c "import main"`, which four test modules already do — a
 gate that proved nothing and was believed because of its name. It is cached, so
