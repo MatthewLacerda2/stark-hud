@@ -238,3 +238,77 @@ def illegal(items: list[ItemRead], cols: int, rows: int) -> str | None:
             f"{b.payload.kind} {b.id} at ({cells(b.x)},{cells(b.y)}) would be in the same place"
         )
     return None
+
+
+# One widget standing where another is, and how far into it: the two widgets
+# and the width and height of the rectangle they share. Enough to tell a hair
+# from a real collision, which is the whole reason the amount is carried.
+type Clash = tuple[ItemRead, ItemRead, float, float]
+
+
+def into(a: ItemRead, b: ItemRead) -> tuple[float, float] | None:
+    """How far these two are into each other, or ``None`` when they are not.
+
+    Both axes, because an overlap is a rectangle and the two numbers say
+    different things: a quarter of a column across the full height of a widget
+    is a nudge, and half of each is a widget in the wrong place. ``illegal``
+    only ever has to answer yes or no, so it says nothing about the amount —
+    and a caller deciding whether to move something or to go back and ask
+    cannot act on yes.
+    """
+    dx = min(a.x + a.w, b.x + b.w) - max(a.x, b.x)
+    dy = min(a.y + a.h, b.y + b.h) - max(a.y, b.y)
+    return (dx, dy) if dx > _EPS and dy > _EPS else None
+
+
+def clashes(coming: list[ItemRead], standing: list[ItemRead]) -> list[Clash]:
+    """Every widget here that is in the way of one that is coming back.
+
+    Every pair, not the first: a fold that four widgets have drifted into is
+    four things to deal with, and learning them one refusal at a time is four
+    trips to the board with the television watching.
+    """
+    return [
+        (a, b, *both)
+        for a in coming
+        for b in standing
+        if a.id != b.id and (both := into(a, b)) is not None
+    ]
+
+
+def crowding(found: list[Clash]) -> str:
+    """Those clashes as a sentence, each with the room it is short by."""
+    return "; ".join(
+        f"{b.payload.kind} {b.id} is {size(dx, dy)} into where {a.payload.kind} {a.id} "
+        f"comes back at ({cells(a.x)},{cells(a.y)})"
+        for a, b, dx, dy in found
+    )
+
+
+class UnfoldBlockedError(NoRoomError):
+    """Raised when a group cannot open because its room is occupied.
+
+    Here rather than in ``services.groups`` for the same reason ``NoRoomError``
+    is: it is a statement about rectangles. What it adds is that it names every
+    widget in the way and by how much, so the caller can tell a sliver from a
+    collision and decide — nudge the one widget and unfold in a single
+    ``arrange``, or go back and say the room is spoken for.
+    """
+
+    def __init__(self, group_id: str, found: list[Clash]) -> None:
+        self.group_id = group_id
+        self.found = found
+        count = "1 widget is" if len(found) == 1 else f"{len(found)} widgets are"
+        super().__init__(
+            f"Not unfolded: {count} in the room {group_id} needs back — {crowding(found)}. "
+            f"Move or remove what is in the way, or send the move and the unfold as one arrange."
+        )
+
+    def extra(self) -> dict[str, object]:
+        """Every blocker with the overlap that makes it one."""
+        return {
+            "group": self.group_id,
+            "blockers": [
+                {"id": b.id, "over": a.id, "overlap": [dx, dy]} for a, b, dx, dy in self.found
+            ],
+        }

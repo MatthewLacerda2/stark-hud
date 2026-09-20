@@ -126,3 +126,78 @@ async def test_removing_a_folded_group_is_judged_with_its_widgets_back_on_the_bo
         await arrange.rearrange([Change(target=folded.id, remove=True)])
 
     assert repo.get(folded.id) is not None
+
+
+async def _held(*notes):
+    """A folded group holding these widgets."""
+    group = await service.create(ItemCreate(payload=GroupPayload()))
+    await groups.gather(group, list(notes))
+    return await groups.fold(repo.get(group.id))
+
+
+async def test_one_batch_nudges_the_widget_in_the_way_and_unfolds():
+    """The case the field exists for, and the reason it is one call.
+
+    A quarter of a column of overlap should not cancel what the user asked for.
+    Two calls would show the television the nudge, then the unfold; one shows
+    it the board that was asked for.
+    """
+    corner, room = await _note(0, 0, 4, 3), await _note(16, 0, 8, 6)
+    group = await _held(corner, room)
+    calendar = await _note(23.75, 0, 8, 6)  # a quarter of a column into the room
+
+    await arrange.rearrange(
+        [Change(target=calendar.id, x=24), Change(target=group.id, folded=False)]
+    )
+
+    assert repo.get(group.id).payload.state == "open"
+    assert (repo.get(calendar.id).x, repo.get(room.id).x) == (24, 16)
+
+
+async def test_a_batch_that_does_not_clear_the_room_is_refused_whole():
+    """Judged on the arrangement it produces, like everything else here."""
+    corner, room = await _note(0, 0, 4, 3), await _note(16, 0, 8, 6)
+    group = await _held(corner, room)
+    calendar = await _note(23.75, 0, 8, 6)
+
+    with pytest.raises(NoRoomError) as excinfo:
+        await arrange.rearrange(
+            [Change(target=calendar.id, x=23.9), Change(target=group.id, folded=False)]
+        )
+
+    assert f"{calendar.id} is 0.1x6 into" in str(excinfo.value)
+    assert (repo.get(calendar.id).x, repo.get(group.id).payload.state) == (23.75, "folded")
+
+
+async def test_a_batch_folds_a_group_where_the_same_batch_put_its_widgets():
+    """A fold lands where its widgets are, which may be where this batch moved them."""
+    note = await _note(0, 0, 4, 3)
+    group = await service.create(ItemCreate(payload=GroupPayload()))
+    await groups.gather(group, [note])
+
+    await arrange.rearrange(
+        [Change(target=note.id, x=12, y=6), Change(target=group.id, folded=True)]
+    )
+
+    folded = repo.get(group.id)
+    assert (folded.payload.state, folded.x, folded.y) == ("folded", 12, 6)
+
+
+async def test_a_fold_that_names_a_place_folds_there():
+    """An entry is where a widget ends up, so an entry that says is not overruled."""
+    note = await _note(0, 0, 4, 3)
+    group = await service.create(ItemCreate(payload=GroupPayload()))
+    await groups.gather(group, [note])
+
+    await arrange.rearrange([Change(target=group.id, folded=True, x=28, y=15)])
+
+    folded = repo.get(group.id)
+    assert (folded.x, folded.y) == (28, 15)
+
+
+async def test_only_a_group_can_be_folded_by_a_batch():
+    """``folded`` on a note is a caller that has the wrong widget, not a no-op."""
+    note = await _note(0, 0, 4, 3)
+
+    with pytest.raises(groups.NotAGroupError):
+        await arrange.rearrange([Change(target=note.id, folded=True)])

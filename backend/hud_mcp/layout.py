@@ -6,7 +6,7 @@ from mcp.server.mcpserver import MCPServer
 from pydantic import ValidationError
 
 from core.refusal import BoardRefusal
-from hud_mcp.common import DESTRUCTIVE, carried, describe
+from hud_mcp.common import DESTRUCTIVE, carried, describe, room_wanted
 from repositories import board as repo
 from schemas.board import Arrangement, Change, ItemUpdate
 from services import arrange as arrange_service
@@ -31,7 +31,12 @@ def register(server: MCPServer) -> None:
             updated = await service.update(item, data)
         except SlotTakenError as exc:
             return f"Not {verb}: {exc}"
-        return f"{verb.capitalize()} {describe(updated)}"
+        line = f"{verb.capitalize()} {describe(updated)}"
+        # Only a move or a resize can come to stand in a fold's room. A restyle
+        # cannot, and the same note on every set_style would be noise.
+        if any(v is not None for v in (data.x, data.y, data.w, data.h)):
+            line += room_wanted([updated.id])
+        return line
 
     @server.tool()
     async def move_item(item_id: str, x: float, y: float) -> str:
@@ -58,6 +63,15 @@ def register(server: MCPServer) -> None:
         and which page a widget is on are trades, made by `add_to_group` and
         `move_to_page`, not fields an arrangement writes.
 
+        `{"target": "training", "folded": false}` opens a group and `true`
+        closes one, in the same batch as everything else: "move the calendar
+        half a column left, take the video off, and open the training widgets"
+        is one call and one cut on the television rather than three with the
+        room watching in between. A group folds where its widgets are, unless
+        the same entry names a place of its own. If something is still standing
+        in the room an unfold needs back, nothing in the batch happens and the
+        refusal names every blocker and how far into that room it is.
+
         An arrangement may name widgets on a page that is not showing, and each
         page it touches has to end up a board somebody could turn back to.
 
@@ -77,7 +91,8 @@ def register(server: MCPServer) -> None:
             return f"Not rearranged: {exc.error_count()} bad change(s) — {exc.errors()[0]['msg']}"
         except BoardRefusal as exc:
             return str(exc)
-        return "Rearranged:\n" + "\n".join(describe(i) for i in items)
+        board = "Rearranged:\n" + "\n".join(describe(i) for i in items)
+        return board + room_wanted([c.target for c in batch.changes])
 
     @server.tool()
     async def resize_item(item_id: str, w: float, h: float) -> str:
