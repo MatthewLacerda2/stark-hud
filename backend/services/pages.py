@@ -33,6 +33,7 @@ __all__ = [
     "GroupSplitError",
     "NoRoomError",
     "drawn",
+    "named",
     "names",
     "on",
     "send",
@@ -64,14 +65,14 @@ def _grid() -> tuple[int, int]:
     return settings.GRID_COLS, settings.GRID_ROWS
 
 
-def _named(page: str) -> str:
+def named(page: str | None) -> str:
     """The page a caller means. No name at all means the one the board starts on.
 
     Spelled this way rather than refused because the common case is coming back:
     a session that has turned the board to something and wants the ordinary
     board again should not have to remember what it is called.
     """
-    return page.strip() or DEFAULT_PAGE
+    return (page or "").strip() or DEFAULT_PAGE
 
 
 def showing() -> str:
@@ -117,7 +118,7 @@ async def show(page: str) -> list[ItemRead]:
     The board comes back whole because the one event this sends carries it
     whole, and the television cuts rather than dealing widgets out one by one.
     """
-    repo.set_showing(_named(page))
+    repo.set_showing(named(page))
     board = repo.list_items()
     await events.arranged(board)
     return board
@@ -147,7 +148,7 @@ async def send(items: list[ItemRead], page: str) -> list[ItemRead]:
     it. The answer is the same as everywhere else on this board: make room on
     the far page with ``arrange``, then send.
     """
-    name = _named(page)
+    name = named(page)
     going = {i.id: i.model_copy(update={"page": name}) for i in _whole(items)}
     proposed = [going.get(i.id, i) for i in repo.list_items()]
 

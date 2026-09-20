@@ -71,8 +71,9 @@ def add(
     item = ItemRead(
         id=uuid.uuid4().hex[:12],
         key=key,
-        # A new widget lands on the page that is showing, which is the only page
-        # anybody is looking at while they ask for it.
+        # A new widget lands on the page it was born on. Given none, that is the
+        # page showing, which is the only page anybody is looking at while they
+        # ask for it — and why a writer that is not looking says which.
         page=page if page is not None else _showing,
         description=description,
         color=color,

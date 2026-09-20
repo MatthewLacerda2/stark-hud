@@ -176,3 +176,24 @@ def test_a_file_that_vanishes_leaves_the_board_as_it_was(tmp_path):
     path.unlink()
 
     assert [source.name for source in declared.refresh()] == ["cpu"]
+
+
+def test_a_source_declaring_no_page_leaves_the_board_to_say_where_its_panel_goes():
+    """The compatibility claim, against the file a fresh clone actually runs.
+
+    Every source written before a source could name a page leaves it out, and a
+    source that leaves it out sends nothing — so the board decides for it,
+    exactly as the board always did.
+    """
+    declared = Declared(EXAMPLE_CONFIG).refresh()
+    quiet = [source for source in declared if "page" not in source.spec]
+
+    assert quiet and all(source.page == "" for source in quiet)
+    assert [source.name for source in declared if source.page] == ["disk"]
+
+
+def test_a_page_written_with_spaces_around_it_is_the_page_without_them(tmp_path):
+    """A name is a name. Two pages differing by a typed space is a panel lost."""
+    declared = Declared(_file(tmp_path, CPU.replace("every = 3", 'page = " machine "')))
+
+    assert declared.refresh()[0].page == "machine"

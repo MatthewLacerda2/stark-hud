@@ -20,6 +20,13 @@
 #   json_path       optional, for URLs: a dotted path to dig into the response.
 #   panel           the item to write. Anything the board accepts.
 #   place           optional x/y/w/h in grid cells; omit to let the board choose.
+#   page            optional. Which page the panel belongs on. Omit and it goes
+#                   on the board's default page — never on whichever page
+#                   happened to be showing the first time the panel was written,
+#                   which is what a board turned to something else for an
+#                   evening used to build its own furniture into. Only the first
+#                   write is placed, here as with `place`, so moving a panel to
+#                   another page by hand afterwards sticks.
 #
 # What a source leaves out decides what it is. With a `panel` it is one widget,
 # rewritten each time it runs — and with no command either, a widget that only
@@ -81,6 +88,23 @@ command = "python3 {collectors}/tmux_sessions.py"
 every = 20
 place = { x = 0, y = 7, w = 12, h = 5 }
 panel = { kind = "list", title = "tmux", empty = "nenhuma sessão" }
+
+
+# A panel that belongs somewhere other than the board's own page. The grid is
+# 32x18 and full long before everything worth watching has a corner, so a
+# reading kept for when it is wanted lives on a page of its own and costs the
+# ordinary board nothing. It is fed the whole time it is out of sight: turning
+# to `machine` shows what is true now, not what was true when you last looked.
+#
+# The page is not created anywhere. A page is nothing but a name its widgets
+# carry, so declaring one here is all there is to it.
+[[source]]
+name = "disk"
+command = "df -h --output=target,pcent / /home"
+every = 300
+page = "machine"
+place = { x = 0, y = 0, w = 10, h = 4 }
+panel = { kind = "note", title = "disk" }
 
 
 # Two minutes: each pass is one call per feed plus one per push to fetch the

@@ -150,7 +150,7 @@ def _grid() -> tuple[int, int]:
     return settings.GRID_COLS, settings.GRID_ROWS
 
 
-def _resolve(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> Placement:
+def _resolve(data: ItemCreate | ItemUpdate, current: ItemRead | None, born: str = "") -> Placement:
     """Work out where an item goes, honouring explicit coordinates when given.
 
     Only what is on the board is in the way, which is not everything that
@@ -161,11 +161,13 @@ def _resolve(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> Placeme
 
     The page judged against is the widget's own, never the one showing: a panel
     written every few seconds while its page is put away has to be measured
-    against the board it will come back to.
+    against the board it will come back to. A widget that does not exist yet has
+    no page of its own, so it is measured against the one it is being born on —
+    which is ``born`` when its creator named one, and otherwise the one showing.
     """
     cols, rows = _grid()
     everything = repo.list_items()
-    page = current.page if current else pages.showing()
+    page = current.page if current else born or pages.showing()
     dw, dh = default_size(data.payload) if data.payload else (3.0, 2.0)
 
     w = data.w if data.w is not None else (current.w if current else dw)
@@ -215,7 +217,13 @@ def _described(data: ItemCreate | ItemUpdate, current: ItemRead | None) -> str |
 
 
 async def create(data: ItemCreate) -> ItemRead:
-    """Add an item on the page that is showing, auto-placing it when asked to.
+    """Add an item on the page it is born on, auto-placing it when asked to.
+
+    Which page that is, in order: the group it is joining, since a group and its
+    widgets are one thing on one board; then the page the creation named; then
+    the page that is showing. The last of those is right for a session adding a
+    widget to the board it is looking at, and it is exactly what a writer that
+    cannot see the television must not be given — so such a writer names one.
 
     A widget created straight into a group never passes through ``gather``, so
     the one check that would have made is made here instead.
@@ -226,7 +234,11 @@ async def create(data: ItemCreate) -> ItemRead:
     """
     _claim(data.key, None)
     parent = groups.joining(data.parent_id) if data.parent_id else None
-    place = _resolve(data, None)
+    if parent is not None:
+        born = parent.page
+    else:
+        born = pages.named(data.page) if data.page else ""
+    place = _resolve(data, None, born)
     item = repo.add(
         data.payload,
         place.x,
@@ -235,9 +247,7 @@ async def create(data: ItemCreate) -> ItemRead:
         place.h,
         parent_id=data.parent_id,
         key=data.key,
-        # A widget in a group is on the group's page, whatever is showing: the
-        # two are one thing on one board.
-        page=parent.page if parent is not None else None,
+        page=born or None,
         # These were accepted by the schema and then dropped here, so a widget
         # created with a colour came out with none until something updated it.
         color=data.color,
