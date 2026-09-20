@@ -161,6 +161,7 @@ make backend    # py-version + back-lint + back-types + back-test + back-build
 make agent      # agent-lint + agent-types over tools/
 make state      # ruff + mypy + the tests in state/, when this machine has one
 make frontend   # front-lint + front-dead + front-build + front-theme + front-test
+make perf       # not a gate: what the board costs. See `tools/perf/`.
 ```
 
 **The project runs one Python, and the `Makefile` names it once.**
