@@ -115,6 +115,25 @@ async def test_a_model_can_be_set_to_swing_instead_of_turn(server: MCPServer) ->
     assert payload(item_id).sweep == 60.0
 
 
+async def test_parts_can_be_set_turning_and_stopped(server: MCPServer) -> None:
+    """A fan turns on its own; an empty set is how it stops."""
+    item_id = await a_mesh(server)
+    said = await call(server, "set_mesh", target=item_id, rotors={"fan_*": 1.5})
+    assert "1 rotors" in said
+    assert payload(item_id).rotors == {"fan_*": 1.5}
+    assert payload(item_id).spin == 0.08  # The turntable is untouched.
+    await call(server, "set_mesh", target=item_id, rotors={})
+    assert payload(item_id).rotors is None
+
+
+async def test_a_rotor_too_fast_to_read_is_refused(server: MCPServer) -> None:
+    """Past a few turns a second the eye sees the blades going backwards."""
+    item_id = await a_mesh(server)
+    said = await call(server, "set_mesh", target=item_id, rotors={"fan": 30})
+    assert said.startswith("Not set")
+    assert payload(item_id).rotors is None
+
+
 async def test_saying_nothing_changes_nothing(server: MCPServer) -> None:
     """And says which words would have worked."""
     said = await call(server, "color_mesh", target=await a_mesh(server))

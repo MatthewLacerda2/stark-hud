@@ -35,6 +35,11 @@ export interface MeshPayload {
   colors: Record<string, string> | null;
   /** A colour running through the model, over and over, or null for none. */
   wave: MeshWave | null;
+  /**
+   * Parts that turn on their own axle, in turns per second, keyed like
+   * `colors`. The axle is the part's middle and the axis it is thinnest along.
+   */
+  rotors: Record<string, number> | null;
 }
 
 /** A colour travelling through a model: which way, how fast, and through what. */

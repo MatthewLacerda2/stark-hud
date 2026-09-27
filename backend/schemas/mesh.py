@@ -13,7 +13,7 @@ downloaded model is a hundred thousand; none of that belongs in a board file
 that is rewritten every few seconds.
 """
 
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -31,6 +31,11 @@ from schemas.colour import Colour
 #   rather than a gap: on a model whose loop is a ring of parts around a shaft,
 #   this lights the ring and leaves the shaft alone.
 WaveMode = Literal["stack", "loop"]
+
+# How fast a part may turn on its own axle, in turns per second. Low on purpose:
+# at sixty frames a second a seven-bladed fan past a few turns a second moves
+# more than a blade's width per frame, and the eye reads it as turning backwards.
+RotorSpeed = Annotated[float, Field(ge=-4.0, le=4.0)]
 
 
 class MeshWave(BaseModel):
@@ -114,6 +119,14 @@ class MeshPayload(BaseModel):
     # A colour travelling through the model, or None for a wireframe that just
     # sits there in one colour.
     wave: MeshWave | None = None
+    # Parts that turn about their own axle while the model turns on its
+    # turntable — a fan, a wheel, a rotor — keyed by name or glob the way
+    # ``colors`` is, in turns per second. The axle is not stored because it is
+    # not asked for: a part turns about its own middle and about the axis it is
+    # thinnest along, which for anything flat and round is the axle. A part with
+    # no thin side, like a two-bladed propeller with no hub, has no clear axle
+    # and will turn about whichever the browser picks.
+    rotors: dict[str, RotorSpeed] | None = None
 
 
 class MeshPart(BaseModel):

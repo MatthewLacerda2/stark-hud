@@ -8,7 +8,6 @@ import {
   bandAt,
   boundsOf,
   camera,
-  colourFor,
   depthAt,
   fadeAt,
   heading,
@@ -16,7 +15,10 @@ import {
   phases,
   project,
   rampAt,
+  ruleFor,
   reachOf,
+  rotorsOf,
+  turnAbout,
 } from "@/lib/mesh";
 
 function part(name: string, center: number[], verts: number[]): MeshPart {
@@ -321,31 +323,31 @@ describe("rampAt", () => {
   });
 });
 
-describe("colourFor", () => {
+describe("ruleFor", () => {
   it("matches a part by name", () => {
-    expect(colourFor("embed", { embed: "accent" })).toBe("accent");
+    expect(ruleFor("embed", { embed: "accent" })).toBe("accent");
   });
 
   it("matches a glob across many parts", () => {
-    expect(colourFor("encoder_3", { "encoder_*": "chart-2" })).toBe("chart-2");
+    expect(ruleFor("encoder_3", { "encoder_*": "chart-2" })).toBe("chart-2");
   });
 
   it("lets the longest pattern win, whatever order they were written in", () => {
     // So a name always beats a wildcard without anybody having to think about
     // which rule they wrote first.
     const rules = { "*": "muted", "encoder_*": "chart-2", encoder_3: "accent" };
-    expect(colourFor("encoder_3", rules)).toBe("accent");
-    expect(colourFor("encoder_4", rules)).toBe("chart-2");
-    expect(colourFor("head", rules)).toBe("muted");
+    expect(ruleFor("encoder_3", rules)).toBe("accent");
+    expect(ruleFor("encoder_4", rules)).toBe("chart-2");
+    expect(ruleFor("head", rules)).toBe("muted");
   });
 
   it("anchors a glob at both ends", () => {
-    expect(colourFor("my_encoder_3", { "encoder_*": "chart-2" })).toBeNull();
+    expect(ruleFor("my_encoder_3", { "encoder_*": "chart-2" })).toBeNull();
   });
 
   it("says nothing when a widget names no colours at all", () => {
-    expect(colourFor("embed", null)).toBeNull();
-    expect(colourFor("embed", {})).toBeNull();
+    expect(ruleFor("embed", null)).toBeNull();
+    expect(ruleFor("embed", {})).toBeNull();
   });
 });
 
@@ -378,5 +380,45 @@ describe("heading", () => {
   it("swings the other way for a negative spin, and holds still at zero", () => {
     expect(heading(10, -0.05, 60)).toBeCloseTo(-(60 * Math.PI) / 180);
     expect(heading(10, 0, 60)).toBe(0);
+  });
+});
+
+describe("rotorsOf", () => {
+  // A flat square in the x-z plane, centred off the origin: a fan lying down.
+  const fan = part(
+    "gpu_fan_1",
+    [0.2, 0.1, 0],
+    [0.1, 0.1, -0.1, 0.3, 0.1, -0.1, 0.3, 0.1, 0.1, 0.1, 0.1, 0.1],
+  );
+
+  it("turns a named part about the axis it is thinnest along", () => {
+    const [rotor] = rotorsOf([fan], { "gpu_fan_*": 1.5 });
+    expect(rotor).toEqual({ speed: 1.5, axle: 1, pivot: [0.2, 0.1, 0] });
+  });
+
+  it("leaves a part nobody named alone", () => {
+    expect(rotorsOf([fan], { top_fan: 1 })).toEqual([null]);
+    expect(rotorsOf([fan], null)).toEqual([null]);
+  });
+});
+
+describe("turnAbout", () => {
+  const rotor = {
+    speed: 1,
+    axle: 1,
+    pivot: [0.2, 0.1, 0] as [number, number, number],
+  };
+
+  it("swings a point round the pivot, square to the axle", () => {
+    // A quarter turn about the upright: a point out along x ends up on the
+    // z axis through the pivot, and its height stays put.
+    const [x, y, z] = turnAbout([0.3, 0.5, 0], rotor, 0, 1);
+    expect(x).toBeCloseTo(0.2);
+    expect(y).toBeCloseTo(0.5);
+    expect(z).toBeCloseTo(-0.1);
+  });
+
+  it("leaves the pivot where it is", () => {
+    expect(turnAbout([0.2, 0.1, 0], rotor, 0.6, 0.8)).toEqual([0.2, 0.1, 0]);
   });
 });

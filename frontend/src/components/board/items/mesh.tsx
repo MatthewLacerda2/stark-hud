@@ -8,12 +8,14 @@ import {
   bandFade,
   BANDS,
   camera,
-  colourFor,
   heading,
   layout,
   phases,
   project,
   rampAt,
+  rotorsOf,
+  ruleFor,
+  turnAbout,
 } from "@/lib/mesh";
 
 /** How wide the halo pass is drawn, against the bright pass over it. */
@@ -236,7 +238,7 @@ function spin(
   // does, and resolving a token means a getComputedStyle, which is a layout
   // read no frame should be doing.
   const pinned = wire.parts.map((part) => {
-    const rule = colourFor(part.name, payload.colors);
+    const rule = ruleFor(part.name, payload.colors);
     if (rule === null) return null;
     const [r, g, b] = inkOf(element, read, rule, base);
     return `rgb(${r} ${g} ${b})`;
@@ -250,6 +252,7 @@ function spin(
   // allocating a few hundred objects sixty times a second, which is a garbage
   // collector pause on a television every few seconds.
   const screen = wire.parts.map((part) => new Float32Array(part.verts.length));
+  const rotors = rotorsOf(wire.parts, payload.rotors);
 
   let frame = 0;
   let width = 0;
@@ -298,16 +301,23 @@ function spin(
     // Every point, once, into the scratch arrays: x and y in pixels and the
     // depth it landed at. Both passes below read these, so a point is never
     // projected twice.
+    //
+    // A rotor's points are turned about its own axle first, before the explode
+    // offset and the camera, so a fan spins in place wherever the part has
+    // been pushed to and however the model is facing.
     wire.parts.forEach((part, at) => {
       const out = screen[at];
       const [dx, dy, dz] = moved[at];
+      const rotor = rotors[at];
+      const turned = rotor
+        ? ((now - started) / 1000) * rotor.speed * Math.PI * 2
+        : 0;
+      const cos = Math.cos(turned);
+      const sin = Math.sin(turned);
       for (let i = 0; i < part.verts.length; i += 3) {
-        const p = project(
-          part.verts[i] + dx,
-          part.verts[i + 1] + dy,
-          part.verts[i + 2] + dz,
-          cam,
-        );
+        let [x, y, z] = [part.verts[i], part.verts[i + 1], part.verts[i + 2]];
+        if (rotor) [x, y, z] = turnAbout([x, y, z], rotor, cos, sin);
+        const p = project(x + dx, y + dy, z + dz, cam);
         out[i] = p.sx;
         out[i + 1] = p.sy;
         out[i + 2] = p.depth;

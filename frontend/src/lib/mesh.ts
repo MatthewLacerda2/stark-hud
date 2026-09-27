@@ -404,7 +404,7 @@ export function rampAt(
 }
 
 /**
- * Which of a widget's colour rules applies to a part, if any.
+ * Which of a widget's rules applies to a part, if any — a colour, a rotor.
  *
  * Keys may be globs, and the rule that spells out the most wins — so
  * `refine_block` beats `refine_*` beats `*`, whatever order they were written
@@ -413,17 +413,17 @@ export function rampAt(
  * naming a part unable to override the glob that covered it, which is the one
  * thing anybody writes a second rule for.
  */
-export function colourFor(
+export function ruleFor<T>(
   name: string,
-  rules: Record<string, string> | null | undefined,
-): string | null {
+  rules: Record<string, T> | null | undefined,
+): T | null {
   if (!rules) return null;
-  let best: string | null = null;
+  let best: T | null = null;
   let spelt = -1;
-  for (const [pattern, colour] of Object.entries(rules)) {
+  for (const [pattern, value] of Object.entries(rules)) {
     const literal = pattern.replace(/[*?]/g, "").length;
     if (literal > spelt && globMatches(pattern, name)) {
-      best = colour;
+      best = value;
       spelt = literal;
     }
   }
@@ -435,4 +435,64 @@ function globMatches(pattern: string, name: string): boolean {
   const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&");
   const expr = escaped.replace(/\*/g, ".*").replace(/\?/g, ".");
   return new RegExp(`^${expr}$`).test(name);
+}
+
+/** A part turning on its own axle: how fast, about which axis, through where. */
+export interface Rotor {
+  /** Turns per second. */
+  speed: number;
+  /** 0, 1 or 2: the axis — x, y or z — the part turns about. */
+  axle: number;
+  pivot: Vec3;
+}
+
+/**
+ * Which parts turn on their own, and about what.
+ *
+ * The axle is worked out rather than asked for. A part turns about its own
+ * middle — the mean of its points, which for blades set evenly round a hub is
+ * exactly the axle — and about the axis it is thinnest along, which for
+ * anything flat and round (a fan, a wheel, a disc) is the one it spins on.
+ */
+export function rotorsOf(
+  parts: MeshPart[],
+  rules: Record<string, number> | null | undefined,
+): (Rotor | null)[] {
+  return parts.map((part) => {
+    const speed = ruleFor(part.name, rules);
+    if (!speed) return null;
+    const low = [Infinity, Infinity, Infinity];
+    const high = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < part.verts.length; i += 3)
+      for (let k = 0; k < 3; k++) {
+        low[k] = Math.min(low[k], part.verts[i + k]);
+        high[k] = Math.max(high[k], part.verts[i + k]);
+      }
+    const span = high.map((h, k) => h - low[k]);
+    const axle = span.indexOf(Math.min(...span));
+    const [x, y, z] = part.center;
+    return { speed, axle, pivot: [x, y, z] };
+  });
+}
+
+/**
+ * A point of a rotor's part, turned `cos`/`sin` of the way round its axle.
+ *
+ * The caller works out the angle once per part per frame; this is the per-point
+ * half, a rotation in the plane square to the axle, about the pivot.
+ */
+export function turnAbout(
+  point: Vec3,
+  rotor: Rotor,
+  cos: number,
+  sin: number,
+): Vec3 {
+  const a = (rotor.axle + 1) % 3;
+  const b = (rotor.axle + 2) % 3;
+  const u = point[a] - rotor.pivot[a];
+  const v = point[b] - rotor.pivot[b];
+  const out: Vec3 = [point[0], point[1], point[2]];
+  out[a] = rotor.pivot[a] + u * cos - v * sin;
+  out[b] = rotor.pivot[b] + u * sin + v * cos;
+  return out;
 }

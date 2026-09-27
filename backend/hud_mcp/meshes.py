@@ -121,11 +121,23 @@ def register(server: MCPServer) -> None:
         tilt: float | None = None,
         explode: float | None = None,
         sweep: float | None = None,
+        rotors: dict | None = None,
     ) -> str:
         """Change how a model turns, leans, or comes apart.
 
         `sweep` is degrees each way for a model that should swing rather than
         go round (see add_mesh); 0 puts it back on the turntable.
+
+        `rotors` makes parts turn on their own while the model turns — a fan, a
+        wheel — keyed by part name, globs allowed as in color_mesh, in turns
+        per second (at most 4 either way; faster reads as turning backwards):
+
+            rotors={"gpu_fan_*": 1.5, "top_fan": -1}
+
+        A part turns about its own middle and about the axis it is thinnest
+        along, so model a rotor as its own part, flat and round (blades on a
+        hub), with anything that stays still — a frame, a shroud — in another.
+        Written whole: pass the full set each time, and an empty one to stop.
 
         Everything is optional and only what you pass moves, the way set_style
         and set_media_mode work. `target` is the widget's id or its key.
@@ -139,11 +151,14 @@ def register(server: MCPServer) -> None:
             return f"No mesh widget {target!r}. Call list_items to see what is there."
         item, model = found
         asked = {"spin": spin, "tilt": tilt, "explode": explode, "sweep": sweep}
-        given = {name: value for name, value in asked.items() if value is not None}
+        given: dict[str, object] = {k: v for k, v in asked.items() if v is not None}
+        said = [f"{name}={value:g}" for name, value in asked.items() if value is not None]
+        if rotors is not None:
+            given["rotors"] = rotors or None
+            said.append(f"{len(rotors)} rotors" if rotors else "no rotors")
         if not given:
-            return "Nothing to set: pass at least one of spin, tilt, explode or sweep"
-        said = ", ".join(f"{name}={value:g}" for name, value in given.items())
-        return await _write(item, model.model_copy(update=given), said)
+            return "Nothing to set: pass at least one of spin, tilt, explode, sweep or rotors"
+        return await _write(item, model.model_copy(update=given), ", ".join(said))
 
     @server.tool()
     async def reload_mesh(target: str) -> str:
