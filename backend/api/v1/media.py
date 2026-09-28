@@ -11,6 +11,9 @@ kind != "media"`` — a route about one kind of widget belongs with that widget,
 and a router that has to ask what kind of thing it was handed is a router holding
 somebody else's route.
 
+Beside it sits ``queue``, the one way a person without a session fills a
+player: a track handed over from the button on the widget.
+
 Two routers, because they are addressed differently and both addresses are a
 contract: what is served lives under ``/media``, and the widget's own state is
 under ``/board/items``, which is where the page already posts it.
@@ -22,9 +25,16 @@ from fastapi import APIRouter, HTTPException, Request, status
 from fastapi.responses import FileResponse
 
 from repositories import board as repo
-from schemas.board import ImagePayload, ItemRead, MediaPayload, PlaybackReport
-from schemas.media import media_type
-from schemas.uploads import Uploaded
+from schemas.board import (
+    ImagePayload,
+    ItemRead,
+    ItemUpdate,
+    MediaPayload,
+    MediaTrack,
+    PlaybackReport,
+)
+from schemas.media import media_type, youtube_id
+from schemas.uploads import HandedTrack, Uploaded
 from services import board as service
 from services import media as media_service
 from services import uploads as upload_service
@@ -49,6 +59,40 @@ async def report_playback(item_id: str, payload: PlaybackReport) -> ItemRead:
     owner keeps it. A finished track is also how the queue moves on: the rule for
     what follows the last one lives in the service, not in the page.
     """
+    item, _ = _player(item_id)
+    return await media_service.report(item, payload)
+
+
+@playback_router.put("/items/{item_id}/queue", response_model=ItemRead)
+async def hand_over(item_id: str, handed: HandedTrack) -> ItemRead:
+    """Put one track on a player in place of its queue, and play it.
+
+    The route behind the button on the widget, for a person with a pointer and
+    no session: a YouTube link they pasted, or a file they have just uploaded.
+    Replace rather than append, because somebody pointing at a player and
+    handing it something wants to see *that*, now — and it plays even if the
+    widget had been paused, for the same reason.
+
+    The queue is built here, the way ``set_media_queue`` builds one, so a file
+    gets its tags and its stamp; see ``schemas.uploads`` for why a PATCH cannot.
+    A link that is not YouTube comes back as a 422 with a sentence, which the
+    page shows as it is rather than checking links itself.
+    """
+    item, player = _player(item_id)
+    try:
+        queue = _built(handed)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
+        ) from exc
+    # Everything the old queue said about where it was is about a file that is
+    # no longer here, and so is the album name it was captioned with.
+    update = {"tracks": queue, "index": 0, "seconds": 0.0, "title": None, "playing": True}
+    return await service.update(item, ItemUpdate(payload=player.model_copy(update=update)))
+
+
+def _player(item_id: str) -> tuple[ItemRead, MediaPayload]:
+    """The widget and its queue, or a 404 saying which of the two is missing."""
     item = repo.get(item_id)
     if item is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
@@ -57,7 +101,21 @@ async def report_playback(item_id: str, payload: PlaybackReport) -> ItemRead:
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Item {item_id} is a {item.payload.kind}, which plays nothing",
         )
-    return await media_service.report(item, payload)
+    return item, item.payload
+
+
+def _built(handed: HandedTrack) -> list[MediaTrack]:
+    """The queue one handed track makes, raising ``ValueError`` with a sentence."""
+    if handed.path is not None:
+        queue = media_service.tracks_from([handed.path])
+        if not queue:
+            raise ValueError(f"nothing playable in {handed.path!r}")
+        return queue
+    link = handed.youtube or ""
+    found = youtube_id(link)
+    if found is None:
+        raise ValueError(f"{link.strip()!r} is not a YouTube link")
+    return [MediaTrack(youtube=found)]
 
 
 @router.post("/upload", response_model=Uploaded, status_code=status.HTTP_201_CREATED)

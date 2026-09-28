@@ -62,3 +62,25 @@ export function reportPlayback(
     body,
   });
 }
+
+/**
+ * One track a person hands a player, mirroring `HandedTrack` in
+ * `backend/schemas/uploads.py`: the path an upload came back with, or a
+ * YouTube link exactly as it was pasted.
+ */
+export type HandedTrack = { path: string } | { youtube: string };
+
+/**
+ * Put one track on a player in place of its queue, and play it.
+ *
+ * A link goes as pasted and is never checked here: the server reads every
+ * shape of YouTube link there is, and says in a sentence what it cannot read.
+ * The widget redraws from the socket like any other change; the returned item
+ * is only there to know when it has happened.
+ */
+export function handOver(id: string, track: HandedTrack): Promise<Item> {
+  return request<Item>(`/board/items/${id}/queue`, {
+    method: "PUT",
+    body: track,
+  });
+}

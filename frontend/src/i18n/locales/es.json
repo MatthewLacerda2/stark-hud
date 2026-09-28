@@ -20,6 +20,14 @@
       "paused": "en pausa",
       "ended": "terminó",
       "failed": "no se reproduce"
+    },
+    "fill": {
+      "open": "Poner algo",
+      "link": "Pega un enlace de YouTube",
+      "play": "Reproducir",
+      "file": "Elegir un archivo",
+      "uploading": "Subiendo",
+      "lost": "El tablero no respondió. ¿Sigue encendido?"
     }
   },
   "chart": {

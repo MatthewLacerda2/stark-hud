@@ -361,7 +361,7 @@ describe("fullscreen is the one thing a call cannot do", () => {
   it("is not there at all when there is nothing to watch", async () => {
     const host = await render(queue(0), 10, 6);
 
-    expect(host.querySelector("button")).toBe(null);
+    expect(host.querySelector('[aria-label="Fullscreen"]')).toBe(null);
   });
 });
 
