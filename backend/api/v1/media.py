@@ -35,6 +35,7 @@ from schemas.board import (
 )
 from schemas.media import media_type, youtube_id
 from schemas.uploads import HandedTrack, Uploaded
+from services import background as background_service
 from services import board as service
 from services import media as media_service
 from services import uploads as upload_service
@@ -159,11 +160,26 @@ def _stream(path: str) -> FileResponse:
 
 @router.get("/background")
 async def get_background_media() -> FileResponse:
-    """Stream the video behind the grid."""
+    """Stream the video behind the grid, as its owner keeps it."""
     background = repo.get_background()
     if background is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No background set")
     return _stream(background.path)
+
+
+@router.get("/background/ready")
+async def get_background_copy() -> FileResponse:
+    """Stream the board-ready copy of the background, once it has been made.
+
+    The page asks for this only when it has been told there is a copy, and hangs
+    the copy's name on the end as a query that nothing here reads: this URL is
+    the same for every background, and without the name a browser holding the
+    last one's copy could go on playing it.
+    """
+    path = background_service.copy_path()
+    if path is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No board-ready copy")
+    return _stream(str(path))
 
 
 @router.get("/{item_id}")

@@ -4,8 +4,8 @@ from mcp.server.mcpserver import MCPServer
 
 from hud_mcp.common import ON_HOST
 from schemas.board import Background
-from services import board as service
-from services.board import MissingFileError
+from services import background as service
+from services.background import MissingFileError
 
 
 def register(server: MCPServer) -> None:

@@ -11,6 +11,9 @@ run should never touch, or be steered by, the board that is on the TV.
 import os
 
 os.environ.setdefault("STATE_FILE", "")
+# And no background copies: a test that sets a background would otherwise run
+# ffmpeg on a file of pretend bytes and write the failure into `state/`.
+os.environ.setdefault("BACKGROUND_DIR", "")
 
 import pytest
 
