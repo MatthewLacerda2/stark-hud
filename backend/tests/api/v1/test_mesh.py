@@ -1,4 +1,4 @@
-"""Serving a wireframe, and the one widget that takes itself off the board."""
+"""Serving a model file, and the one widget that takes itself off the board."""
 
 from pathlib import Path
 
@@ -26,13 +26,14 @@ def _model(tmp_path: Path, text: str = TRIANGLE) -> str:
     return str(target)
 
 
-async def test_a_real_file_comes_back_as_parts(client: AsyncClient, tmp_path: Path) -> None:
-    """The browser is handed points and lines, never the path they came from."""
+async def test_the_file_comes_back_as_it_is(client: AsyncClient, tmp_path: Path) -> None:
+    """The browser gets the bytes, named by kind, and never the path they came from."""
     item_id = await _add_mesh(client, _model(tmp_path))
-    body = (await client.get(f"/api/v1/mesh/{item_id}")).json()
-    assert [part["name"] for part in body["parts"]] == ["tri"]
-    assert len(body["parts"][0]["edges"]) // 2 == 3
-    assert "model.obj" not in str(body)
+    response = await client.get(f"/api/v1/mesh/{item_id}")
+    assert response.status_code == 200
+    assert response.text == TRIANGLE
+    assert response.headers["cache-control"] == "no-store"
+    assert "model.obj" not in response.headers.get("content-disposition", "")
 
 
 async def test_a_vanished_file_removes_the_widget(client: AsyncClient, tmp_path: Path) -> None:
@@ -56,14 +57,6 @@ async def test_a_removal_says_so_in_the_inbox(client: AsyncClient, tmp_path: Pat
 
     inbox = (await client.get("/api/v1/notifications")).json()["notifications"]
     assert any(path in (note["body"] or "") for note in inbox)
-
-
-async def test_a_file_that_is_not_a_mesh_is_422(client: AsyncClient, tmp_path: Path) -> None:
-    """A real file the board cannot draw is a different answer from a missing one."""
-    item_id = await _add_mesh(client, _model(tmp_path, "v 0 0 0\nv 1 1 1\n"))
-    assert (await client.get(f"/api/v1/mesh/{item_id}")).status_code == 422
-    # Still on the board: the file is there, so there is something to fix.
-    assert item_id in await _ids(client)
 
 
 async def test_a_note_is_not_a_mesh(client: AsyncClient) -> None:

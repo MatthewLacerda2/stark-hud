@@ -24,7 +24,7 @@ from schemas.item import (
     Placement,
 )
 from schemas.media import MEDIA_ACTIONS, MediaAction, Playback, PlaybackReport
-from schemas.mesh import MeshPart, MeshWave, WaveMode, Wireframe
+from schemas.mesh import MeshWave, WaveMode
 from schemas.notifications import Notification
 from schemas.payloads import (
     Align,
@@ -101,7 +101,6 @@ __all__ = [
     "MediaAction",
     "MediaPayload",
     "MediaTrack",
-    "MeshPart",
     "MeshPayload",
     "MeshWave",
     "NotePayload",
@@ -115,7 +114,6 @@ __all__ = [
     "TextPayload",
     "TextSize",
     "WaveMode",
-    "Wireframe",
 ]
 
 

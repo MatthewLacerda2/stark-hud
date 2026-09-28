@@ -109,10 +109,32 @@ async def test_a_model_can_be_set_to_swing_instead_of_turn(server: MCPServer) ->
     said = await call(server, "set_mesh", target=item_id, sweep=60)
     assert "sweep=60" in said
     assert payload(item_id).sweep == 60.0
-    assert payload(item_id).spin == 0.08  # The pace is untouched.
+    assert payload(item_id).spin == 0.0  # The pace is untouched.
     said = await call(server, "set_mesh", target=item_id, sweep=200)
     assert said.startswith("Not set")
     assert payload(item_id).sweep == 60.0
+
+
+async def test_a_model_holds_still_unless_told_to_turn(server: MCPServer) -> None:
+    """The board is a flat sheet; a model on it is shown, not spun."""
+    assert payload(await a_mesh(server)).spin == 0.0
+
+
+async def test_the_camera_is_set_part_by_part(server: MCPServer) -> None:
+    item_id = await a_mesh(server)
+    said = await call(server, "set_mesh", target=item_id, heading=97, fov=40, pan_x=0.2)
+    assert "heading=97" in said
+    found = payload(item_id)
+    assert (found.heading, found.fov, found.pan_x, found.zoom) == (97.0, 40.0, 0.2, 1.0)
+    said = await call(server, "set_mesh", target=item_id, fov=200)
+    assert said.startswith("Not set")
+
+
+async def test_a_blend_is_turned_away_with_the_way_through(server: MCPServer) -> None:
+    """Only Blender opens a .blend; the refusal names the converter."""
+    said = await call(server, "add_mesh", path="/models/pc.blend")
+    assert said.startswith("Not added")
+    assert "tools/mesh/convert.py" in said
 
 
 async def test_saying_nothing_changes_nothing(server: MCPServer) -> None:
