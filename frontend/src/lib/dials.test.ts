@@ -38,6 +38,11 @@ describe("what a dial reads", () => {
     expect(dialValue("?tilt=9", byName("tilt"))).toBe(1);
     expect(dialValue("?tilt=nope", byName("tilt"))).toBe(0.2);
   });
+
+  it("lets the lean go below zero, to pull, and nothing else", () => {
+    expect(dialValue("?tilt=-9", byName("tilt"))).toBe(-1);
+    expect(dialValue("?glow=-9", byName("glow"))).toBe(0);
+  });
 });
 
 describe("turning a dial", () => {

@@ -20,6 +20,8 @@ export type Dial = {
   fallback: number;
   /** The most it may be turned up to. */
   ceiling: number;
+  /** The least it may be turned down to; 0 unless the dial goes both ways. */
+  floor?: number;
 };
 
 /** One look: a master, and the parts it scales. */
@@ -34,7 +36,7 @@ export function dialValue(search: string, dial: Dial): number {
   const raw = new URLSearchParams(search).get(dial.param);
   const value = raw === null ? dial.fallback : Number(raw);
   return Number.isFinite(value)
-    ? Math.min(dial.ceiling, Math.max(0, value))
+    ? Math.min(dial.ceiling, Math.max(dial.floor ?? 0, value))
     : dial.fallback;
 }
 
