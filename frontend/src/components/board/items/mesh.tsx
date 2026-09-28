@@ -114,6 +114,11 @@ export function Mesh({
 
   return (
     <canvas
+      // One canvas per telling of the model. A view lets go of the GPU by
+      // losing its context on purpose, and a canvas hands that same lost
+      // context to whatever asks it next — so a view built on the old element
+      // after a reload drew nothing at all. A new key is a new element.
+      key={asked}
       ref={canvas}
       // `widget-text` is not decoration here: it is how the canvas is told what
       // colour to draw in. The colour is read back off this element's computed
