@@ -27,7 +27,7 @@ from typing import Any
 
 from core.hub import hub
 from repositories import board as repo
-from schemas.board import Background, BoardArranged, Ink, ItemRead
+from schemas.board import BackgroundRead, BoardArranged, Ink, ItemRead
 from schemas.notifications import Notification
 from schemas.speech import Spoken
 from services import origin
@@ -99,8 +99,12 @@ async def cleared(removed_count: int) -> None:
     await _send(BOARD_CLEARED, {"removed": removed_count})
 
 
-async def background_changed(background: Background | None) -> None:
-    """The video behind the grid, or ``None`` for the plain dark ground."""
+async def background_changed(background: BackgroundRead | None) -> None:
+    """The video behind the grid, or ``None`` for the plain dark ground.
+
+    Sent twice for a new background more often than not: once when it is set,
+    playing the original, and again when its board-ready copy has been made.
+    """
     await _send(BACKGROUND_CHANGED, background.model_dump(mode="json") if background else None)
 
 

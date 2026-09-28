@@ -417,6 +417,12 @@ export interface Placement {
 export interface Background {
   path: string;
   blur: boolean;
+  /**
+   * The board-ready copy — a quarter of the pixels, four fifths of the
+   * frames — once the backend has made one, and null until then. A name, not a path: it only goes
+   * into the copy's URL, so one copy is never mistaken for the last.
+   */
+  board_copy: string | null;
 }
 
 /**

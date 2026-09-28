@@ -116,7 +116,8 @@ class Settings(BaseSettings):
     # one volume it can write to. Relative here like `STATE_FILE` and `SPEECH_DIR`,
     # and absolute in the container for the same reason — see `docker-compose.yml`.
     #
-    # It is also the only directory on this machine the board ever deletes from.
+    # It is also the only directory on this machine where the board deletes
+    # anything it did not make itself.
     # A media queue mostly holds paths a session named — an album somewhere on a
     # disk full of them — and those are somebody's files. These are ours: they
     # arrived with no name on this machine and nothing but a widget refers to
@@ -133,6 +134,15 @@ class Settings(BaseSettings):
     # would delete a file that was a second away from being played. Five minutes
     # is far longer than the gap and far shorter than anybody notices the disk.
     UPLOAD_GRACE_SECONDS: float = Field(default=300.0, ge=0)
+
+    # Where the board-ready copy of the background video is kept: smaller and
+    # slower, made once from the original and played in its place. Beside the
+    # others for the same reason they are here — the one directory this backend
+    # owns. Only ever the copy: the original stays
+    # wherever its owner keeps it. Empty makes no copies at all, which is what
+    # the tests want and what a board with no ffmpeg gets anyway. See
+    # `services.background`.
+    BACKGROUND_DIR: str = "state/backgrounds"
 
     # How long a media widget that has finished playing stays on the board.
     #

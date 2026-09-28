@@ -53,8 +53,12 @@ services:
       # path left at its relative default would put a four-gigabyte film inside
       # the container's own filesystem — gone on the next `up --build`, and
       # taking the widget that played it with it. This is also the only
-      # directory on the host the board ever deletes from.
+      # directory on the host where the board deletes anything it did not make.
       UPLOAD_DIR: /data/uploads
+      # The board-ready copy of the background video: the one file here that is
+      # made from somebody else's, and the only one kept of it. The original
+      # stays where its owner keeps it, read through the read-only mounts below.
+      BACKGROUND_DIR: /data/backgrounds
       # The board itself, kept across restarts. Plain JSON under a name of our
       # own, so it can be backed up, edited or swapped for another board.
       STATE_FILE: /data/board.hud

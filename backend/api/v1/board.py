@@ -15,6 +15,7 @@ from schemas.board import (
     DEFAULT_PAGE,
     Arrangement,
     Background,
+    BackgroundRead,
     BoardStatus,
     Ink,
     ItemCreate,
@@ -22,6 +23,7 @@ from schemas.board import (
     ItemUpdate,
 )
 from services import arrange as arrange_service
+from services import background as background_service
 from services import board as service
 from services import origin
 
@@ -63,16 +65,20 @@ async def board_status() -> BoardStatus:
     return service.status()
 
 
-@router.get("/background", response_model=Background | None)
-async def get_background() -> Background | None:
+@router.get("/background", response_model=BackgroundRead | None)
+async def get_background() -> BackgroundRead | None:
     """Return the current video background, or null for the plain dark ground."""
-    return repo.get_background()
+    return background_service.shown()
 
 
-@router.put("/background", response_model=Background)
-async def set_background(payload: Background) -> Background:
-    """Set the looping video behind the board. Always silent."""
-    background = await service.set_background(payload)
+@router.put("/background", response_model=BackgroundRead)
+async def set_background(payload: Background) -> BackgroundRead:
+    """Set the looping video behind the board. Always silent.
+
+    Answers at once: a board-ready copy is made afterwards, and the page is told
+    when it is. ``board_copy`` says whether it already exists.
+    """
+    background = await background_service.set_background(payload)
     assert background is not None
     return background
 
@@ -80,7 +86,7 @@ async def set_background(payload: Background) -> Background:
 @router.delete("/background", status_code=status.HTTP_204_NO_CONTENT)
 async def clear_background() -> None:
     """Go back to the plain dark ground."""
-    await service.set_background(None)
+    await background_service.set_background(None)
 
 
 @router.get("/ink", response_model=Ink | None)
