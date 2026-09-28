@@ -232,7 +232,8 @@ class Source:
 
         Where it lands depends on the kind: a chart wants rows in `data`, a list
         wants strings in `items`, a feed wants entries in `entries`, a table
-        wants them in `rows`, and anything else wants text. The source only has to print the content; the
+        wants them in `rows`, a 3D model wants `{part, color}` rows as its part
+        colours, and anything else wants text. The source only has to print the content; the
         config already says what it is.
         """
         panel = dict(self.spec["panel"])
@@ -252,6 +253,12 @@ class Source:
             # Rows are already cells keyed by column. Replaced whole like a
             # feed, so `history` would fight the collector rather than extend it.
             panel["rows"] = rows
+            return panel
+        if kind == "mesh":
+            # A model does not show rows; it shows what colour its parts are.
+            # Everything else about it — the file, the camera — is the panel
+            # spec, so a collector only ever says which part is which colour.
+            panel["colors"] = {str(row["part"]): str(row["color"]) for row in rows}
             return panel
         if kind == "feed":
             # Rows are already whole entries; a feed is replaced, never appended
