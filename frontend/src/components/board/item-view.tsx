@@ -25,6 +25,7 @@ export function ItemView({
   notifications,
   holds,
   reload = 0,
+  ghost = false,
 }: {
   item: Item;
   notifications: Notification[];
@@ -36,6 +37,13 @@ export function ItemView({
    * the widget changing.
    */
   reload?: number;
+  /**
+   * Whether this is the widget's ghost, drawn again only to be seen leaving
+   * (`use-leaving.ts`). A ghost is a picture and must not do anything. Only the
+   * media widget reads it, because only a player does something by being
+   * mounted that a person can hear.
+   */
+  ghost?: boolean;
 }) {
   const payload = item.payload;
   switch (payload.kind) {
@@ -55,7 +63,13 @@ export function ItemView({
       // Its size decides whether it draws a player or only a thumbnail, the way
       // the clock's height decides whether the date fits.
       return (
-        <Media id={item.id} payload={payload} cols={item.w} rows={item.h} />
+        <Media
+          id={item.id}
+          payload={payload}
+          cols={item.w}
+          rows={item.h}
+          ghost={ghost}
+        />
       );
     case "mesh":
       // Draws itself from its own clock and needs nothing from the board: the

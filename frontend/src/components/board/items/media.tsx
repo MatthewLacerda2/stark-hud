@@ -159,17 +159,31 @@ function FullScreen({ frame }: { frame: RefObject<HTMLDivElement | null> }) {
  * only the page can find that out; without sending it, the failure would be
  * visible from the sofa and nowhere else. A finished track goes back the same
  * way, and the server decides what follows it.
+ *
+ * A `ghost` is this widget drawn once more as it leaves the screen — see
+ * `use-leaving.ts`. The widget that was playing has already unmounted and said
+ * its goodbye, so the ghost is a fresh player with a payload that still says
+ * play, and left alone it played the film again, out loud, for the length of
+ * the exit animation and reported that it had (#204). A ghost is a picture of
+ * something that has gone. So it shows the frame the film was on and does
+ * nothing else: it never plays, never reports, and never writes down a
+ * position. A YouTube track has no frame outside YouTube's own player, and
+ * building a new one only to animate it away is the thing this rules out, so
+ * its ghost draws no picture at all.
  */
 export function Media({
   id,
   payload,
   cols,
   rows,
+  ghost = false,
 }: {
   id: string;
   payload: MediaPayload;
   cols: number;
   rows: number;
+  /** Drawn only on its way off the screen: shown, and never played. */
+  ghost?: boolean;
 }) {
   const { t } = useTranslation();
   const frame = useRef<HTMLDivElement>(null);
@@ -193,6 +207,7 @@ export function Media({
 
   const say = useCallback(
     (state: Playback["state"], error?: string) => {
+      if (ghost) return;
       setSaid(state);
       lastSaid.current = state;
       // Where it stopped travels with what it did, so a pause is remembered to
@@ -206,7 +221,7 @@ export function Media({
         () => {},
       );
     },
-    [id, index],
+    [id, index, ghost],
   );
 
   // What this element says only speaks for the widget while the widget is on a
@@ -228,12 +243,15 @@ export function Media({
       if (!media.paused) media.pause();
       return;
     }
+    // A ghost shows where the film was and is never started, whatever the
+    // board says: the board is talking about the widget that has just left.
+    if (ghost) return;
     // Asked each time the board changes, so both sides check first: calling play
     // on something already playing is noise, and pause on something paused is a
     // spurious event travelling back to the server.
     if (payload.playing && media.paused) void media.play().catch(() => {});
     if (!payload.playing && !media.paused) media.pause();
-  }, [payload.playing, index, track, onYouTube]);
+  }, [payload.playing, index, track, onYouTube, ghost]);
 
   // Stand down while the board is speaking. Volume rather than pause: a song
   // that stops and starts around a sentence draws more attention than the
@@ -268,7 +286,7 @@ export function Media({
   // back here rather than to the beginning. Only while it is playing: a paused
   // widget is not moving, and the last tick already said where it stopped.
   useEffect(() => {
-    if (!track || !payload.playing) return;
+    if (!track || !payload.playing || ghost) return;
     const tick = setInterval(() => {
       const here = POSITIONS.get(id);
       if (here?.index !== index || here.seconds <= 0) return;
@@ -279,7 +297,7 @@ export function Media({
       }).catch(() => {});
     }, TICK_SECONDS * 1000);
     return () => clearInterval(tick);
-  }, [id, index, track, payload.playing]);
+  }, [id, index, track, payload.playing, ghost]);
 
   // Off the screen, a player that was playing is paused — and nothing else
   // changes, so nothing else is said.
@@ -305,20 +323,24 @@ export function Media({
   // failure, so it leaves nothing behind. Not for the tab closing either — React
   // runs no cleanup on unload — and in development StrictMode's extra unmount
   // says `paused` once for nothing, which the next tick corrects.
+  //
+  // A ghost says nothing here either: the widget it is a picture of has
+  // already said this, once, as it left.
   useEffect(() => {
+    if (ghost) return;
     const last = lastSaid;
     return () => {
       if (last.current !== "playing") return;
       void reportPlayback(id, { state: "paused" }).catch(() => {});
     };
-  }, [id]);
+  }, [id, ghost]);
 
   // An empty queue fires no events, so the one honest thing it can say has to be
   // said outright — otherwise a widget with nothing in it reports nothing at all.
   useEffect(() => {
-    if (track) return;
+    if (track || ghost) return;
     void reportPlayback(id, { state: "idle" }).catch(() => {});
-  }, [track, id]);
+  }, [track, id, ghost]);
 
   const kept = POSITIONS.get(id);
   const small = cols < PLAYER_CELLS || rows < PLAYER_CELLS;
@@ -366,11 +388,14 @@ export function Media({
         onError={(event) =>
           fromFile("failed", whyItFailed(event.currentTarget))
         }
-        onTimeUpdate={(event) =>
-          POSITIONS.set(id, {
-            index,
-            seconds: event.currentTarget.currentTime,
-          })
+        onTimeUpdate={
+          ghost
+            ? undefined
+            : (event) =>
+                POSITIONS.set(id, {
+                  index,
+                  seconds: event.currentTarget.currentTime,
+                })
         }
         className={cn(
           "absolute inset-0",
@@ -382,7 +407,7 @@ export function Media({
         )}
       />
 
-      {video ? (
+      {video && !ghost ? (
         <YouTubeTrack
           video={video}
           playing={payload.playing}
