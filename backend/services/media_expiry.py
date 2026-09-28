@@ -17,8 +17,9 @@ from datetime import UTC, datetime, timedelta
 from core.config import get_settings
 from repositories import board as repo
 from schemas.board import ItemRead
-from schemas.media import MediaPayload, PlaybackState
+from schemas.media import MediaPayload, Playback, PlaybackState
 from services import board as board_service
+from services import events
 
 logger = logging.getLogger(__name__)
 
@@ -72,12 +73,67 @@ def finished_since(item: ItemRead) -> datetime | None:
     return _utc(item.playback.at) if item.playback.state in FINISHED else None
 
 
+def contradicted(item: ItemRead) -> bool:
+    """Whether this widget's record says `playing` while its own payload says stop.
+
+    Both cannot be true. The payload is what the board was last told to do and
+    the record is what a browser last said it did; this pair is a transport
+    turned off — by a `control_media` pause or stop — with no page there to act
+    on it and say so. A page that was there would have paused and reported
+    `paused`, and the record moves only when a page reports. So it goes on
+    saying `playing` for as long as nobody draws the widget, which was a day
+    and a half on the live board (#167).
+
+    `paused` beside `playing: false` is the ordinary, correct pair and is not
+    this: it is a browser confirming a pause somebody could see.
+    """
+    payload = _payload(item)
+    return (
+        payload is not None
+        and not payload.playing
+        and item.playback is not None
+        and item.playback.state == "playing"
+    )
+
+
+async def settle(now: datetime | None = None) -> list[str]:
+    """Rewrite every contradicted record to `idle`. Returns the ids it touched.
+
+    `idle` is the page's own word for a player nothing is playing: it is what a
+    widget says as it leaves the screen, folded into a group or removed. That is
+    what a contradicted record describes — told to stop, and not being drawn by
+    anything that could confirm it did.
+
+    The time on the new record is now, the moment the server noticed, not the
+    browser's last word. `Playback.at` is the clock the hour is read off, and
+    the last word can be days old: keeping it would take a film off the board a
+    minute after a session paused it with the tab closed. So the hour runs from
+    here, and a page that draws the widget and plays it in that hour replaces
+    this record with its own, which is the same rescue every finished widget has.
+    """
+    when = now if now is not None else datetime.now(UTC)
+    touched = []
+    for found in [item.id for item in repo.list_items() if contradicted(item)]:
+        # Read again, and written before anything is awaited: announcing the
+        # last one lets a browser's report land, and that report is the truth.
+        item = repo.get(found)
+        said = item.playback if item is not None and contradicted(item) else None
+        if item is None or said is None:
+            continue
+        logger.info("media widget %s last said playing at %s; settling it idle", item.id, said.at)
+        record = Playback(state="idle", track=said.track, title=said.title, at=when)
+        await events.updated(repo.replace(item.model_copy(update={"playback": record})))
+        touched.append(item.id)
+    return touched
+
+
 def expired(items: list[ItemRead], now: datetime) -> list[ItemRead]:
     """Every media widget that ran out longer ago than the settings allow.
 
-    Anything that restarts playback — a report of `playing`, a new queue, a
-    transport command — resets this clock without doing anything about it,
-    because it replaces the stored playback and the time is read off that.
+    Anything that restarts playback resets this clock without doing anything
+    about it, because the browser's report of `playing` replaces the stored
+    playback and the time is read off that. A transport command alone does not:
+    it writes the payload, and the record moves only when a page acts on it.
     """
     cutoff = now - timedelta(seconds=get_settings().MEDIA_EXPIRY_SECONDS)
     return [item for item in items if (at := finished_since(item)) is not None and at <= cutoff]
@@ -102,6 +158,9 @@ async def expire(now: datetime | None = None) -> list[str]:
 async def reaper(interval: float) -> None:
     """Look the board over for finished widgets, until cancelled.
 
+    Each tick settles a contradicted record first and expires second, so a
+    record rewritten on this tick starts its hour now rather than going at once.
+
     A tick that raises is logged and the loop carries on. The alternative is a
     task that dies on one bad widget and takes the whole feature with it until
     somebody restarts the backend — silently, on a board that runs for days.
@@ -109,6 +168,7 @@ async def reaper(interval: float) -> None:
     while True:
         await asyncio.sleep(interval)
         try:
+            await settle()
             await expire()
         except Exception:
             logger.exception("media expiry pass failed")
