@@ -224,7 +224,11 @@ that other one **blocked by** it.
 
 ## Closing
 
-The pull request that closes an issue is titled `{issue_number}-{branch_name}` and
-its description opens with `Closes #{issue_number}` — and **check the number**. A
+The pull request that closes an issue is titled the way an issue is: a scope tag
+and a sentence saying what landed (`[FE] A dragged widget attaches to the gap
+instead of bouncing back`). The number is already in the branch name, and a title
+is read in `git log` by somebody who wants to know what changed, not which ticket.
+
+Its description opens with `Closes #{issue_number}` — and **check the number**. A
 typo'd `Closes #N` closes the wrong issue or none, silently, and nothing verifies
 it.
