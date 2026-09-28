@@ -15,7 +15,8 @@ import type { ChartConfig } from "@/components/ui/chart";
 /**
  * How long a mark takes to reach a new reading, in milliseconds.
  *
- * Two charts move: the gauge's ring, and the radar's polygon. They are the
+ * Three charts move: the gauge's ring, the radar's polygon and the pie's
+ * slices — each a mark that is the same thing from one sample to the next. They are the
  * board's pulse — a ring that only ever cuts to a new angle reads as a picture
  * of a dashboard rather than a dashboard — so they still move, and the argument
  * beside the radar for why it breathes is still true at this length.
@@ -29,9 +30,10 @@ import type { ChartConfig } from "@/components/ui/chart";
  * most of what the whole board cost. A fifth of that duration is a movement you
  * can still see and a tenth of the bill.
  *
- * Line and area charts do not take it. They carry history rather than a
- * reading, so a new sample slides the window and tweening it morphs the whole
- * shape; that is decided beside them, and it has not changed.
+ * Line, area and bar charts do not take it. They can carry history rather than
+ * a reading, so a new sample slides the window and tweening it morphs the whole
+ * shape; that is decided beside each of them. `local/no-default-chart-animation`
+ * refuses a series that decides neither, so the default cannot come back.
  */
 export const SWEEP_MS = 300;
 

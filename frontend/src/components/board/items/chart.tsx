@@ -130,7 +130,18 @@ function Body({ payload }: { payload: ChartPayload }) {
   if (payload.chart === "pie") {
     return (
       <PieChart>
-        <Pie data={data} dataKey={series[0]} nameKey={xKey} innerRadius="45%">
+        {/* Swept, like the radar. A slice is a named part of one whole, so the
+            same slice is there before and after a sample and only its share
+            moves — the tween is the proportion shifting, not a shape turning
+            into a different one. A pie is not fed a sliding window: a window of
+            time has no whole to be a part of. */}
+        <Pie
+          data={data}
+          dataKey={series[0]}
+          nameKey={xKey}
+          innerRadius="45%"
+          animationDuration={SWEEP_MS}
+        >
           {data.map((row, i) => (
             <Cell key={String(row[xKey])} fill={pick(colors, i)} />
           ))}
@@ -234,8 +245,20 @@ function Body({ payload }: { payload: ChartPayload }) {
           // bar chart. Recharts reads cells by position, so it is all of them or
           // none: with no thresholds there are no cells and the bar is drawn
           // exactly as it was before this existed.
+          //
+          // Not animated, like the line and area it shares an axis with.
+          // Recharts tweens a bar by its position, not its category, and a bar
+          // chart is fed a sliding window as often as a fixed set of cores; in
+          // a window every bar would grow or shrink into its neighbour's value.
+          // A bar that jumps to its new height is right either way.
           return (
-            <Bar key={key} dataKey={key} fill={color} radius={6}>
+            <Bar
+              key={key}
+              dataKey={key}
+              fill={color}
+              radius={6}
+              isAnimationActive={false}
+            >
               {thresholds.length === 0
                 ? null
                 : data.map((row, r) => (

@@ -75,16 +75,46 @@ LOCK  := /tmp/stark-hud-gate.lock
 CORES := $(shell nproc)
 LOAD   = $$(cut -d' ' -f1-3 /proc/loadavg)
 
+# **A gate says how it ended, whatever the ending.** `finished`, `failed` or
+# `interrupted`, always on a line of its own beginning `gate: `, so anything
+# watching a log can wait for any ending instead of only the happy one. On
+# 2026-09-20 a subagent waited four hours for `gate: finished` from a gate that
+# had been killed in the queue and so never wrote it (#177).
+#
+# Two things make the interrupted line harder than it looks, and both were
+# found by killing runs rather than by reading:
+#
+# - A shell does not run a trap while a foreground child is running, and make
+#   passes a `kill` on to its own child only. So the queue (`flock`) and the
+#   gate itself run in the background, in a process group of their own
+#   (`setsid`), and the shell sits in `wait`, which a trapped signal does
+#   interrupt. The trap then ends the whole group, so no half of a gate is left
+#   running orphaned with nobody holding the lock it thinks it has.
+# - Whatever the shell prints, make prints `make: *** [...] Error` after it,
+#   because it only speaks once its child has gone. So the interrupted line is
+#   written by a watcher that waits for this make to exit first, and is last.
+#
 # $(call heavy,<the targets this one actually is>)
 define heavy
-@if [ -n "$$STARK_GATE_LOCK" ]; then $(MAKE) --no-print-directory $(1); else \
-	exec 9>$(LOCK); \
-	flock -n 9 || { echo "gate: another gate has this machine - waiting for it"; flock 9; }; \
-	echo "gate: starting at load $(LOAD) on $(CORES) cores"; \
-	STARK_GATE_LOCK=1 $(MAKE) --no-print-directory $(1); status=$$?; \
-	echo "gate: finished at load $(LOAD) on $(CORES) cores"; \
-	exit $$status; \
-fi
+@if [ -n "$$STARK_GATE_LOCK" ]; then exec $(MAKE) --no-print-directory $(1); fi; \
+make=$$PPID; child=; \
+ended() { echo "gate: $$1 at load $(LOAD) on $(CORES) cores"; }; \
+stop() { \
+	[ -n "$$child" ] && kill -TERM -$$child 2>/dev/null; \
+	( exec 9>&-; while kill -0 $$make 2>/dev/null; do sleep 0.1; done; ended interrupted ) & \
+	exit 130; \
+}; \
+trap stop INT TERM HUP; \
+exec 9>$(LOCK); \
+if ! flock -n 9; then \
+	echo "gate: $@ is waiting - another gate has this machine"; \
+	setsid flock 9 & child=$$!; wait $$child; child=; \
+fi; \
+echo "gate: $@ starting at load $(LOAD) on $(CORES) cores"; \
+STARK_GATE_LOCK=1 setsid $(MAKE) --no-print-directory $(1) & child=$$!; \
+wait $$child; status=$$?; child=; \
+if [ $$status -eq 0 ]; then ended finished; else ended failed; fi; \
+exit $$status
 endef
 
 .DEFAULT_GOAL := check
