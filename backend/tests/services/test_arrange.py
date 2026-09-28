@@ -17,6 +17,29 @@ from services.placement import NoRoomError
 
 COLS, ROWS = 32, 18
 
+# Everything a ``Change`` carries that ends up applied to the board, and a
+# value for each that is not a default. Mirrors ``STYLES``/``NOT_STYLE`` in
+# ``tests/api/v1/test_board_items.py``: same idea, guarding the model a batch
+# accepts rather than the one a single update does. ``color`` and ``border``
+# on ``ItemUpdate`` were each accepted by the API and silently dropped by the
+# service, twice, before that guard existed — nothing stopped the same thing
+# happening to ``Change`` until now.
+VALUES = {
+    "x": 4.0,
+    "y": 2.0,
+    "w": 8.0,
+    "h": 4.0,
+    "color": "#ff0000",
+    "border": "#0000ff",
+    "scale": 0.5,
+    "flat": True,
+    "folded": True,
+}
+
+# Everything on a Change that is not a value an arrangement ends up at:
+# identity, and the one verb.
+NOT_VALUE = {"target", "remove"}
+
 
 async def _note(x: float, y: float, w: float = 16, h: float = 9, key: str | None = None):
     """A note somewhere in particular."""
@@ -84,6 +107,36 @@ async def test_moving_and_resizing_are_one_entry():
 
     after = repo.get(note.id)
     assert (after.x, after.y, after.w, after.h, after.scale) == (4, 2, 8, 4, 0.5)
+
+
+async def test_every_change_field_is_covered_here() -> None:
+    """A new field on ``Change`` has to be added to ``VALUES`` above.
+
+    This is the guard, not the test. ``folded`` is applied by a separate path
+    (``_folding``, once the rest of the batch has landed) while everything else
+    is applied straight through in ``_changed`` — so without this, a twelfth
+    field could be accepted by ``Change``, dropped by both, and pass a green
+    suite. See ``test_every_style_is_covered_here`` in
+    ``tests/api/v1/test_board_items.py`` for the same idea on ``ItemUpdate``.
+    """
+    assert set(Change.model_fields) - NOT_VALUE == set(VALUES)
+
+
+async def test_a_style_given_to_a_batch_sticks():
+    """``color``/``border``/``scale``/``flat`` travel through a batch too.
+
+    ``x``/``y``/``w``/``h`` round-trip above and ``folded`` all over this file,
+    but nothing proved these four did — which is exactly the gap the guard
+    above would not have caught on its own, being only a list of names.
+    """
+    note = await _note(0, 0)
+
+    await arrange.rearrange(
+        [Change(target=note.id, color="#ff0000", border="#0000ff", scale=0.5, flat=True)]
+    )
+
+    after = repo.get(note.id)
+    assert (after.color, after.border, after.scale, after.flat) == ("#ff0000", "#0000ff", 0.5, True)
 
 
 async def test_a_removal_makes_room_for_the_move_in_the_same_batch():
