@@ -19,7 +19,10 @@ import { DIRT } from "@/lib/dirt";
  * `depth`, so zero really is off.
  */
 export type Depth = {
-  /** How far the pointer pushes the board back, as if pressing into it. */
+  /**
+   * How far the pointer pushes the board back, as if pressing into it. Negative
+   * pulls instead: the side under the pointer comes toward the viewer.
+   */
   tilt: number;
   /** How far the board drifts with nobody touching it. */
   sway: number;
@@ -45,6 +48,12 @@ const SETTLED: Depth = { tilt: 0.2, sway: 0, glass: 1 };
 const MASTER = 0.5;
 
 const PARTS = Object.keys(SETTLED) as (keyof Depth)[];
+
+/**
+ * How far below zero each part may go. Only the lean has a direction to
+ * reverse: a pane cannot be less than absent, and a drift is already both ways.
+ */
+const FLOORS: Partial<Depth> = { tilt: -1 };
 
 /**
  * The most the pointer tips the board, in degrees.
@@ -85,9 +94,11 @@ const WAVES: Record<"x" | "y", readonly Wave[]> = {
   ],
 };
 
-function amount(raw: string | null, fallback: number): number {
+function amount(raw: string | null, fallback: number, floor = 0): number {
   const value = raw === null ? fallback : Number(raw);
-  return Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : fallback;
+  return Number.isFinite(value)
+    ? Math.min(1, Math.max(floor, value))
+    : fallback;
 }
 
 /** Read the depth out of a query string. See `Depth` for the dials. */
@@ -96,19 +107,19 @@ export function depthFrom(search: string): Depth {
   const master = amount(asked.get("depth"), MASTER);
   const depth = { ...FLAT };
   for (const part of PARTS) {
-    depth[part] = amount(asked.get(part), SETTLED[part]) * master;
+    depth[part] = amount(asked.get(part), SETTLED[part], FLOORS[part]) * master;
   }
   return depth;
 }
 
 /** Whether any of it is on. Off, the board renders exactly as it did before. */
 export function deep(depth: Depth): boolean {
-  return PARTS.some((part) => depth[part] > 0);
+  return PARTS.some((part) => depth[part] !== 0);
 }
 
 /** Whether anything moves, and so whether there is a loop to run at all. */
 export function moving(depth: Depth): boolean {
-  return depth.tilt > 0 || depth.sway > 0;
+  return depth.tilt !== 0 || depth.sway > 0;
 }
 
 /**
@@ -157,8 +168,8 @@ function drift(waves: readonly Wave[], seconds: number): number {
 /**
  * How the board leans, given where the pointer is and how long it has existed.
  *
- * The pointer pushes rather than pulls: the side it is over goes away from the
- * viewer. A pointer to the right turns the board about its upright axis so the
+ * At a positive tilt the pointer pushes: the side it is over goes away from the
+ * viewer. A negative tilt pulls that side toward the viewer instead. A pointer to the right turns the board about its upright axis so the
  * right edge recedes, and a pointer near the top tips the top edge back.
  */
 export function lean(depth: Depth, pointer: Pointer, seconds: number): Lean {
@@ -198,6 +209,7 @@ export const DEPTH_DIALS: DialGroup = {
     param: part,
     fallback: SETTLED[part],
     ceiling: 1,
+    floor: FLOORS[part],
   })),
 };
 

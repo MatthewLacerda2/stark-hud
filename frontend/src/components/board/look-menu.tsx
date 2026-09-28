@@ -79,7 +79,7 @@ export function LookMenu({
         </span>
         <Slider
           value={[value]}
-          min={0}
+          min={dial.floor ?? 0}
           max={dial.ceiling}
           step={STEP}
           onValueChange={([turned]) =>

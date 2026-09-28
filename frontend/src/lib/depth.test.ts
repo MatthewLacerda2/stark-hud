@@ -50,7 +50,8 @@ describe("how much of the board is glass in a room", () => {
   it("survives whatever gets typed on the way to a number", () => {
     expect(depthFrom("?depth=banana")).toEqual(depthFrom(""));
     expect(depthFrom("?depth=7").glass).toBe(1);
-    expect(depthFrom("?depth=1&tilt=-3").tilt).toBe(0);
+    expect(depthFrom("?depth=1&tilt=-3").tilt).toBe(-1);
+    expect(depthFrom("?depth=1&glass=-3").glass).toBe(0);
   });
 
   it("does not move when there is glass but no lean", () => {
@@ -77,6 +78,13 @@ describe("which way the board leans", () => {
     expect(lean(tiltOnly, { x: 0, y: -1 }, 0).x).toBeGreaterThan(0);
   });
 
+  it("pulls the side under the pointer forward at a negative tilt", () => {
+    const pulling = depthFrom("?depth=1&sway=0&tilt=-1");
+    expect(moving(pulling)).toBe(true);
+    expect(lean(pulling, { x: 1, y: 0 }, 0).y).toBeLessThan(0);
+    expect(lean(pulling, { x: 0, y: -1 }, 0).x).toBeLessThan(0);
+  });
+
   it("sways on its own, and never far", () => {
     const swayOnly = depthFrom("?depth=1&tilt=0&sway=1");
     const seen = Array.from({ length: 600 }, (_, second) =>
@@ -93,6 +101,12 @@ describe("which way the board leans", () => {
 describe("keeping the near corner on the screen", () => {
   it("pushes nothing back when the board is level", () => {
     expect(recede({ x: 0, y: 0 }, 1920, 1080)).toBe(0);
+  });
+
+  it("stays on the screen whichever way it leans", () => {
+    expect(recede({ x: 0, y: -5 }, 1920, 1080)).toBeCloseTo(
+      recede({ x: 0, y: 5 }, 1920, 1080),
+    );
   });
 
   it("pushes back as far as the near side came forward", () => {
