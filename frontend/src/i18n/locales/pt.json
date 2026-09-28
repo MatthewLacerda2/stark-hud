@@ -64,7 +64,11 @@
     "tilt": "Inclinação",
     "sway": "Balanço",
     "glass": "Vidro",
-    "reset": "Restaurar"
+    "reset": "Restaurar",
+    "thisScreen": "Esta tela",
+    "everyScreen": "Todas as telas",
+    "addMedia": "Adicionar um player",
+    "lost": "O painel não respondeu. Ele ainda está no ar?"
   },
   "image": {
     "fullscreen": "Ver de perto"

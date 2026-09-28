@@ -64,7 +64,11 @@
     "tilt": "Tilt",
     "sway": "Sway",
     "glass": "Glass",
-    "reset": "Reset"
+    "reset": "Reset",
+    "thisScreen": "This screen",
+    "everyScreen": "Every screen",
+    "addMedia": "Add a media player",
+    "lost": "The board did not answer. Is it still up?"
   },
   "image": {
     "fullscreen": "Look closer"
