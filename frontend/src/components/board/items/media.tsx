@@ -160,14 +160,12 @@ function FullScreen({ frame }: { frame: RefObject<HTMLDivElement | null> }) {
  * visible from the sofa and nowhere else. A finished track goes back the same
  * way, and the server decides what follows it.
  *
- * A `ghost` is this widget drawn once more as it leaves the screen — see
- * `use-leaving.ts`. The widget that was playing has already unmounted and said
- * its goodbye, so the ghost is a fresh player with a payload that still says
- * play, and left alone it played the film again, out loud, for the length of
- * the exit animation and reported that it had (#204). A ghost is a picture of
- * something that has gone. So it shows the frame the film was on and does
- * nothing else: it never plays, never reports, and never writes down a
- * position. A YouTube track has no frame outside YouTube's own player, and
+ * A `ghost` is this widget on its way off the screen — see `use-leaving.ts`.
+ * It is the same player it was a moment ago, told it is leaving (#208), with a
+ * payload that still says play: left alone it would go on playing, out loud,
+ * for the length of the exit animation (#204). A ghost is a picture of
+ * something that has gone. So it stops on the frame it was on and does nothing
+ * else: it never plays, never reports, and never writes down a position. A YouTube track has no frame outside YouTube's own player, and
  * building a new one only to animate it away is the thing this rules out, so
  * its ghost draws no picture at all.
  */
@@ -243,9 +241,14 @@ export function Media({
       if (!media.paused) media.pause();
       return;
     }
-    // A ghost shows where the film was and is never started, whatever the
+    // A ghost stops where the film was and is never started, whatever the
     // board says: the board is talking about the widget that has just left.
-    if (ghost) return;
+    // Its pause says nothing — `say` is silent for a ghost, and the goodbye
+    // below has already spoken for it.
+    if (ghost) {
+      if (!media.paused) media.pause();
+      return;
+    }
     // Asked each time the board changes, so both sides check first: calling play
     // on something already playing is noise, and pause on something paused is a
     // spurious event travelling back to the server.
@@ -324,8 +327,9 @@ export function Media({
   // runs no cleanup on unload — and in development StrictMode's extra unmount
   // says `paused` once for nothing, which the next tick corrects.
   //
-  // A ghost says nothing here either: the widget it is a picture of has
-  // already said this, once, as it left.
+  // Said once, as the widget becomes its ghost: that is when `ghost` changes
+  // and this cleanup runs, and the ghost's own run of it registers nothing, so
+  // the unmount that finally takes it away says nothing a second time.
   useEffect(() => {
     if (ghost) return;
     const last = lastSaid;
