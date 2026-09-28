@@ -25,7 +25,7 @@ from hud_mcp.server import server as board_tools
 from repositories import board as repo
 from repositories import notifications as notifications_repo
 from schemas.board import BoardSnapshot
-from services import media, persistence
+from services import media_expiry, persistence
 
 APP_NAME = "stark-hud"
 
@@ -45,13 +45,13 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     The reaper is the other loop: a media widget that finished playing an hour
     ago takes itself off the board. It ticks here rather than in the browser
     because there may be several browsers looking at this board or none at all —
-    see ``services.media.reaper``.
+    see ``services.media_expiry.reaper``.
     """
     settings = get_settings()
     persistence.restore()
     loops = [
         asyncio.create_task(persistence.flusher(settings.STATE_FLUSH_SECONDS)),
-        asyncio.create_task(media.reaper(settings.MEDIA_EXPIRY_CHECK_SECONDS)),
+        asyncio.create_task(media_expiry.reaper(settings.MEDIA_EXPIRY_CHECK_SECONDS)),
     ]
     try:
         async with mcp_app.router.lifespan_context(mcp_app):

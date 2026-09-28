@@ -143,7 +143,7 @@ class Settings(BaseSettings):
     #
     # Finished, not merely quiet: a paused film is somebody who means to come
     # back and never expires, and a looping queue never finishes at all.
-    # `services.media` holds the rule and the list of states that mean it.
+    # `services.media_expiry` holds the rule and the list of states that mean it.
     MEDIA_EXPIRY_SECONDS: float = Field(default=3600.0, ge=0)
 
     # How often the board is looked over for one. This is the granularity of the
