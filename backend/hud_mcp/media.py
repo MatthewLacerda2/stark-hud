@@ -178,10 +178,7 @@ def register(server: MCPServer) -> None:
             queue = media_service.tracks_from(tracks)
         except ValueError as exc:
             return f"Not queued: {exc}"
-        index = min(max(start, 0), max(len(queue) - 1, 0))
-        payload = player.model_copy(
-            update={"tracks": queue, "index": index, "seconds": 0.0, "title": title}
-        )
+        payload = media_service.requeued(player, queue, start, title)
         return await _write(item, payload, "queued")
 
     @server.tool()
