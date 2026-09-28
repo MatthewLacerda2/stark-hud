@@ -45,6 +45,10 @@ these can be overridden by the user** (see the closing note).
   make a widget easier to grab, label or configure — a title bar, a caption, a
   queue position, a name in a corner — comes off. A video widget draws video and
   nothing else; anything else appears on hover, and is never there at rest.
+  Dragging is a **second-class citizen** in this project. The user can ask a
+  Claude to move, resize or restyle anything by name, so when handling and the
+  look of the board disagree, the look wins. Do not add an affordance to the
+  screen to make something easier to move.
 - **The board is a flat sheet.** Widgets are drawn on it, not placed in a space
   behind the screen. A flat display cannot show a 3D room without eye tracking,
   so nothing fakes one — no depth-of-field blur, no parallax sway, no dimming
@@ -53,10 +57,6 @@ these can be overridden by the user** (see the closing note).
   television: it is a browser tab left up on a monitor beside the user's desk,
   read at arm's length. Rules and comments that talk about a sofa or a room
   describe where it used to be, not what to design for.
-  Dragging is a **second-class citizen** in this project. The user can ask a
-  Claude to move, resize or restyle anything by name, so when handling and the
-  look of the board disagree, the look wins. Do not add an affordance to the
-  screen to make something easier to move.
 
 - **Overriding these rules.** In the end, all rules may be overridden by the
   user — so long as the user says why, and the explanation still holds in the
