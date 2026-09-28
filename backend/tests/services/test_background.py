@@ -196,26 +196,63 @@ async def test_only_the_current_backgrounds_copy_is_kept(ffmpeg, page, tmp_path)
     assert [m["path"] for m in page.told if m and m["board_copy"]] == [second.path]
 
 
-@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="needs a real ffmpeg")
-async def test_the_real_recipe_makes_a_small_slow_silent_copy(tmp_path) -> None:
-    """The one test that runs ffmpeg: what comes out is 960x540, 24 fps, no sound."""
-    source = tmp_path / "source.mp4"
+def _video(path: Path, *extra: str) -> Path:
+    """A second of test pattern with a sine under it, as ffmpeg makes one."""
     subprocess.run(
         ["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "testsrc2=s=1920x1080:r=30:d=1",
-         "-f", "lavfi", "-i", "sine=d=1", "-shortest", str(source)],
+         "-f", "lavfi", "-i", "sine=d=1", "-shortest", *extra, str(path)],
         check=True,
     )  # fmt: skip
+    return path
+
+
+def _probe(path: Path) -> list[dict]:
+    done = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries",
+         "stream=codec_type,width,height,r_frame_rate,color_space,color_primaries",
+         "-of", "json", str(path)],
+        check=True, capture_output=True, text=True,
+    )  # fmt: skip
+    return json.loads(done.stdout)["streams"]
+
+
+needs_ffmpeg = pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="needs a real ffmpeg")
+
+
+@needs_ffmpeg
+async def test_the_real_recipe_makes_a_small_slow_silent_copy(tmp_path) -> None:
+    """The one place ffmpeg really runs: 960x540, 24 fps, no sound.
+
+    And labelled BT.709. The source says nothing about its colours, like most
+    videos, so the browser showed it — a 1080-line video — as BT.709; a
+    540-line copy left unlabelled would be shown as BT.601, in other colours.
+    """
+    target = tmp_path / "copy.part"
+
+    assert await service.encode(_video(tmp_path / "source.mp4"), target)
+
+    [stream] = _probe(target)
+    assert stream == {
+        "codec_type": "video",
+        "width": 960,
+        "height": 540,
+        "r_frame_rate": "24/1",
+        "color_space": "bt709",
+        "color_primaries": "bt709",
+    }
+
+
+@needs_ffmpeg
+async def test_a_video_that_names_its_colours_keeps_them(tmp_path) -> None:
+    """Only a guess is replaced: a label the source carries goes through as it is."""
+    labelled = "setparams=colorspace=smpte170m:color_primaries=smpte170m:color_trc=smpte170m"
+    source = _video(tmp_path / "source.mp4", "-vf", labelled)
     target = tmp_path / "copy.part"
 
     assert await service.encode(source, target)
 
-    probe = subprocess.run(
-        ["ffprobe", "-v", "error", "-show_entries", "stream=codec_type,width,height,r_frame_rate",
-         "-of", "json", str(target)],
-        check=True, capture_output=True, text=True,
-    )  # fmt: skip
-    streams = json.loads(probe.stdout)["streams"]
-    assert streams == [{"codec_type": "video", "width": 960, "height": 540, "r_frame_rate": "24/1"}]
+    [stream] = _probe(target)
+    assert (stream["color_space"], stream["color_primaries"]) == ("smpte170m", "smpte170m")
 
 
 async def test_a_directory_it_cannot_write_is_no_copy(monkeypatch, page, caplog, tmp_path) -> None:

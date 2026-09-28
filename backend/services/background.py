@@ -37,6 +37,7 @@ and every pixel a smaller copy drops is one somebody is looking at.
 
 import asyncio
 import hashlib
+import json
 import logging
 import shutil
 from pathlib import Path
@@ -64,9 +65,10 @@ _FILTERS = (
     "fps=fps='min(24,source_fps)',"
     "scale=960:540:force_original_aspect_ratio=increase:force_divisible_by=2"
 )
-# Part of every copy's name, so changing either number above is a new copy for
-# every background rather than an old one quietly kept.
-RECIPE = "540p24"
+# Part of every copy's name, so changing anything about the copy — these two
+# numbers, or the colour labelling below — is a new copy for every background
+# rather than an old one quietly kept.
+RECIPE = "540p24-colour"
 
 
 class MissingFileError(BoardRefusal):
@@ -211,27 +213,65 @@ async def encode(source: Path, target: Path) -> bool:
     argv = [
         "nice", "-n", "19", ffmpeg, "-nostdin", "-v", "error", "-y",
         "-i", str(source), "-map", "0:v:0",
-        "-vf", _FILTERS,
+        "-vf", _FILTERS + await _colour(source),
         "-c:v", "libx264", "-pix_fmt", "yuv420p",
         "-movflags", "+faststart", "-f", "mp4", str(target),
     ]
     # fmt: on
+    done = await _run(argv)
+    if done is None or done[0] != 0:
+        errors = done[2].decode()[-500:] if done else "ffmpeg would not start"
+        logger.warning("could not copy the background %s: %s", source, errors)
+        return False
+    return True
+
+
+# What a browser assumes about a video that does not say which colours it is in,
+# which is most of them — the owner's own background among them. Chromium picks
+# by height: BT.709 from 720 lines up, BT.601 below. The copy is 540 lines, so
+# left unlabelled it would be read in the other standard from its original and
+# come out in visibly different colours; measured, a saturated yellow went
+# green. So a copy of an unlabelled HD video is labelled with what the browser
+# was assuming all along. A labelled one keeps its label, which ffmpeg carries
+# over by itself.
+_HD_LINES = 720
+_AS_HD = ",setparams=colorspace=bt709:color_primaries=bt709:color_trc=bt709"
+
+
+async def _colour(source: Path) -> str:
+    """The filter that keeps the copy in the colours the original was shown in."""
+    ffprobe = shutil.which("ffprobe")
+    if ffprobe is None:
+        return ""
+    # fmt: off
+    done = await _run([
+        ffprobe, "-v", "error", "-select_streams", "v:0",
+        "-show_entries", "stream=height,color_space", "-of", "json", str(source),
+    ])
+    # fmt: on
+    try:
+        stream = json.loads(done[1])["streams"][0] if done and done[0] == 0 else {}
+    except ValueError, KeyError, IndexError:
+        stream = {}
+    unlabelled = stream.get("color_space", "unknown") == "unknown"
+    return _AS_HD if unlabelled and stream.get("height", 0) >= _HD_LINES else ""
+
+
+async def _run(argv: list[str]) -> tuple[int, bytes, bytes] | None:
+    """Run a program to the end: its exit code and what it said, or None if it never started."""
     try:
         process = await asyncio.create_subprocess_exec(
-            *argv, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE
+            *argv, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
         )
     except OSError as exc:
-        logger.warning("could not start ffmpeg for the background %s: %s", source, exc)
-        return False
+        logger.warning("could not start %s: %s", argv[0], exc)
+        return None
     try:
-        _, errors = await process.communicate()
+        out, errors = await process.communicate()
     except asyncio.CancelledError:
         process.kill()
         raise
-    if process.returncode != 0:
-        logger.warning("could not copy the background %s: %s", source, errors.decode()[-500:])
-        return False
-    return True
+    return process.returncode or 0, out, errors
 
 
 def _keep_only(directory: Path, keep: str | None) -> None:
