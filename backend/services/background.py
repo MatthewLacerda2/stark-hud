@@ -172,14 +172,19 @@ def _ready(background: Background) -> str | None:
 
 async def _make(background: Background, directory: Path, name: str) -> None:
     """Make one copy, keep it, and tell the page if it is still the one showing."""
+    target = directory / name
+    partial = target.with_suffix(".part")
     try:
         directory.mkdir(parents=True, exist_ok=True)
-        target = directory / name
-        partial = target.with_suffix(".part")
         if not await encode(Path(background.path), partial):
             partial.unlink(missing_ok=True)
             return
         partial.replace(target)
+    except OSError as exc:
+        # A directory it cannot write is the same as no ffmpeg: no copy, and
+        # the original goes on playing.
+        logger.warning("could not keep a copy of the background in %s: %s", directory, exc)
+        return
     finally:
         del _making[name]
     # Another background may have been set while this one was being made, and

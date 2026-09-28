@@ -216,3 +216,18 @@ async def test_the_real_recipe_makes_a_small_slow_silent_copy(tmp_path) -> None:
     )  # fmt: skip
     streams = json.loads(probe.stdout)["streams"]
     assert streams == [{"codec_type": "video", "width": 960, "height": 540, "r_frame_rate": "24/1"}]
+
+
+async def test_a_directory_it_cannot_write_is_no_copy(monkeypatch, page, caplog, tmp_path) -> None:
+    """Somewhere unwritable is the same as no ffmpeg: the original plays on, and it says why."""
+    blocked = tmp_path / "a-file-not-a-directory"
+    blocked.write_bytes(b"")
+    monkeypatch.setattr(service, "get_settings", lambda: Settings(BACKGROUND_DIR=str(blocked)))
+
+    await service.set_background(Background(path=str(_clip(tmp_path)), blur=True))
+    await service.settled()
+
+    shown = service.shown()
+    assert shown is not None and shown.board_copy is None
+    assert len(page.told) == 1
+    assert "could not keep a copy of the background" in caplog.text
