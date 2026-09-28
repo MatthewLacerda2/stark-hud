@@ -176,8 +176,8 @@ class MediaTrack(BaseModel):
             self.youtube = found
             self.kind = "youtube"
             # The id is a poor thing to read across a room, but it is the only
-            # name a link carries. The page replaces it with the real title once
-            # YouTube's player hands one over.
+            # name a link carries, and it stays: nothing on the page asks
+            # YouTube's player for a title, so nothing ever replaces it.
             self.title = self.title or found
             return self
         if self.path is None:
