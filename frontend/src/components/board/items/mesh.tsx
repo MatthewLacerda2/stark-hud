@@ -114,49 +114,52 @@ export function Mesh({
       </div>
     );
 
+  const drawing = (
+    <canvas
+      // One canvas per telling of the model. A view lets go of the GPU by
+      // losing its context on purpose, and a canvas hands that same lost
+      // context to whatever asks it next — so a view built on the old element
+      // after a reload drew nothing at all. A new key is a new element.
+      key={asked}
+      ref={canvas}
+      // `widget-text` is not decoration here: it is how the canvas is told what
+      // colour to draw in. The colour is read back off this element's computed
+      // style, so the board's ink and a colour set on this one widget both
+      // reach the model without either being restated in JavaScript.
+      className="size-full rounded-xl widget-text"
+    />
+  );
+
+  // A model with no labels is the canvas alone, exactly as it was before
+  // labels existed. Even an empty box around it is not free: it moves the
+  // canvas to another compositing path, and the model's lines come out a shade
+  // off (measured: a few thousand pixels one level apart).
   const labels = found?.model?.labels ?? [];
+  if (labels.length === 0) return drawing;
+
   return (
-    // A box of its own for the canvas and the words over it. Without labels it
-    // holds the canvas alone, filling it exactly as the canvas filled the
-    // widget before there were any.
     <div className="relative size-full">
-      <canvas
-        // One canvas per telling of the model. A view lets go of the GPU by
-        // losing its context on purpose, and a canvas hands that same lost
-        // context to whatever asks it next — so a view built on the old element
-        // after a reload drew nothing at all. A new key is a new element.
-        key={asked}
-        ref={canvas}
-        // `widget-text` is not decoration here: it is how the canvas is told
-        // what colour to draw in. The colour is read back off this element's
-        // computed style, so the board's ink and a colour set on this one
-        // widget both reach the model without either being restated in
-        // JavaScript.
-        className="size-full rounded-xl widget-text"
-      />
-      {labels.length > 0 && (
-        // The words the file put beside its points, as text on the page rather
-        // than pixels in the model: the board's own type, crisp at any size,
-        // in the widget's ink. The view moves each one every frame it draws;
-        // they start hidden, so none shows at the corner before it is placed.
-        // Not recoloured by `colors` or the wave: a part's colour says how it
-        // is, and a word that changed with it would be harder to read and say
-        // nothing the part does not already say.
-        <div
-          key={asked}
-          ref={words}
-          className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl"
-        >
-          {labels.map(({ text }, at) => (
-            <span
-              key={at}
-              className="invisible absolute top-0 left-0 whitespace-nowrap text-node-sm leading-none widget-text"
-            >
-              {text}
-            </span>
-          ))}
-        </div>
-      )}
+      {drawing}
+      {/* The words the file put beside its points, as text on the page rather
+          than pixels in the model: the board's own type, crisp at any size, in
+          the widget's ink. The view moves each one every frame it draws; they
+          start hidden, so none shows in the corner before it is placed.
+          Not recoloured by `colors` or the wave: a part's colour says how it
+          is, and a word changing with it would be harder to read and say
+          nothing the part does not already say. */}
+      <div
+        ref={words}
+        className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl"
+      >
+        {labels.map(({ text }, at) => (
+          <span
+            key={at}
+            className="invisible absolute top-0 left-0 whitespace-nowrap text-node-sm leading-none widget-text"
+          >
+            {text}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
