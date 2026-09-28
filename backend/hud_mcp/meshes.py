@@ -82,6 +82,14 @@ def register(server: MCPServer) -> None:
         `spin` turns it on a turntable instead, in turns per second — slowly,
         if at all. Everything else about the view is `set_mesh`.
 
+        A node can carry words: give it a `label` in its glTF extras (in
+        Blender, a custom property named `label` on the object). The label is
+        written beside the node's own origin, in the board's type, and follows
+        it as the model turns, animates or explodes. When labels crowd, the one
+        earlier in the file is drawn and the later one waits — so put first
+        what matters most (Blender writes objects in name order). Labels keep
+        the widget's ink; `colors` does not reach them.
+
         Give it room: a model is a shape to recognise, and below about 4 by 4
         the lines converge.
 

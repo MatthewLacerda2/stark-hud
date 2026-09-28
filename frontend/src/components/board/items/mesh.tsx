@@ -42,6 +42,7 @@ export function Mesh({
 }) {
   const { t } = useTranslation();
   const canvas = useRef<HTMLCanvasElement>(null);
+  const words = useRef<HTMLDivElement>(null);
   const view = useRef<View | null>(null);
   const [got, setGot] = useState<Fetched | null>(null);
 
@@ -76,7 +77,8 @@ export function Mesh({
     let live = true;
     void import("@/lib/hologram-view").then(({ View: Made }) => {
       if (!live) return;
-      made = new Made(element, model);
+      const tags = [...(words.current?.children ?? [])] as HTMLElement[];
+      made = new Made(element, model, tags);
       view.current = made;
       made.set(lookOf(element, model, payload));
       observer = new ResizeObserver(() =>
@@ -112,7 +114,7 @@ export function Mesh({
       </div>
     );
 
-  return (
+  const drawing = (
     <canvas
       // One canvas per telling of the model. A view lets go of the GPU by
       // losing its context on purpose, and a canvas hands that same lost
@@ -126,6 +128,39 @@ export function Mesh({
       // reach the model without either being restated in JavaScript.
       className="size-full rounded-xl widget-text"
     />
+  );
+
+  // A model with no labels is the canvas alone, exactly as it was before
+  // labels existed. Even an empty box around it is not free: it moves the
+  // canvas to another compositing path, and the model's lines come out a shade
+  // off (measured: a few thousand pixels one level apart).
+  const labels = found?.model?.labels ?? [];
+  if (labels.length === 0) return drawing;
+
+  return (
+    <div className="relative size-full">
+      {drawing}
+      {/* The words the file put beside its points, as text on the page rather
+          than pixels in the model: the board's own type, crisp at any size, in
+          the widget's ink. The view moves each one every frame it draws; they
+          start hidden, so none shows in the corner before it is placed.
+          Not recoloured by `colors` or the wave: a part's colour says how it
+          is, and a word changing with it would be harder to read and say
+          nothing the part does not already say. */}
+      <div
+        ref={words}
+        className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl"
+      >
+        {labels.map(({ text }, at) => (
+          <span
+            key={at}
+            className="invisible absolute top-0 left-0 whitespace-nowrap text-node-sm leading-none widget-text"
+          >
+            {text}
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
 

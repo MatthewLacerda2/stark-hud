@@ -27,6 +27,7 @@ import {
   rampAt,
   type Vec3,
 } from "@/lib/mesh";
+import { placeLabels, type Size, type Spot } from "@/lib/mesh-labels";
 
 /** The upright axis, which the model turns about. */
 const UP = new Vector3(0, 1, 0);
@@ -78,6 +79,12 @@ export class View {
   private readonly model: Prepared;
   private readonly phase: (number | null)[] = [];
   private readonly scratch = new Color();
+  /** One element per label in the model, in the same order. */
+  private readonly tags: HTMLElement[];
+  /** How big each label is drawn, measured when the widget changes size. */
+  private sizes: Size[] = [];
+  /** What each label was last told, so one that has not moved is left alone. */
+  private readonly written: string[] = [];
   private look: Look | null = null;
   private offsets: Vec3[] = [];
   /** What the camera was last fitted for; fitting is not a per-frame job. */
@@ -88,8 +95,13 @@ export class View {
   private readonly started = performance.now();
   private last = performance.now();
 
-  constructor(canvas: HTMLCanvasElement, model: Prepared) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    model: Prepared,
+    tags: HTMLElement[] = [],
+  ) {
     this.model = model;
+    this.tags = tags;
     this.renderer = new WebGLRenderer({ canvas, alpha: true, antialias: true });
     this.renderer.outputColorSpace = LinearSRGBColorSpace;
     this.renderer.setClearColor(0x000000, 0);
@@ -105,6 +117,12 @@ export class View {
     this.height = height;
     this.renderer.setPixelRatio(window.devicePixelRatio || 1);
     this.renderer.setSize(width, height, false);
+    // The words are sized off the widget's width, so this is when they change —
+    // and a layout read belongs here, once, rather than in every frame.
+    this.sizes = this.tags.map((tag) => ({
+      w: tag.offsetWidth,
+      h: tag.offsetHeight,
+    }));
     this.request();
   }
 
@@ -181,7 +199,43 @@ export class View {
       for (const dots of drawable.points) dots.size = pixel * 2;
     }
     this.renderer.render(this.scene, this.camera);
+    if (this.tags.length) this.label();
     if (this.moving()) this.request();
+  }
+
+  /**
+   * Put every label beside where its node is drawn this frame.
+   *
+   * Asked after the render, which has just brought every node's place and the
+   * camera up to date. Only a label whose place changed is written to, so a
+   * model standing still costs its labels nothing and a turning one touches only
+   * the elements that moved.
+   */
+  private label(): void {
+    const at = new Vector3();
+    const spots = this.model.labels.map(({ anchor }): Spot | null => {
+      at.setFromMatrixPosition(anchor.matrixWorld).project(this.camera);
+      // Outside the depth range is behind the camera or past its far plane:
+      // nowhere on the widget, whatever x and y say.
+      if (at.z < -1 || at.z > 1) return null;
+      return {
+        x: ((at.x + 1) / 2) * this.width,
+        y: ((1 - at.y) / 2) * this.height,
+      };
+    });
+    const placed = placeLabels(spots, this.sizes, this.width, this.height);
+    this.tags.forEach((tag, index) => {
+      const spot = placed[index];
+      // Whole pixels: a word on a fractional pixel is resampled and goes soft,
+      // and this is text somebody reads up close.
+      const next = spot
+        ? `translate(${Math.round(spot.x)}px, ${Math.round(spot.y)}px)`
+        : "";
+      if (next === this.written[index]) return;
+      this.written[index] = next;
+      if (next) tag.style.transform = next;
+      tag.style.visibility = next ? "visible" : "hidden";
+    });
   }
 
   /** Every drawable's colour at this moment: pinned, on the wave, or the ink. */

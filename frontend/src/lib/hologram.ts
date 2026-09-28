@@ -46,6 +46,7 @@ import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2.js";
 import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry.js";
 import { type ModelFormat, type Vec3 } from "@/lib/mesh";
+import { labelOf } from "@/lib/mesh-labels";
 
 // Colours arrive as the CSS colours the board resolved them to, and must land
 // on the screen as exactly those. three.js otherwise converts them into linear
@@ -92,6 +93,12 @@ export type Prepared = {
   samples: { at: Vector3; part: number }[];
   drawables: Drawable[];
   clips: AnimationClip[];
+  /**
+   * Every node the file gave a label, in the file's order, and the words. The
+   * node itself rather than where it was: it is what an animation, a spin and
+   * explode move, so where it is drawn is asked of it each frame.
+   */
+  labels: { text: string; anchor: Object3D }[];
 };
 
 /** Read a model file into an object three.js can draw, and its animations. */
@@ -226,6 +233,10 @@ export async function prepare(
 
   const found: Object3D[] = [];
   file.traverse((object) => found.push(object));
+  const labels = found.flatMap((anchor) => {
+    const text = labelOf(anchor.userData);
+    return text === null ? [] : [{ text, anchor }];
+  });
   const drawables: Drawable[] = [];
   for (const object of found) {
     const drawable: Drawable = {
@@ -284,6 +295,7 @@ export async function prepare(
     samples: sample(root, partOf),
     drawables,
     clips,
+    labels,
   };
 }
 

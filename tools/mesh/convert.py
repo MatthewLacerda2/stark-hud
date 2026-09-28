@@ -68,7 +68,8 @@ READABLE = [*sorted(IMPORTERS), ".blend"]
 def export_glb(path: Path) -> None:
     """Write the scene as one .glb: objects, pivots, loose lines and animation.
 
-    Cameras and lights are left out — the board brings its own camera, and its
+    Custom properties go in as extras, since a `label` on an object is words
+    the widget writes beside it. Cameras and lights are left out — the board brings its own camera, and its
     own light, which is no light at all. Materials go too: the look is the
     board's, and a material nothing reads is bytes for nobody. Loose edges are
     kept (``use_mesh_edges``), because a model built partly of lines — a cable,
@@ -84,6 +85,9 @@ def export_glb(path: Path) -> None:
         export_animations=True,
         export_apply=True,
         use_mesh_edges=True,
+        # Custom properties, as glTF extras: an object's `label` is the words
+        # the widget writes beside it. Off by default in Blender's exporter.
+        export_extras=True,
     )
 
 
