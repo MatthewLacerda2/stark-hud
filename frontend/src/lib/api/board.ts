@@ -43,6 +43,27 @@ export function boardStatus(): Promise<BoardStatus> {
   return request<BoardStatus>("/board/status");
 }
 
+/**
+ * What this page asks for when it puts a widget on the board: a subset of
+ * `ItemCreate` in `backend/schemas/item.py`, and deliberately only the part
+ * something here sends — see `ItemUpdate` above for what happened to the last
+ * full copy that nothing called.
+ *
+ * No `x` or `y`, on purpose. A person adding a widget by hand gets the same
+ * treatment as `add_media` with no position: the board finds a free slot, and
+ * a full board says what is free instead of overlapping anything.
+ */
+export interface ItemCreate {
+  payload: Payload;
+  w: number;
+  h: number;
+}
+
+/** Put a widget on the board. A full board refuses with a 409 and a sentence. */
+export function createItem(body: ItemCreate): Promise<Item> {
+  return request<Item>("/board/items", { method: "POST", body });
+}
+
 export function updateItem(id: string, body: ItemUpdate): Promise<Item> {
   return request<Item>(`/board/items/${id}`, { method: "PATCH", body });
 }

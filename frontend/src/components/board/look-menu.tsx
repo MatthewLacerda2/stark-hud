@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Slider } from "@/components/ui/slider";
+import { AddMedia } from "@/components/board/add-media";
 import { dialValue, type Dial, type DialGroup } from "@/lib/dials";
 import { cn } from "@/lib/utils";
 
@@ -14,9 +15,15 @@ export type MenuAt = { x: number; y: number };
  * The board's look, turned by hand: tape, bloom and depth.
  *
  * Opened with the right mouse button anywhere on the board, which is chrome in
- * exactly the place `CLAUDE.md` allows it — where a pointer exists, and so never
- * on the television. Everything here is board-wide. There is nothing per widget
- * in it, because nothing about a widget is a look somebody sets from a menu.
+ * exactly the place `CLAUDE.md` allows it — where a pointer exists. There is
+ * nothing per widget in it, because nothing about a widget is a look somebody
+ * sets from a menu.
+ *
+ * It does two kinds of thing, and they are kept apart on purpose. The dials are
+ * this browser's own: each screen keeps its own tape, bloom and depth. Adding a
+ * player is not — it puts a widget on the board, and every screen shows it. So
+ * each half is headed with whose it is, and a rule runs between them, so the
+ * one button is never read as one more setting for this screen.
  *
  * It opens towards the middle of the screen from wherever the pointer was, so a
  * click near an edge never puts half of it off the screen, and it shuts on
@@ -106,19 +113,36 @@ export function LookMenu({
         event.stopPropagation();
       }}
     >
-      {groups.map((group) => (
-        <div key={group.name} className="flex flex-col gap-2">
-          {row(group.master, true)}
-          {group.parts.map((part) => row(part, false))}
-        </div>
-      ))}
-      <button
-        type="button"
-        onClick={onReset}
-        className="self-end text-caption text-muted-foreground transition-colors hover:text-foreground"
+      <section
+        aria-label={t("look.thisScreen")}
+        className="flex flex-col gap-4"
       >
-        {t("look.reset")}
-      </button>
+        <h2 className="text-caption text-muted-foreground">
+          {t("look.thisScreen")}
+        </h2>
+        {groups.map((group) => (
+          <div key={group.name} className="flex flex-col gap-2">
+            {row(group.master, true)}
+            {group.parts.map((part) => row(part, false))}
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={onReset}
+          className="self-end text-caption text-muted-foreground transition-colors hover:text-foreground"
+        >
+          {t("look.reset")}
+        </button>
+      </section>
+      <section
+        aria-label={t("look.everyScreen")}
+        className="flex flex-col gap-2 border-t border-border pt-4"
+      >
+        <h2 className="text-caption text-muted-foreground">
+          {t("look.everyScreen")}
+        </h2>
+        <AddMedia onAdded={onClose} />
+      </section>
     </div>
   );
 }
