@@ -12,6 +12,12 @@
  * the group, and reads what went to the server. jsdom plays nothing and paints
  * nothing, so the transport is stubbed and the departing widget's exit
  * animation is let run out on a fake clock.
+ *
+ * The same filters and grid pin the ghost, too (#204). The grid drops a leaving
+ * widget for one render before it draws it again for its exit animation, so a
+ * player unmounts, mounts as a ghost and unmounts again. In a real browser that
+ * ghost played the film out loud for the animation's length and reported
+ * `playing` between two `paused`s. A ghost is only a picture of what left.
  */
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -33,6 +39,7 @@ vi.mock("@/hooks/use-container-size", () => ({
 }));
 
 let sent: { url: string; body: Record<string, unknown> }[] = [];
+const played = vi.fn(() => Promise.resolve());
 
 beforeAll(() => {
   (
@@ -43,7 +50,7 @@ beforeAll(() => {
     unobserve(): void {}
     disconnect(): void {}
   };
-  HTMLMediaElement.prototype.play = vi.fn(() => Promise.resolve());
+  HTMLMediaElement.prototype.play = played;
   HTMLMediaElement.prototype.pause = vi.fn();
   globalThis.fetch = vi.fn((url: string, init?: RequestInit) => {
     sent.push({ url, body: JSON.parse(String(init?.body ?? "{}")) });
@@ -55,6 +62,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   sent = [];
+  played.mockClear();
   vi.useFakeTimers();
 });
 
@@ -167,9 +175,39 @@ it("says a playing film is paused when the page turns, and not that it is idle",
 
   await draw(items, "notes");
 
-  // Twice in fact: the grid drops a leaving widget for one render before it
-  // draws its exit as a ghost, so it unmounts, mounts and unmounts again.
-  expect(said(before).at(-1)).toEqual({ state: "paused" });
-  expect(said(before)).not.toContainEqual({ state: "idle" });
+  expect(said(before)).toEqual([{ state: "paused" }]);
+  await done();
+});
+
+it("does not play a film again while it is leaving the screen, or say anything more", async () => {
+  // The widget that was playing unmounts and says `paused`, once. What is
+  // drawn for the exit animation after it is a ghost: it must not start the
+  // film, which in a browser is the soundtrack for as long as the animation
+  // runs, and must not say `playing` or `paused` a second time.
+  const items = [item("film", film(true))];
+  const { draw, host, done } = await board(items, "films");
+  const before = sent.length;
+  played.mockClear();
+
+  await draw(items, "notes");
+
+  expect(host.querySelector("video")).toBeNull();
+  expect(played).not.toHaveBeenCalled();
+  expect(said(before)).toEqual([{ state: "paused" }]);
+  await done();
+});
+
+it("does not play a film again while its group folds it away", async () => {
+  const group = (state: "open" | "folded") =>
+    item("shelf", { kind: "group", state });
+  const inside = item("film", film(true), "shelf");
+  const { draw, done } = await board([group("open"), inside], "films");
+  const before = sent.length;
+  played.mockClear();
+
+  await draw([group("folded"), inside], "films");
+
+  expect(played).not.toHaveBeenCalled();
+  expect(said(before)).toEqual([{ state: "paused" }]);
   await done();
 });

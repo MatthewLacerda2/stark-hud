@@ -240,6 +240,7 @@ export function BoardGrid({
                         notifications={notifications}
                         holds={held(item, everything)}
                         reload={reloads[item.id] ?? 0}
+                        ghost={going}
                       />
                     </div>
                     <WidgetWake nonce={wakes[item.id] ?? 0} />
