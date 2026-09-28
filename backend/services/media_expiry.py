@@ -99,10 +99,10 @@ def contradicted(item: ItemRead) -> bool:
 async def settle(now: datetime | None = None) -> list[str]:
     """Rewrite every contradicted record to `idle`. Returns the ids it touched.
 
-    `idle` is the page's own word for a player nothing is playing: it is what a
-    widget says as it leaves the screen, folded into a group or removed. That is
-    what a contradicted record describes — told to stop, and not being drawn by
-    anything that could confirm it did.
+    `idle` rather than `paused`, because `paused` is never finished and the
+    widget would stay for good. A contradicted record is told to stop and not
+    drawn by anything that could confirm it did; a page leaving a player behind
+    says `paused` instead (#196), because a page turned away is not a film done.
 
     The time on the new record is now, the moment the server noticed, not the
     browser's last word. `Playback.at` is the clock the hour is read off, and

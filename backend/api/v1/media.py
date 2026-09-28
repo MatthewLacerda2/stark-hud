@@ -86,10 +86,8 @@ async def hand_over(item_id: str, handed: HandedTrack) -> ItemRead:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
         ) from exc
-    # Everything the old queue said about where it was is about a file that is
-    # no longer here, and so is the album name it was captioned with.
-    update = {"tracks": queue, "index": 0, "seconds": 0.0, "title": None, "playing": True}
-    return await service.update(item, ItemUpdate(payload=player.model_copy(update=update)))
+    playing = media_service.requeued(player, queue).model_copy(update={"playing": True})
+    return await service.update(item, ItemUpdate(payload=playing))
 
 
 def _player(item_id: str) -> tuple[ItemRead, MediaPayload]:
