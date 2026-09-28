@@ -20,7 +20,8 @@ async def test_setting_and_serving_a_background(client: AsyncClient, tmp_path: P
     clip = tmp_path / "loop.mp4"
     clip.write_bytes(b"pretend-this-is-a-video")
     assert (await client.put(BG, json={"path": str(clip), "blur": True})).status_code == 200
-    assert (await client.get(BG)).json() == {"path": str(clip), "blur": True}
+    # No copy in the tests (`BACKGROUND_DIR` is empty), so the original is what plays.
+    assert (await client.get(BG)).json() == {"path": str(clip), "blur": True, "board_copy": None}
     assert (await client.get("/api/v1/media/background")).content == b"pretend-this-is-a-video"
 
 

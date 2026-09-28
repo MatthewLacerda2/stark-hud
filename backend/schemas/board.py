@@ -130,6 +130,19 @@ class Background(BaseModel):
     blur: bool = False
 
 
+class BackgroundRead(Background):
+    """The background as the page is told about it: what was set, plus its copy.
+
+    ``board_copy`` names the smaller, slower copy of the video once it has been
+    made, and is ``None`` until then — or for good, when this board cannot make
+    one. The page plays the copy when there is one and the original when there
+    is not. It is a name and not a path: it only ever goes into a URL, as the
+    thing that tells one copy from the next. See ``services.background``.
+    """
+
+    board_copy: str | None = None
+
+
 class Ink(BaseModel):
     """The colour the board writes in, for every widget not given one of its own.
 
@@ -157,7 +170,7 @@ class BoardSnapshot(BaseModel):
     # is on, and the page decides which of them the television draws — the same
     # rule the server keeps, so the two cannot disagree about what is up.
     showing: str
-    background: Background | None
+    background: BackgroundRead | None
     ink: Ink | None
     notifications: list[Notification]
 

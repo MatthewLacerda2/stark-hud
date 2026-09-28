@@ -7,13 +7,10 @@ thing — so a caller that writes through this cannot leave the TV showing the o
 widget. See ``services.events``.
 """
 
-from pathlib import Path
-
 from core.config import get_settings
 from core.refusal import BoardRefusal
 from repositories import board as repo
 from schemas.board import (
-    Background,
     BoardStatus,
     Ink,
     ItemCreate,
@@ -86,30 +83,6 @@ class NotByPatchError(BoardRefusal):
             f"{item.id} is a group, and a group is opened and closed by "
             f"fold_group and unfold_group, never by writing its state."
         )
-
-
-class MissingFileError(BoardRefusal):
-    """Raised when a background points at a path that is not a file."""
-
-    status = 404
-
-    def __init__(self, path: str) -> None:
-        self.path = path
-        super().__init__(f"No file at {path}")
-
-
-async def set_background(background: Background | None) -> Background | None:
-    """Set or clear the video background, checking the file exists first.
-
-    Items with a missing file show a visible placeholder, so the problem
-    announces itself. A missing background is just darkness, indistinguishable
-    from having set none — so this one is checked up front.
-    """
-    if background is not None and not Path(background.path).is_file():
-        raise MissingFileError(background.path)
-    stored = repo.set_background(background)
-    await events.background_changed(stored)
-    return stored
 
 
 async def set_ink(ink: Ink | None) -> Ink | None:

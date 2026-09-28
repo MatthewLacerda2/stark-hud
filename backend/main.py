@@ -25,7 +25,7 @@ from hud_mcp.server import server as board_tools
 from repositories import board as repo
 from repositories import notifications as notifications_repo
 from schemas.board import BoardSnapshot
-from services import media_expiry, persistence
+from services import background, media_expiry, persistence
 
 APP_NAME = "stark-hud"
 
@@ -49,6 +49,10 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     """
     settings = get_settings()
     persistence.restore()
+    # A board restored from disk may have a background with no copy yet — set
+    # before copies existed, or on a machine that had no ffmpeg then. It is made
+    # now, in the background, and the page plays the original until it is.
+    background.prepare()
     loops = [
         asyncio.create_task(persistence.flusher(settings.STATE_FLUSH_SECONDS)),
         asyncio.create_task(media_expiry.reaper(settings.MEDIA_EXPIRY_CHECK_SECONDS)),
@@ -59,6 +63,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     finally:
         for loop in loops:
             loop.cancel()
+        background.abandon()
         persistence.save()
 
 
@@ -132,7 +137,7 @@ def _register_socket(app: FastAPI) -> None:
             snapshot = BoardSnapshot(
                 items=repo.list_items(),
                 showing=repo.showing(),
-                background=repo.get_background(),
+                background=background.shown(),
                 ink=repo.get_ink(),
                 notifications=notifications_repo.list_all(),
             )
