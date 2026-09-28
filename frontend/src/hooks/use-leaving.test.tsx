@@ -6,7 +6,7 @@
  * shrinking. This is the only piece of the motion that needs any state at all,
  * and it is state about the last two frames rather than about the board.
  */
-import { act } from "react";
+import { act, useEffect } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { Item } from "@/lib/schemas/board";
@@ -101,5 +101,33 @@ describe("a widget that has gone", () => {
 
     const ghost = get().drawn[0];
     expect([ghost.x, ghost.y]).toEqual([12, 6]);
+  });
+
+  it("is the same widget it was, not a new copy of it", async () => {
+    // #208: learnt one commit late, a departure left the widget in neither list
+    // for a render, so React unmounted it and mounted a fresh one to animate
+    // out — a film played its sound again, a mesh built a new WebGL context.
+    const mounts: string[] = [];
+    const unmounts: string[] = [];
+    function Widget({ id }: { id: string }) {
+      useEffect(() => {
+        mounts.push(id);
+        return () => void unmounts.push(id);
+      }, [id]);
+      return null;
+    }
+    function Board({ items }: { items: Item[] }) {
+      const { drawn } = useLeaving(items);
+      return drawn.map((i) => <Widget key={i.id} id={i.id} />);
+    }
+    const root = createRoot(document.createElement("div"));
+    mounted.push(root);
+    await act(async () =>
+      root.render(<Board items={[item("a"), item("b")]} />),
+    );
+    await act(async () => root.render(<Board items={[item("a")]} />));
+
+    expect(mounts).toEqual(["a", "b"]);
+    expect(unmounts).toEqual([]);
   });
 });

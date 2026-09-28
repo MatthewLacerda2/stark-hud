@@ -34,25 +34,56 @@ export function useLeaving(items: Item[]): {
   /** Hand back when a ghost's animation ends, so it can be forgotten. */
   forget: (id: string) => void;
 } {
-  const seen = useRef(new Map<string, Item>());
+  const [previous, setPrevious] = useState(items);
   const [ghosts, setGhosts] = useState<Item[]>([]);
 
-  useEffect(() => {
-    const here = new Map(items.map((item) => [item.id, item] as const));
-    const gone = [...seen.current.values()].filter(
-      (item) => !here.has(item.id),
-    );
-    seen.current = here;
-    if (gone.length === 0) return;
+  // Worked out while rendering, not in an effect afterwards (#208). An effect
+  // hears about a departure one commit late, and in that commit the widget is
+  // in neither `items` nor `ghosts`: React unmounts it, and then mounts a new
+  // copy to play its exit — every widget of every kind rebuilt from scratch
+  // only to fade out. A film played its sound again (#204); a mesh built a new
+  // WebGL context. Setting state during render re-renders before anything is
+  // committed, so the widget never leaves the tree: the same instance goes from
+  // live to leaving, and is unmounted once, when it is forgotten.
+  if (items !== previous) {
+    setPrevious(items);
+    const here = new Set(items.map((item) => item.id));
+    const gone = previous.filter((item) => !here.has(item.id));
+    if (gone.length > 0) {
+      const leaving = new Set(gone.map((item) => item.id));
+      setGhosts((current) => [
+        ...current.filter((ghost) => !leaving.has(ghost.id)),
+        ...gone,
+      ]);
+    }
+  }
 
-    setGhosts((current) => [...current, ...gone]);
-    const ids = new Set(gone.map((item) => item.id));
-    const stop = setTimeout(
-      () => setGhosts((current) => current.filter((g) => !ids.has(g.id))),
-      FORGET_MS,
-    );
-    return () => clearTimeout(stop);
-  }, [items]);
+  // The backstop, one per ghost and counted from when it became one, so a
+  // steady stream of departures never postpones an older ghost's end.
+  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  useEffect(() => {
+    const running = timers.current;
+    const held = new Set(ghosts.map((ghost) => ghost.id));
+    for (const [id, stop] of running) {
+      if (held.has(id)) continue;
+      clearTimeout(stop);
+      running.delete(id);
+    }
+    for (const id of held) {
+      if (running.has(id)) continue;
+      running.set(
+        id,
+        setTimeout(() => {
+          running.delete(id);
+          setGhosts((current) => current.filter((ghost) => ghost.id !== id));
+        }, FORGET_MS),
+      );
+    }
+  }, [ghosts]);
+  useEffect(() => {
+    const running = timers.current;
+    return () => running.forEach((stop) => clearTimeout(stop));
+  }, []);
 
   const forget = useCallback((id: string) => {
     setGhosts((current) => current.filter((ghost) => ghost.id !== id));
