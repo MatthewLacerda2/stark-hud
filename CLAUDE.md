@@ -194,8 +194,10 @@ gate runs `front-install` first, so forgetting is not a failure mode.
 `backend`, `agent` and `frontend` take a `flock` under `/tmp` — the machine is
 the contended resource, not the checkout — so two of them run one after another
 and a second arrival says it is waiting. Every run prints the load average at
-its start and its finish, because a result is evidence only if you know what it
-was taken under: a red test at load 12 is a re-run, not a diagnosis. `make gate`
+its start and its end, and its last line says how it ended — `gate: finished`,
+`failed` or `interrupted`, even when it was killed in the queue — because a
+result is evidence only if you know what it was taken under, and a watcher can
+only stop waiting for an ending that is always written: a red test at load 12 is a re-run, not a diagnosis. `make gate`
 stays outside the lock deliberately; it is linters only, none of them has a
 clock, so none of them can go red for being busy, and `pre-commit` must not wait
 on somebody else's test suite.
