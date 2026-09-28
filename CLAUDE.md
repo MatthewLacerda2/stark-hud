@@ -195,8 +195,10 @@ gate runs `front-install` first, so forgetting is not a failure mode.
 the contended resource, not the checkout — so two of them run one after another
 and a second arrival says it is waiting. Every run prints the load average at
 its start and its finish, because a result is evidence only if you know what it
-was taken under: a red test at load 12 is a re-run, not a diagnosis. `make gate`
-stays outside the lock deliberately; it is linters only, none of them has a
+was taken under: a red test at load 12 is a re-run, not a diagnosis. Its last
+line always says how it ended — `gate: finished`, `failed` or `interrupted`,
+even when it was killed in the queue — so anything watching a log can wait for
+any ending instead of only the happy one. `make gate` stays outside the lock deliberately; it is linters only, none of them has a
 clock, so none of them can go red for being busy, and `pre-commit` must not wait
 on somebody else's test suite.
 
