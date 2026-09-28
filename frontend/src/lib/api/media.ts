@@ -56,9 +56,17 @@ export function trackUrl(
   return stamp ? `${url}?v=${stamp}` : url;
 }
 
-/** The video behind the whole board. Its own route, not an item's media. */
-export function backgroundUrl(): string {
-  return apiUrl("/media/background");
+/**
+ * The video behind the whole board. Its own route, not an item's media.
+ *
+ * The board-ready copy when there is one, stamped with its name for the same
+ * reason a track is: the route is the same for every background, and a browser
+ * still holding the last one's copy would otherwise go on playing it.
+ */
+export function backgroundUrl(copy: string | null = null): string {
+  return copy
+    ? `${apiUrl("/media/background/ready")}?v=${copy}`
+    : apiUrl("/media/background");
 }
 
 /** The icon on a notification, which is held by the notification, not a widget. */

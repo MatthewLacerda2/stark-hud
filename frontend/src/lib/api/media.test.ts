@@ -29,6 +29,9 @@ describe("the URLs behind the board's pictures", () => {
     expect(iconUrl("w1", 0)).toBe("/api/v1/media/w1/icon/0");
     expect(iconUrl("w1", 3)).toBe("/api/v1/media/w1/icon/3");
     expect(backgroundUrl()).toBe("/api/v1/media/background");
+    expect(backgroundUrl("ab12.mp4")).toBe(
+      "/api/v1/media/background/ready?v=ab12.mp4",
+    );
     expect(notificationIconUrl("n1")).toBe("/api/v1/notifications/n1/icon");
   });
 

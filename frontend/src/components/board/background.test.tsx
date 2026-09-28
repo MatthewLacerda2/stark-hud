@@ -23,10 +23,12 @@ import {
   vi,
 } from "vitest";
 import { Background } from "@/components/board/background";
+import type { Background as BackgroundType } from "@/lib/schemas/board";
 
 /** Whether the element is running, and how far in. jsdom has neither. */
 let playing = false;
 let at = 0;
+let ready = 0;
 const played = vi.fn(() => {
   playing = true;
   return Promise.resolve();
@@ -44,6 +46,10 @@ beforeAll(() => {
     configurable: true,
     get: () => !playing,
   });
+  Object.defineProperty(HTMLMediaElement.prototype, "readyState", {
+    configurable: true,
+    get: () => ready,
+  });
   Object.defineProperty(HTMLMediaElement.prototype, "currentTime", {
     configurable: true,
     get: () => at,
@@ -58,6 +64,7 @@ beforeAll(() => {
 beforeEach(() => {
   playing = false;
   at = 0;
+  ready = 0;
   played.mockClear();
   stopped.mockClear();
 });
@@ -82,7 +89,11 @@ async function board(): Promise<{
     await act(async () => {
       root.render(
         <Background
-          background={{ path: "/mnt/d_drive/Video/rain.mp4", blur: true }}
+          background={{
+            path: "/mnt/d_drive/Video/rain.mp4",
+            blur: true,
+            board_copy: null,
+          }}
           covered={covered}
         />,
       );
@@ -148,5 +159,90 @@ describe("a video nobody can see", () => {
     });
 
     expect(host.querySelector("video")).toBe(null);
+  });
+});
+
+/** A background rendered into one host, re-rendered as the board is told more. */
+async function told(): Promise<{
+  tell: (background: BackgroundType) => Promise<void>;
+  video: () => HTMLVideoElement;
+}> {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const root = createRoot(host);
+  mounted.push(root);
+  const tell = async (background: BackgroundType) => {
+    await act(async () => {
+      root.render(<Background background={background} covered={false} />);
+    });
+  };
+  return { tell, video: () => host.querySelector("video") as HTMLVideoElement };
+}
+
+const RAIN = "/mnt/d_drive/Video/rain.mp4";
+
+describe("which video the background plays", () => {
+  it("plays the original, blurred here, until the copy is made", async () => {
+    const { tell, video } = await told();
+    await tell({ path: RAIN, blur: true, board_copy: null });
+
+    expect(video().getAttribute("src")).toBe("/api/v1/media/background");
+    expect(video().className).toContain("blur-[9px]");
+  });
+
+  it("plays the copy once there is one, blurred the same way", async () => {
+    const { tell, video } = await told();
+    await tell({ path: RAIN, blur: true, board_copy: "ab12.mp4" });
+
+    expect(video().getAttribute("src")).toBe(
+      "/api/v1/media/background/ready?v=ab12.mp4",
+    );
+    // The copy has fewer pixels, not less blur: the blur is the page's, so it
+    // is nine pixels on whatever screen this is.
+    expect(video().className).toContain("blur-[9px]");
+    expect(video().className).toContain("scale-105");
+  });
+
+  it("leaves a sharp background sharp and unscaled", async () => {
+    const { tell, video } = await told();
+    await tell({ path: RAIN, blur: false, board_copy: null });
+
+    expect(video().className).not.toContain("blur-[9px]");
+    expect(video().className).not.toContain("scale-105");
+  });
+
+  it("takes the copy up where the original had got to", async () => {
+    const { tell, video } = await told();
+    await tell({ path: RAIN, blur: true, board_copy: null });
+    const element = video();
+    at = 7.5;
+    ready = HTMLMediaElement.HAVE_ENOUGH_DATA;
+    element.dispatchEvent(new Event("timeupdate"));
+
+    await tell({ path: RAIN, blur: true, board_copy: "ab12.mp4" });
+    // What loading a new source does: back to nothing, and to zero, and it
+    // says so — a timeupdate that must not be taken for where the loop was.
+    ready = HTMLMediaElement.HAVE_NOTHING;
+    at = 0;
+    element.dispatchEvent(new Event("timeupdate"));
+    ready = HTMLMediaElement.HAVE_METADATA;
+    element.dispatchEvent(new Event("loadedmetadata"));
+
+    expect(video()).toBe(element);
+    expect(at).toBe(7.5);
+  });
+
+  it("starts a different background from its own beginning", async () => {
+    const { tell, video } = await told();
+    await tell({ path: RAIN, blur: true, board_copy: null });
+    at = 7.5;
+    ready = HTMLMediaElement.HAVE_ENOUGH_DATA;
+    video().dispatchEvent(new Event("timeupdate"));
+
+    await tell({ path: "/home/me/snow.mp4", blur: true, board_copy: null });
+    at = 0;
+    video().dispatchEvent(new Event("loadedmetadata"));
+
+    expect(at).toBe(0);
   });
 });
