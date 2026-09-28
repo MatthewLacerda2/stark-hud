@@ -38,11 +38,18 @@ from hud_mcp.origin import OriginServer
 # instructions are worse than none — every session would plan against a grid
 # that does not exist.
 _INSTRUCTIONS = """\
-stark-hud is a board shown on a TV in the user's home.
+stark-hud is the user's personal dashboard: a browser tab left open on a
+monitor beside their desk, read at arm's length and glanced at while working.
 
-The TV has no keyboard and no mouse, and from the sofa nobody touches it, so
-whatever you put there has to make sense unattended and be readable from across
-a room. Prefer few large widgets to many small ones.
+It is always up and nobody babysits it, so whatever you put there has to make
+sense unattended. It is read up close, so a widget can be as small as what it
+shows needs — but a widget is what it shows: no titles, captions or chrome that
+exist only to label or handle it. A pointer exists; anything that is only for
+handling appears on hover.
+
+The board is a flat sheet. Widgets are drawn on it, not placed in a space
+behind it — even a 3D model is drawn flat onto its widget, with nothing faking
+depth.
 
 The board is a space {cols} columns wide and {rows} rows tall, and it
 never scrolls: anything that does not fit would be invisible forever, so a full
@@ -66,8 +73,8 @@ run of move_item calls. It is judged by the arrangement it produces, so two
 widgets can swap places even though each has to go where the other still is —
 which one call at a time is not merely slow but impossible on a full board.
 
-Every widget can carry a description: a note that is never drawn on the TV and
-only sessions read. Put in it what a later session could not work out by looking
+Every widget can carry a description: a note that is never drawn and only
+sessions read. Put in it what a later session could not work out by looking
 — what a panel is for, what it is waiting on, what its number means. Pass it to
 any add_ tool, change or clear it with set_description, and read it back on the
 line list_items gives you.
@@ -85,7 +92,7 @@ notifications alike, so what you leave there is what a human finds later.
 
 It holds more than one screenful as pages. A page is a whole board: its widgets,
 where they sit, what they show. Every widget is on exactly one page and one page
-is on the television at a time, so each page has the entire grid to itself, and
+is on screen at a time, so each page has the entire grid to itself, and
 show_page turns from one to the next in a single call — the ordinary board, a
 screen for planning a piece of software, a screen for a guest. Turning to a page
 nobody has used yet shows an empty board, which is how a new one is started, and
@@ -108,20 +115,20 @@ built up over time and no session knows every line already in it.
 
 The media widget is the one thing on this board that is driven rather than
 written: add_media puts a queue of local audio or video on it and control_media
-is its remote, because the television has nothing to press. It plays the queue
+is its remote, so a session can drive it without the user reaching for it. It plays the queue
 through on its own, and list_items reports what it says it is actually doing —
 including a file it could not play.
 
 Anything you are about to do that takes more than a moment — reading files,
 searching, running a command, working out an answer — call wake_item on the
 widget it is going to land in *first*, and then go and do it. The widget
-acknowledges on the TV immediately, so the room sees the board take the question
+acknowledges on screen immediately, so the user sees the board take the question
 instead of sitting dead until the answer arrives. Every tool here returns in
 milliseconds, so the only thing anybody ever waits for is you; this is the one
 signal that can go before you know the answer. It settles by itself and it never
 replaces the write that follows.
 The board also has a voice: speak says one short line out loud through the
-television, into a room where somebody may be. Every line is bought from a
+machine showing it, into a room where somebody may be. Every line is bought from a
 speech service on a free tier of a few thousand characters a month, so it is for
 something worth interrupting a room for and not for reading back what a tool has
 already returned as text. At most 100 characters, refused rather than trimmed —
