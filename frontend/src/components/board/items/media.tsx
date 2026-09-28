@@ -181,6 +181,8 @@ export function Media({
     if (payload.tracks.length === 0) return "idle";
     return payload.playing ? "playing" : "paused";
   });
+  // The same, where the goodbye below can read it after the widget has gone.
+  const lastSaid = useRef(said);
 
   const track = payload.tracks[payload.index] ?? null;
   const index = payload.index;
@@ -192,6 +194,7 @@ export function Media({
   const say = useCallback(
     (state: Playback["state"], error?: string) => {
       setSaid(state);
+      lastSaid.current = state;
       // Where it stopped travels with what it did, so a pause is remembered to
       // the second rather than to the last tick. Nothing is said about zero: it
       // is what the board already holds, and a track that has not started yet
@@ -278,30 +281,35 @@ export function Media({
     return () => clearInterval(tick);
   }, [id, index, track, payload.playing]);
 
-  // Gone from the screen is gone: say so on the way out.
+  // Off the screen, a player that was playing is paused — and nothing else
+  // changes, so nothing else is said.
   //
   // `playback` is the one field a widget has for saying what it is *actually*
-  // doing, and it was outliving the widget. Folding a group takes the player off
-  // the board, the element goes with it and the sound stops — and the last thing
-  // it ever said stood for a day, so `list_items` reported a player that had been
-  // silent since yesterday as playing. A field that exists to catch a widget
-  // lying is the last one that should.
+  // doing (#47). Folding a group, or turning the board to another page, takes
+  // the player off the screen and the sound stops with it, while the board still
+  // says play: without a word here the record says `playing` for as long as it
+  // stays away, and the server's own rule for a stale `playing` (#167) reads the
+  // payload, which has not changed, so it cannot see this one.
   //
-  // It fires for the ways a widget leaves *this* page: folded away into a closed
-  // group, or removed from the board. Reporting against an id that has just been
-  // deleted is a 404, and is swallowed like every other failure here.
+  // `paused` rather than `idle`, because `idle` is finished (#112) and this is
+  // not: the page coming back plays the film on from where it was. And nothing
+  // at all for any other last word (#196). A paused film is already `paused`; an
+  // `ended` or `failed` one keeps its own word and its own hour. Saying anything
+  // more is how one browser leaving a page overrules another still drawing the
+  // widget — `idle` over a film paused on the other screen took it off the board
+  // an hour later. What a `paused` here can still overrule is another browser
+  // playing the same film, and that one says `playing` again on its next tick.
   //
-  // Not for the tab closing or reloading — React runs no cleanup on unload, and
-  // a beforeunload handler that fires a request the browser is free to abandon
-  // would be a worse lie than the one this fixes. A reloaded page remounts the
-  // player and says what is true a moment later anyway.
-  //
-  // In development StrictMode mounts, unmounts and mounts again, so this says
-  // `idle` once for nothing and the remount corrects it immediately. Not worth a
-  // mechanism to avoid.
+  // No position: where this browser had got to is not news to one still playing.
+  // A widget removed from the board is a 404 here, swallowed like every other
+  // failure, so it leaves nothing behind. Not for the tab closing either — React
+  // runs no cleanup on unload — and in development StrictMode's extra unmount
+  // says `paused` once for nothing, which the next tick corrects.
   useEffect(() => {
+    const last = lastSaid;
     return () => {
-      void reportPlayback(id, { state: "idle" }).catch(() => {});
+      if (last.current !== "playing") return;
+      void reportPlayback(id, { state: "paused" }).catch(() => {});
     };
   }, [id]);
 

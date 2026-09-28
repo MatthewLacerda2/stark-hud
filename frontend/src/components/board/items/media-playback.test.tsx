@@ -270,11 +270,13 @@ describe("what the widget says it is doing", () => {
     expect(host.textContent).toContain("will not play");
   });
 
-  it("says it has stopped when it is taken off the screen", async () => {
+  it("says it has paused when it is taken off the screen mid-track", async () => {
     // Folding a group takes the player off the board and the sound stops. The
     // last thing it said used to stand for as long as it stayed folded, so the
     // board reported a player silent since yesterday as playing — in the one
-    // field a widget has for saying what it is actually doing.
+    // field a widget has for saying what it is actually doing. `paused`, and
+    // not `idle`: `idle` is finished, and the board takes a finished player
+    // off an hour later (#196).
     const host = document.createElement("div");
     document.body.appendChild(host);
     const root = createRoot(host);
@@ -287,9 +289,31 @@ describe("what the widget says it is doing", () => {
 
     expect(sent.at(-1)).toEqual({
       url: "/api/v1/board/items/gone/playback",
-      body: { state: "idle" },
+      body: { state: "paused" },
     });
   });
+
+  it.each(["pause", "ended", "error"])(
+    "leaves its last word standing when it goes after a %s",
+    async (event) => {
+      // Paused is already true, and ended and failed carry their own hour. A
+      // word on the way out would only overrule another browser still drawing it.
+      const host = document.createElement("div");
+      document.body.appendChild(host);
+      const root = createRoot(host);
+      await act(async () => {
+        root.render(<Media id="left" payload={queue(19)} cols={10} rows={6} />);
+      });
+      await act(async () => {
+        host.querySelector("video")?.dispatchEvent(new Event(event));
+      });
+      sent = [];
+
+      await act(async () => root.unmount());
+
+      expect(sent).toEqual([]);
+    },
+  );
 
   it("has something honest to say with nothing queued", async () => {
     const host = await render(queue(0), 10, 6);
