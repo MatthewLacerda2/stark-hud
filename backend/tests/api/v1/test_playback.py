@@ -111,6 +111,21 @@ async def test_a_widget_that_plays_nothing_has_nothing_to_report(client: AsyncCl
     assert "plays nothing" in response.json()["detail"]
 
 
+async def test_a_removed_widget_leaves_nothing_behind(client: AsyncClient) -> None:
+    """The last word of a player that was removed arrives after it has gone.
+
+    A removed widget unmounts, and one that was playing says `paused` on the way
+    out. By then there is no item to say it about, and that must stay a 404 —
+    not a record, or a widget, brought back by the page's goodbye.
+    """
+    item_id = await _player(client)
+    await _say(client, item_id, state="playing", track=0)
+    assert (await client.delete(f"{ITEMS}/{item_id}")).status_code == 204
+    response = await client.post(f"{ITEMS}/{item_id}/playback", json={"state": "paused"})
+    assert response.status_code == 404
+    assert (await client.get(ITEMS)).json() == []
+
+
 async def test_the_queue_reaches_the_browser_by_id_and_index(
     client: AsyncClient, tmp_path: Path
 ) -> None:

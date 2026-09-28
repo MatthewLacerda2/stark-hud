@@ -192,6 +192,22 @@ def stepped(payload: MediaPayload, delta: int) -> MediaPayload:
     return payload.model_copy(update={"index": 0, "playing": False, "seconds": 0.0})
 
 
+def requeued(
+    payload: MediaPayload, queue: list[MediaTrack], start: int = 0, title: str | None = None
+) -> MediaPayload:
+    """The same player holding a new queue, at the start of track ``start``.
+
+    Everything the old queue said about where it was is about a file that is no
+    longer here, and so is the album name it was captioned with, so the position
+    goes back to zero and the title goes with it unless a new one is given.
+    ``start`` is clamped into the new queue rather than refused.
+    """
+    index = min(max(start, 0), max(len(queue) - 1, 0))
+    return payload.model_copy(
+        update={"tracks": queue, "index": index, "seconds": 0.0, "title": title}
+    )
+
+
 def commanded(payload: MediaPayload, action: MediaAction, seconds: float = 0.0) -> MediaPayload:
     """Apply one transport verb. Anything unknown is the caller's to check.
 

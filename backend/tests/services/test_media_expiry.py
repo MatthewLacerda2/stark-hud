@@ -18,7 +18,8 @@ from core.config import Settings, get_settings
 from core.hub import hub
 from repositories import board as repo
 from schemas.board import ItemRead, MediaPayload, NotePayload
-from schemas.media import Playback, PlaybackState
+from schemas.media import Playback, PlaybackReport, PlaybackState
+from services import media as media_service
 from services import media_expiry as service
 from services import uploads
 from tests.hud_mcp.test_tools import Listener
@@ -59,6 +60,35 @@ async def test_a_paused_film_is_still_there_tomorrow(state) -> None:
     item = _media(state, ago=HOUR * 24)
     assert await service.expire(NOW) == []
     assert repo.get(item.id) is not None
+
+
+@pytest.mark.parametrize(
+    ("playing", "leaving", "gone"),
+    [
+        # What a page said on the way out before #196, and why it was wrong.
+        (False, "idle", True),
+        # A paused film: the page says nothing, and its own `paused` stands.
+        (False, None, False),
+        # A playing film whose page turned: the page says `paused`.
+        (True, "paused", False),
+    ],
+)
+async def test_a_film_whose_page_turned_away_is_there_tomorrow(playing, leaving, gone) -> None:
+    """Turning the board to another page, or folding a group, is not finishing a film.
+
+    Played through the calls a page makes: the film reports where it is, then
+    the board stops drawing it and the page says its last word, or none. A day
+    of reaper ticks later only `idle` has taken it off the board (#196).
+    """
+    item = repo.add(MediaPayload(tracks=[{"path": "/films/heat.mkv"}], playing=playing), 0, 0, 6, 4)
+    item = await media_service.report(
+        item, PlaybackReport(state="paused" if not playing else "playing")
+    )
+    if leaving is not None:
+        item = await media_service.report(item, PlaybackReport(state=leaving))
+    later = datetime.now(UTC) + timedelta(days=1)
+    await service.settle(later)
+    assert (await service.expire(later) == [item.id]) is gone
 
 
 async def test_the_hour_has_to_be_up() -> None:
