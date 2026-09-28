@@ -197,3 +197,22 @@ def test_a_page_written_with_spaces_around_it_is_the_page_without_them(tmp_path)
     declared = Declared(_file(tmp_path, CPU.replace("every = 3", 'page = " machine "')))
 
     assert declared.refresh()[0].page == "machine"
+
+
+def test_a_model_takes_its_part_colours_from_the_rows(tmp_path):
+    """A collector names parts and colours; the file and camera stay the spec's."""
+    spec = CPU.replace(
+        'panel = { kind = "chart" }', 'panel = { kind = "mesh", path = "/m/pc.glb", heading = 97 }'
+    )
+    source = Declared(_file(tmp_path, spec)).refresh()[0]
+
+    written = source.payload(
+        [{"part": "cpu_*", "color": "#ffd400"}, {"part": "vram", "color": "#a855f7"}]
+    )
+
+    assert written == {
+        "kind": "mesh",
+        "path": "/m/pc.glb",
+        "heading": 97,
+        "colors": {"cpu_*": "#ffd400", "vram": "#a855f7"},
+    }
