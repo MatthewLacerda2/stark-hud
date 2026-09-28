@@ -19,7 +19,7 @@ from core.hub import hub
 from repositories import board as repo
 from schemas.board import ItemRead, MediaPayload, NotePayload
 from schemas.media import Playback, PlaybackState
-from services import media as service
+from services import media_expiry as service
 from services import uploads
 from tests.hud_mcp.test_tools import Listener
 
