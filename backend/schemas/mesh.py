@@ -1,21 +1,19 @@
-"""What a mesh widget shows, and the wireframe the browser is handed for it.
+"""What a mesh widget shows: which model file, and how it is looked at.
 
 Its own module for the reason the chart and the gantt have one: the payload is
-four fields, but the geometry beside it is a second model with a second shape,
-and ``schemas.payloads`` is at the house limit.
+a dozen fields and ``schemas.payloads`` is at the house limit.
 
-The split down the middle of this file is the whole design. ``MeshPayload`` is
-what lives on the board and in ``board.hud`` — a path and three numbers, small
-enough that a person can still read the board file. ``Wireframe`` is what comes
-back from ``/api/v1/mesh/{id}``, is never stored anywhere, and is rebuilt from
-the file on disk whenever a browser asks. A reactor is 350 vertices and a
-downloaded model is a hundred thousand; none of that belongs in a board file
-that is rewritten every few seconds.
+The model itself is never in here. ``MeshPayload`` is what lives on the board and
+in ``board.hud`` — a path and the numbers that say how to look at it, small
+enough that a person can still read the board file. The file is served as it is
+from ``/api/v1/mesh/{id}`` and read by the browser; a model can be megabytes,
+and none of that belongs in a board file that is rewritten every few seconds.
 """
 
-from typing import Literal
+from pathlib import PurePath
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field
 
 from schemas.colour import Colour
 
@@ -31,6 +29,38 @@ from schemas.colour import Colour
 #   rather than a gap: on a model whose loop is a ring of parts around a shaft,
 #   this lights the ring and leaves the shaft alone.
 WaveMode = Literal["stack", "loop"]
+
+# The model files a browser can open, and what it is told each one is. glTF has
+# registered types; OBJ and FBX have none anybody agrees on, and the loaders read
+# the bytes whatever the header says, so they go as what they are.
+MODEL_TYPES = {
+    ".glb": "model/gltf-binary",
+    ".gltf": "model/gltf+json",
+    ".obj": "text/plain",
+    ".fbx": "application/octet-stream",
+}
+
+
+def _openable(path: str) -> str:
+    """The path, if it names a kind of model the browser can open.
+
+    Only the name is judged, not the file: a model that is not there yet is a
+    widget that removes itself when it is first drawn, the same as one whose
+    file goes later. A .blend is the one people will reach for, and only Blender
+    reads it — Blender is on the host, not in the container — so the refusal
+    says how to get from one to the other.
+    """
+    suffix = PurePath(path).suffix.lower()
+    if suffix not in MODEL_TYPES:
+        raise ValueError(
+            f"The board cannot open a {suffix or 'suffixless'} file; it takes "
+            f"{', '.join(MODEL_TYPES)}. For a .blend or anything else Blender "
+            f"opens, `python tools/mesh/convert.py {path}` writes a .glb beside it."
+        )
+    return path
+
+
+ModelPath = Annotated[str, AfterValidator(_openable)]
 
 
 class MeshWave(BaseModel):
@@ -68,86 +98,68 @@ class MeshWave(BaseModel):
 
 
 class MeshPayload(BaseModel):
-    """A 3D object drawn as a wireframe, turning on the spot.
+    """A 3D model drawn as a hologram: translucent light, rim-lit, with its edges.
 
-    Only the mesh is read. Materials, textures, normals, UVs and whatever
-    animation the file was carrying are all dropped on the way in — a hologram
-    is edges and nothing else, so there is nothing here for them to be.
+    The file is drawn as it was made — its parts, their pivots and any animation
+    saved in it — but not as it was lit: materials, textures and cameras in the
+    file are ignored. The look is the board's, and so is the camera.
     """
 
     model_config = ConfigDict(extra="forbid")
 
     kind: Literal["mesh"] = "mesh"
-    # Where the OBJ is on the machine running the board. Never sent to a
-    # browser: the geometry is fetched by the widget's id, the way a picture is.
-    path: str
-    # Turns per second about the upright axis. Slow by default and deliberately
-    # so — this is read from a sofa, and a model going round once every twelve
-    # seconds reads as a thing on a turntable, while anything brisk reads as a
-    # loading spinner.
-    spin: float = Field(default=0.08, ge=-2.0, le=2.0)
+    # Where the model file is on the machine running the board: .glb, .gltf,
+    # .fbx or .obj. Never sent to a browser: the file is fetched by the widget's
+    # id, the way a picture is.
+    path: ModelPath
+    # Turns per second about the upright axis. 0 holds the model still, which is
+    # a fine way to show one; anything turning should turn slowly, because a
+    # model going round once every twelve seconds reads as a thing on a
+    # turntable while anything brisk reads as a loading spinner.
+    spin: float = Field(default=0.0, ge=-2.0, le=2.0)
     # How far the model swings each way, in degrees, instead of going round. At
     # 0 it turns full circle. Anything else makes it sweep: it turns to this
     # angle, slows into it, and comes back the other way, over and over — for a
     # model with a front, which a full turn shows for a quarter of the time.
     # ``spin`` still sets the pace: one there-and-back takes 1/spin seconds.
     sweep: float = Field(default=0.0, ge=0.0, le=180.0)
+    # Where the model stands before any spin or sweep, in degrees about the
+    # upright, counter-clockwise seen from above. 0 is the model's own front
+    # facing the viewer. A model held still is usually wanted a little off
+    # dead-on, which is this.
+    heading: float = Field(default=0.0, ge=-360.0, le=360.0)
     # How far the camera sits above the object, in degrees. Dead level is the
     # one angle at which a flat object is invisible for half its turn, so the
     # default is off-level: enough to see the top of the thing without the view
     # becoming a plan.
     tilt: float = Field(default=16.0, ge=-89.0, le=89.0)
+    # The camera's field of view, in degrees. Narrow flattens the model toward a
+    # drawing; wide makes the near side swell. The model is framed to fit at any
+    # value, so this changes the perspective, not the size.
+    fov: float = Field(default=30.0, ge=5.0, le=120.0)
+    # How big the model is drawn, against the size that just fits the widget.
+    # Above 1 crops into it; below leaves room around it.
+    zoom: float = Field(default=1.0, ge=0.1, le=10.0)
+    # Where the model sits in the widget, as a fraction of the widget's width and
+    # height: 0.25 moves it a quarter of the way right (or up). For showing one
+    # end of a large model rather than the middle of it.
+    pan_x: float = Field(default=0.0, ge=-1.0, le=1.0)
+    pan_y: float = Field(default=0.0, ge=-1.0, le=1.0)
     # How far the parts are pushed apart, where 0 is assembled and 1 moves each
     # part a full model-width out along the line from the middle of the object.
     # Only ever as good as the file: a model saved as one object has one part
     # and nothing to come apart from.
     explode: float = Field(default=0.0, ge=0.0, le=1.0)
-    # What colour each part is drawn in, keyed by the part's name in the file.
-    # A key may be a glob — ``encoder_*`` names seven rings without writing
-    # seven lines — and where more than one pattern matches a part, the longest
-    # pattern wins, so a name beats a wildcard without needing an order.
+    # What colour each part is drawn in, keyed by the part's name in the file —
+    # an object in an OBJ, a node in a glTF. A rule on a node covers everything
+    # under it. A key may be a glob — ``encoder_*`` names seven rings without
+    # writing seven lines — and where more than one pattern matches a part, the
+    # longest pattern wins, so a name beats a wildcard without needing an order.
     #
     # A part named here keeps this colour and does not take the wave. That is
     # how the two compose: pin the parts that mean something, let the rest
     # breathe. A part named by neither takes the widget's own colour.
     colors: dict[str, Colour] | None = None
-    # A colour travelling through the model, or None for a wireframe that just
-    # sits there in one colour.
+    # A colour travelling through the model, or None for a model that just sits
+    # there in its colours.
     wave: MeshWave | None = None
-
-
-class MeshPart(BaseModel):
-    """One named object out of the file, as points and the lines between them.
-
-    Flat arrays rather than lists of triples or pairs. A triple written as
-    ``[0.1, 0.2, 0.3]`` costs three brackets and two commas over the numbers
-    themselves, and at a hundred thousand vertices that punctuation is most of
-    the response. The browser reads them three and two at a time.
-    """
-
-    model_config = ConfigDict(extra="forbid")
-
-    name: str
-    # x, y, z, x, y, z, … — normalised so the whole model fits a unit cube
-    # centred on the origin, whatever units the file was saved in.
-    verts: list[float]
-    # Pairs of indices into ``verts`` (counted in points, not in floats), each
-    # pair one line to draw. Every edge appears once: a cube is twelve lines,
-    # not the twenty-four its six faces would each claim.
-    edges: list[int]
-    # The middle of this part, in the same normalised space. The direction from
-    # the origin to here is the direction the part travels when exploded, which
-    # is why it is computed once on this side rather than every frame on the TV.
-    center: list[float]
-
-
-class Wireframe(BaseModel):
-    """A whole model, ready to draw. Rebuilt from the file on every request."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    parts: list[MeshPart]
-    # What the model measured before it was normalised, in whatever units the
-    # file used. Nothing draws this — it is here so that a model arriving at the
-    # wrong scale is a number somebody can look at rather than a guess.
-    source_size: list[float]

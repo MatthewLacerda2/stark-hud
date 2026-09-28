@@ -1,283 +1,93 @@
 import { describe, expect, it } from "vitest";
-import type { MeshPart } from "@/lib/schemas/board";
 import {
-  BANDS,
-  DEPTH_FADE,
   FIT,
   SPREAD,
-  bandAt,
-  boundsOf,
-  camera,
   colourFor,
-  depthAt,
-  fadeAt,
+  colourUp,
+  explodeOffsets,
+  fitDistance,
+  formatOf,
   heading,
-  layout,
   phases,
-  project,
   rampAt,
-  reachOf,
+  type Vec3,
 } from "@/lib/mesh";
 
-function part(name: string, center: number[], verts: number[]): MeshPart {
-  return { name, center, verts, edges: [] };
-}
+describe("formatOf", () => {
+  it("sends each kind of file to the loader that reads it", () => {
+    expect(formatOf("/m/pc.glb")).toBe("gltf");
+    expect(formatOf("/m/scene.GLTF")).toBe("gltf");
+    expect(formatOf("/m/cloud.obj")).toBe("obj");
+    expect(formatOf("/m/rig.fbx")).toBe("fbx");
+  });
 
-/** The eight corners of a cube half a unit out from the middle. */
-const CUBE = part(
-  "cube",
-  [0, 0, 0],
-  [-0.5, -0.5, -0.5, 0.5, 0.5, 0.5, -0.5, 0.5, -0.5, 0.5, -0.5, 0.5],
-);
-const STILL: [number, number, number][] = [[0, 0, 0]];
-
-/** A camera looking straight on at a model half a unit across. */
-const STRAIGHT = camera(0, 0, 200, 200, {
-  radial: 0.5,
-  vertical: 0.5,
-  depth: 0.5,
+  it("names nothing for a file no loader here reads", () => {
+    expect(formatOf("/m/pc.blend")).toBeNull();
+  });
 });
 
-describe("layout", () => {
-  // A part is a centre and the points around it; these have one point each, so
-  // the model's radius is exactly where that point sits.
-  const NEAR = part("near", [0, 0, 0.2], [0, 0, 0.2]);
-  const FAR = part("far", [0, 0, 0.5], [0, 0, 0.5]);
+describe("fitDistance", () => {
+  it("puts a sphere's edge on the view's edge, less the margin", () => {
+    // 90 degrees square: the half-angle is 45, so the edge is r / sin 45 away.
+    expect(fitDistance(1, 90, 1)).toBeCloseTo(Math.SQRT2 / FIT);
+  });
 
-  it("leaves an unexploded model alone", () => {
-    expect(layout([NEAR, FAR], 0, 0).moved).toEqual([
+  it("fits a wide widget to its height and a tall one to its width", () => {
+    const wide = fitDistance(1, 40, 2);
+    const square = fitDistance(1, 40, 1);
+    const tall = fitDistance(1, 40, 0.5);
+    expect(wide).toBeCloseTo(square);
+    expect(tall).toBeGreaterThan(square);
+  });
+});
+
+describe("explodeOffsets", () => {
+  const CENTERS: Vec3[] = [
+    [1, 0, 0],
+    [0, 2, 0],
+  ];
+
+  it("leaves an assembled model where it is", () => {
+    expect(explodeOffsets(CENTERS, 3, 0)).toEqual([
       [0, 0, 0],
       [0, 0, 0],
     ]);
   });
 
-  it("spreads the outermost part against the model's own radius", () => {
-    // Not a fixed distance: an exploded view has to fit the widget the
-    // assembled one fitted, so what it is measured against has to be the model.
-    const { moved } = layout([NEAR, FAR], 1, 0);
-    expect(Math.hypot(...moved[1])).toBeCloseTo(SPREAD * 0.5);
-  });
-
-  it("keeps the parts in the order they were assembled", () => {
-    const { moved } = layout([NEAR, FAR], 1, 0);
-    expect(Math.hypot(...moved[0])).toBeCloseTo(Math.hypot(...moved[1]) * 0.4);
-  });
-
-  it("reaches further once exploded, so the model is drawn smaller to fit", () => {
-    expect(layout([NEAR, FAR], 1, 0).bounds.vertical).toBeGreaterThanOrEqual(
-      layout([NEAR, FAR], 0, 0).bounds.vertical,
-    );
-  });
-
-  it("sends each part straight out from the middle", () => {
-    const { moved } = layout([part("side", [3, 4, 0], [3, 4, 0])], 1, 0);
-    expect(moved[0][0] / moved[0][1]).toBeCloseTo(3 / 4);
-  });
-
-  it("cannot separate two parts that share a middle", () => {
-    // Not a bug to fix in the arithmetic: concentric rings genuinely have the
-    // same centre, so "away from the middle" is one direction for both. The
-    // model has to give them different depths. See `tools/mesh/samples.py`.
-    const rings = [
-      part("ring", [0, 0, 0], [0.5, 0, 0]),
-      part("coils", [0, 0, 0], [0.3, 0, 0]),
-    ];
-    expect(layout(rings, 1, 0).moved).toEqual([
-      [0, 0, 0],
-      [0, 0, 0],
-    ]);
-  });
-
-  it("survives a model that is one part sitting on the origin", () => {
-    expect(layout([part("only", [0, 0, 0], [0, 0, 0])], 1, 0).moved).toEqual([
-      [0, 0, 0],
-    ]);
+  it("moves each part out along its own line, the furthest the most", () => {
+    const [near, far] = explodeOffsets(CENTERS, 3, 1);
+    expect(near[0]).toBeGreaterThan(0);
+    expect(far[1]).toBeCloseTo(SPREAD * 3);
+    expect(far[1]).toBeGreaterThan(near[0]);
   });
 });
 
-describe("boundsOf", () => {
-  it("measures across the axis, not through the corners", () => {
-    // The whole point of measuring per axis. A bounding sphere would call this
-    // cube 0.87 wide because that is its diagonal; spinning only ever swings a
-    // point around a circle, and the widest of those is 0.71.
-    const flat = boundsOf([CUBE], STILL, 0);
-    expect(flat.radial).toBeCloseTo(Math.hypot(0.5, 0.5));
-    expect(flat.radial).toBeLessThan(reachOf([CUBE], STILL));
+describe("colourUp", () => {
+  it("takes the nearest name any rule matches", () => {
+    const rules = { gpu: "red", gpu_fan_1: "blue" };
+    expect(colourUp(["blades", "gpu_fan_1", "gpu"], rules)).toBe("blue");
+    expect(colourUp(["shroud", "gpu"], rules)).toBe("red");
   });
 
-  it("leaves height alone when the camera is level", () => {
-    expect(boundsOf([CUBE], STILL, 0).vertical).toBeCloseTo(0.5);
-  });
-
-  it("grows the height as the camera tilts, because the model leans", () => {
-    expect(boundsOf([CUBE], STILL, 30).vertical).toBeGreaterThan(0.5);
-  });
-
-  it("does not depend on the angle, so the model never breathes", () => {
-    // Nothing in it reads the spin at all; this is the property being kept.
-    const spun = part("a", [0, 0, 0], [0.4, 0.1, 0, 0, 0.1, 0.4]);
-    expect(boundsOf([spun], STILL, 20).radial).toBeCloseTo(0.4);
-  });
-});
-
-describe("camera", () => {
-  it("fills a tall widget using its height, not its width", () => {
-    // The bug this replaced: fitting to min(width, height) drew a tall model
-    // inside the short side and wasted the rest of the widget.
-    const bounds = { radial: 0.2, vertical: 0.5, depth: 0.3 };
-    const tall = camera(0, 0, 200, 600, bounds);
-    const square = camera(0, 0, 200, 200, bounds);
-    expect(tall.scale).toBeGreaterThan(square.scale);
-  });
-
-  it("stops at whichever axis runs out first", () => {
-    const wide = camera(0, 0, 200, 600, {
-      radial: 0.9,
-      vertical: 0.1,
-      depth: 0.2,
-    });
-    // Width-limited: the model is far wider than it is tall, so making the
-    // widget taller must not make the drawing any bigger.
-    expect(wide.scale).toBeCloseTo(
-      camera(0, 0, 200, 9000, { radial: 0.9, vertical: 0.1, depth: 0.2 }).scale,
-    );
-  });
-
-  it("does not divide by nothing when the model is a single point", () => {
-    const p = project(0, 0, 0, camera(1, 20, 200, 200, STRAIGHT_POINT));
-    expect(Number.isFinite(p.sx)).toBe(true);
-    expect(Number.isFinite(p.sy)).toBe(true);
-  });
-});
-
-const STRAIGHT_POINT = { radial: 0, vertical: 0, depth: 0 };
-
-describe("project", () => {
-  it("puts the middle of the model in the middle of the widget", () => {
-    const p = project(0, 0, 0, STRAIGHT);
-    expect(p.sx).toBeCloseTo(100);
-    expect(p.sy).toBeCloseTo(100);
-  });
-
-  it("counts screen y downward while the model counts up", () => {
-    expect(project(0, 0.5, 0, STRAIGHT).sy).toBeLessThan(100);
-  });
-
-  it("draws a near point bigger than the same point far away", () => {
-    expect(project(0.5, 0, 0.4, STRAIGHT).sx - 100).toBeGreaterThan(
-      project(0.5, 0, -0.4, STRAIGHT).sx - 100,
-    );
-  });
-
-  it("turns the model about the upright axis", () => {
-    // A quarter turn puts what was on +x onto -z: same distance out, but now
-    // pointing away from the camera instead of to the right of it.
-    const turned = camera(Math.PI / 2, 0, 200, 200, {
-      radial: 0.5,
-      vertical: 0.5,
-      depth: 0.5,
-    });
-    const p = project(0.5, 0, 0, turned);
-    expect(p.sx).toBeCloseTo(100);
-    expect(p.depth).toBeCloseTo(-0.5);
-  });
-
-  it("brings the top of the model toward the camera when tilted", () => {
-    const tilted = camera(0, 30, 200, 200, {
-      radial: 0.5,
-      vertical: 0.6,
-      depth: 0.6,
-    });
-    expect(project(0, 0.5, 0, tilted).depth).toBeGreaterThan(0);
-  });
-
-  it("keeps the model inside the widget at every angle", () => {
-    // The guarantee the whole fit exists for: nothing may overlap on this
-    // board, so no line may leave its widget however the model is turned.
-    const bounds = boundsOf([CUBE], STILL, 20);
-    for (let step = 0; step < 24; step++) {
-      const cam = camera((step / 24) * Math.PI * 2, 20, 200, 120, bounds);
-      for (const x of [-0.5, 0.5])
-        for (const y of [-0.5, 0.5])
-          for (const z of [-0.5, 0.5]) {
-            const p = project(x, y, z, cam);
-            expect(p.sx).toBeGreaterThanOrEqual(0);
-            expect(p.sx).toBeLessThanOrEqual(200);
-            expect(p.sy).toBeGreaterThanOrEqual(0);
-            expect(p.sy).toBeLessThanOrEqual(120);
-          }
-    }
-  });
-
-  it("uses most of the widget it is given", () => {
-    // The other half of the same guarantee. Staying inside is easy if you draw
-    // small, and drawing small is exactly what the old single-radius fit did —
-    // so containment alone would have passed the bug that prompted this.
-    //
-    // It cannot reach FIT exactly: the scale is solved for the nearest point
-    // the model could ever swing to, and the point furthest to the side is not
-    // that point, so a little margin is inherent rather than wasteful.
-    const bounds = boundsOf([CUBE], STILL, 0);
-    let widest = 0;
-    for (let step = 0; step < 24; step++) {
-      const cam = camera((step / 24) * Math.PI * 2, 0, 200, 200, bounds);
-      for (const x of [-0.5, 0.5])
-        for (const z of [-0.5, 0.5])
-          widest = Math.max(widest, Math.abs(project(x, 0.5, z, cam).sx - 100));
-    }
-    expect(widest).toBeGreaterThan(100 * FIT * 0.8);
-    expect(widest).toBeLessThanOrEqual(100);
-  });
-});
-
-describe("depth", () => {
-  it("runs from the back of the model to the front", () => {
-    expect(depthAt(-0.5, 0.5)).toBeCloseTo(0);
-    expect(depthAt(0.5, 0.5)).toBeCloseTo(1);
-  });
-
-  it("never dims an edge past the floor, or brightens one past full", () => {
-    expect(fadeAt(-0.5, 0.5)).toBeCloseTo(DEPTH_FADE);
-    expect(fadeAt(0.5, 0.5)).toBeCloseTo(1);
-  });
-
-  it("clamps a point reaching further than the model was measured at", () => {
-    expect(fadeAt(9, 0.5)).toBeCloseTo(1);
-    expect(fadeAt(-9, 0.5)).toBeCloseTo(DEPTH_FADE);
-  });
-
-  it("sorts every depth into a band that exists", () => {
-    for (const depth of [-9, -0.5, 0, 0.49, 0.5, 9]) {
-      const band = bandAt(depth, 0.5);
-      expect(band).toBeGreaterThanOrEqual(0);
-      expect(band).toBeLessThan(BANDS);
-      expect(Number.isInteger(band)).toBe(true);
-    }
+  it("says nothing when no name on the way up is ruled", () => {
+    expect(colourUp(["case"], { gpu: "red" })).toBeNull();
   });
 });
 
 describe("phases", () => {
-  const STACK = [
-    part("bottom", [0, -1, 0], []),
-    part("middle", [0, 0, 0], []),
-    part("top", [0, 1, 0], []),
-  ];
+  const STACK = [[0, -1, 0] as Vec3, [0, 0, 0] as Vec3, [0, 1, 0] as Vec3];
 
   it("runs a stack wave from the lowest part to the highest", () => {
     expect(phases(STACK, "stack")).toEqual([0, 0.5, 1]);
   });
 
   it("pulses a flat model together rather than dividing by nothing", () => {
-    const flat = [part("a", [1, 0, 0], []), part("b", [-1, 0, 0], [])];
+    const flat = [[1, 0, 0] as Vec3, [-1, 0, 0] as Vec3];
     expect(phases(flat, "stack")).toEqual([0, 0]);
   });
 
   it("runs a loop wave around the axis, in order", () => {
-    const ring = [
-      part("east", [1, 0, 0], []),
-      part("north", [0, 0, 1], []),
-      part("west", [-1, 0, 0], []),
-    ];
+    const ring = [[1, 0, 0] as Vec3, [0, 0, 1] as Vec3, [-1, 0, 0] as Vec3];
     const [east, north, west] = phases(ring, "loop") as number[];
     expect(east).toBeCloseTo(0);
     expect(north).toBeCloseTo(0.25);
@@ -288,7 +98,7 @@ describe("phases", () => {
     // Not a gap in the mode, but the useful half of it: on a model whose loop
     // is a ring of parts around a shaft, this lights the ring and leaves the
     // shaft at the widget's own colour.
-    const ring = [part("shaft", [0, 0, 0], []), part("petal", [1, 0, 0], [])];
+    const ring = [[0, 0, 0] as Vec3, [1, 0, 0] as Vec3];
     expect(phases(ring, "loop")[0]).toBeNull();
     expect(phases(ring, "loop")[1]).not.toBeNull();
   });

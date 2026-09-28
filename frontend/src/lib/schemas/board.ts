@@ -35,12 +35,7 @@ export type {
   FlowPayload,
   FlowSide,
 } from "@/lib/schemas/flow";
-export type {
-  MeshPart,
-  MeshPayload,
-  MeshWave,
-  Wireframe,
-} from "@/lib/schemas/mesh";
+export type { MeshPayload, MeshWave } from "@/lib/schemas/mesh";
 export type { IconSide, ProgressPayload } from "@/lib/schemas/progress";
 export type { Align, TableColumn, TablePayload } from "@/lib/schemas/table";
 

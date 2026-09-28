@@ -4,9 +4,9 @@ Run inside Blender, never on its own — ``bpy`` only exists in there:
 
     blender --background --factory-startup --python tools/mesh/samples.py -- state/models
 
-Two objects, and each is here for a reason. ``cube.obj`` is the smoke test: eight
+Two objects, and each is here for a reason. ``cube.glb`` is the smoke test: eight
 vertices and twelve edges, so whether the spin is right is something you can
-settle by eye rather than by argument. ``reactor.obj`` is the real one, in four
+settle by eye rather than by argument. ``reactor.glb`` is the real one, in four
 separate parts, which is what makes the exploded view worth looking at.
 
 Modelled from primitives with no booleans and no modifiers. A wireframe draws
@@ -28,11 +28,11 @@ import mathutils
 
 # Blender does not put the running script's directory on the path, so a script
 # it is given cannot import the module next to it without being told where that
-# is. Worth the two lines: `export_obj` is where "only the mesh matters" is
+# is. Worth the two lines: `export_glb` is where what the board keeps of a file is
 # written down, and a second copy of it here is a second copy that can drift.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from convert import export_obj
+from convert import export_glb
 
 # How round a round thing looks. Low on purpose: this is drawn as lines on a
 # television, and past about two dozen segments the extra edges stop reading as
@@ -51,8 +51,8 @@ def _clear() -> None:
 def _named(name: str) -> bpy.types.Object:
     """Name whatever was just added, and hand it back.
 
-    The name matters more here than it looks: the OBJ exporter writes it as an
-    ``o`` line, that is what the parser turns into a part, and a part is what the
+    The name matters more here than it looks: the exporter writes it as the node
+    name, that is what the widget calls a part, and a part is what the
     exploded view moves. An object called ``Cylinder.003`` explodes just as well
     and tells nobody anything.
     """
@@ -114,7 +114,7 @@ def _face_the_viewer() -> None:
 
     Everything above is modelled the way one models a disc: flat on the ground,
     thickness up the Z axis. The exporter then turns Blender's Z-up into the Y-up
-    that OBJ and every browser use — Blender +Z becomes OBJ +Y — which leaves a
+    that glTF and every browser use — Blender +Z becomes glTF +Y — which leaves a
     reactor pointing at the ceiling. Turning it a quarter turn about X first
     makes the two conversions cancel, and the vertices come out exactly as they
     were modelled.
@@ -137,7 +137,7 @@ def build_cube(into: Path) -> None:
     _clear()
     bpy.ops.mesh.primitive_cube_add(size=1.4)
     _named("cube")
-    export_obj(into / "cube.obj")
+    export_glb(into / "cube.glb")
 
 
 def build_reactor(into: Path) -> None:
@@ -161,7 +161,7 @@ def build_reactor(into: Path) -> None:
     _coils()
     _disc("core", radius=0.26, depth=0.34, z=0.26, segments=16)
     _face_the_viewer()
-    export_obj(into / "reactor.obj")
+    export_glb(into / "reactor.glb")
 
 
 def main() -> None:

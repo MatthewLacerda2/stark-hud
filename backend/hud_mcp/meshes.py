@@ -1,13 +1,13 @@
 """The MCP tools for the mesh widget: put a model on the board, and turn it.
 
 Two tools, split the way the media widget's are. ``add_mesh`` says which model,
-and after that the file never changes; ``set_mesh`` is how the thing is driven —
-faster, slower, tilted, pulled apart — because a model sitting on the television
-is watched and adjusted rather than rewritten.
+and after that the file never changes; ``set_mesh`` is how the thing is looked
+at — turned, tilted, framed, pulled apart — because a model on the board is
+watched and adjusted rather than rewritten.
 
-Only OBJ is read here. Everything else on this machine — FBX, glTF, a .blend —
-goes through ``tools/mesh/convert.py`` first, which drives Blender and writes an
-OBJ beside whatever it was given.
+The browser reads .glb, .gltf, .fbx and .obj itself. A .blend, or anything else
+Blender opens, goes through ``tools/mesh/convert.py`` first, which drives
+Blender on the host and writes a .glb beside whatever it was given.
 """
 
 from mcp.server.mcpserver import MCPServer
@@ -49,10 +49,9 @@ def register(server: MCPServer) -> None:
     @server.tool(annotations=ON_HOST)
     async def add_mesh(
         path: str,
-        spin: float = 0.08,
+        spin: float = 0.0,
+        heading: float = 0.0,
         tilt: float = 16.0,
-        explode: float = 0.0,
-        sweep: float = 0.0,
         x: float | None = None,
         y: float | None = None,
         w: float | None = None,
@@ -60,75 +59,80 @@ def register(server: MCPServer) -> None:
         parent_id: str | None = None,
         description: str | None = None,
     ) -> str:
-        """Show a 3D model as a turning wireframe, the way a hologram reads.
+        """Show a 3D model — something made in Blender — as a hologram.
 
-        `path` is an OBJ file on the machine running the board. Anything else —
-        FBX, glTF, GLB, STL, PLY, or a .blend — is converted first:
+        `path` is a model file on the machine running the board: .glb, .gltf
+        (self-contained), .fbx or .obj. A .blend, or anything else Blender
+        opens, is converted first:
 
-            python tools/mesh/convert.py ~/Downloads/helmet.fbx
+            python tools/mesh/convert.py ~/Downloads/helmet.blend
 
-        which writes `helmet.obj` beside it and prints the path to pass here.
+        which writes `helmet.glb` beside it and prints the path to pass here.
 
-        Only the mesh is read. Materials, textures, normals and any animation in
-        the file are dropped, because the widget draws edges in one colour and
-        there is nothing for them to be. The model is centred and scaled to fit
-        the widget on the way in, so a model saved in millimetres and one saved
-        in metres both arrive the right size and neither needs a scale argument.
+        What is drawn is the file's parts as they were built — their names,
+        their pivots, and any animation saved in the file, which plays on a
+        loop — in the board's own look: translucent light, brighter toward the
+        outline, with glowing edges. Materials, textures and cameras in the file
+        are ignored. The model is framed to fit the widget whatever units it was
+        saved in, so it never needs a scale.
 
-        `spin` is turns per second and the default is slow on purpose — once
-        every twelve seconds reads as an object on a turntable, while anything
-        brisk reads as a loading spinner. Negative turns the other way; zero
-        holds it still.
+        The board is a flat sheet, and the model is drawn flat onto it: nothing
+        fakes depth. It holds still by default at `heading` degrees (turned
+        counter-clockwise, seen from above) and `tilt` degrees of looking down.
+        `spin` turns it on a turntable instead, in turns per second — slowly,
+        if at all. Everything else about the view is `set_mesh`.
 
-        `sweep`, in degrees, stops the model going round and swings it instead:
-        it turns that far one way, eases into the end, and comes back the other
-        way, over and over. For a model with a front — a diagram, a face —
-        which a full turn shows for a quarter of the time. `spin` still sets
-        the pace, as one there-and-back every 1/spin seconds; 0 keeps turning.
+        Give it room: a model is a shape to recognise, and below about 4 by 4
+        the lines converge.
 
-        `tilt` is how far above the model the camera sits, in degrees. `explode`
-        pulls the model's parts apart along the line from its middle, where 0 is
-        assembled and 1 is a full model-width of separation — and it only does
-        anything for a file saved as several named objects, since a model
-        exported as one lump has one part and nothing to come apart from.
-
-        Give it room. A wireframe read from a sofa wants 6 by 6 or more; below
-        about 4 by 4 the lines converge and it stops being a shape.
-
-        Block it out, put it up, and then make it good. A model built in one
-        pass is a model nobody sees until it is finished, and this board is how
-        the work gets looked at: the user reads the television, not the code.
-        So get the rough shape on the screen early — the silhouette and the
-        named parts — and refine it against what the TV actually shows, because
-        how a model reads at six by six from a sofa is settled up there rather
-        than in a viewport. Each pass is the file, then `reload_mesh`: the
-        widget re-reads it in place and keeps its id, its place, its size, its
-        description and its colours. Removing and re-adding it to see a change
-        costs all of those, every pass.
+        Build it, put it up, then make it good: each pass is the file, then
+        `reload_mesh` — the widget re-reads it in place and keeps its id, its
+        place, its size, its description and its colours.
 
         This is the one widget that removes itself when its file goes missing,
         rather than showing a placeholder. If the model is on a drive that is not
         always mounted, expect the widget to be gone after a reboot — a line in
         the inbox says which file it was.
         """
-        payload = MeshPayload(path=path, spin=spin, tilt=tilt, explode=explode, sweep=sweep)
+        try:
+            payload = MeshPayload(path=path, spin=spin, heading=heading, tilt=tilt)
+        except ValueError as exc:
+            return f"Not added: {exc}"
         return await add(payload, x, y, w, h, parent_id, description=description)
 
     @server.tool()
     async def set_mesh(
         target: str,
         spin: float | None = None,
-        tilt: float | None = None,
-        explode: float | None = None,
         sweep: float | None = None,
+        heading: float | None = None,
+        tilt: float | None = None,
+        fov: float | None = None,
+        zoom: float | None = None,
+        pan_x: float | None = None,
+        pan_y: float | None = None,
+        explode: float | None = None,
     ) -> str:
-        """Change how a model turns, leans, or comes apart.
+        """Change how a model is looked at: turned, framed, or pulled apart.
 
-        `sweep` is degrees each way for a model that should swing rather than
-        go round (see add_mesh); 0 puts it back on the turntable.
+        `heading` is where it stands, in degrees counter-clockwise seen from
+        above; 0 is the model's front toward the viewer. `tilt` is how far above
+        it the camera sits. `spin` turns it on a turntable, turns per second, 0
+        holds it still; `sweep` swings it that many degrees each way instead of
+        going round, at `spin`'s pace.
+
+        `fov` is the camera's field of view in degrees (narrow flattens, wide
+        exaggerates); the model is re-framed to fit either way. `zoom` scales it
+        against that fit — above 1 crops in. `pan_x` / `pan_y` slide it across
+        the widget, as a fraction of the widget's width and height.
+
+        `explode` pulls the parts apart along the line from the middle, 0 to 1 —
+        only as good as the file: one lump has nothing to come apart from.
 
         Everything is optional and only what you pass moves, the way set_style
-        and set_media_mode work. `target` is the widget's id or its key.
+        and set_media_mode work. `target` is the widget's id or its key. A mesh
+        written by the agent from `state/sources.toml` takes its view from there
+        and is set back on the next tick — change the file instead.
 
         There is no `path` here on purpose: which model a widget shows is what
         the widget *is*, and swapping it would leave the description, the key and
@@ -138,10 +142,20 @@ def register(server: MCPServer) -> None:
         if found is None:
             return f"No mesh widget {target!r}. Call list_items to see what is there."
         item, model = found
-        asked = {"spin": spin, "tilt": tilt, "explode": explode, "sweep": sweep}
+        asked = {
+            "spin": spin,
+            "sweep": sweep,
+            "heading": heading,
+            "tilt": tilt,
+            "fov": fov,
+            "zoom": zoom,
+            "pan_x": pan_x,
+            "pan_y": pan_y,
+            "explode": explode,
+        }
         given = {name: value for name, value in asked.items() if value is not None}
         if not given:
-            return "Nothing to set: pass at least one of spin, tilt, explode or sweep"
+            return f"Nothing to set: pass at least one of {', '.join(asked)}"
         said = ", ".join(f"{name}={value:g}" for name, value in given.items())
         return await _write(item, model.model_copy(update=given), said)
 
