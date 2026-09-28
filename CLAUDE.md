@@ -44,8 +44,15 @@ these can be overridden by the user** (see the closing note).
 - **Looks beat handling.** A widget is what it shows. Chrome that exists only to
   make a widget easier to grab, label or configure — a title bar, a caption, a
   queue position, a name in a corner — comes off. A video widget draws video and
-  nothing else; anything else appears on hover, where a pointer exists, and so
-  never appears on the television at all.
+  nothing else; anything else appears on hover, and is never there at rest.
+- **The board is a flat sheet.** Widgets are drawn on it, not placed in a space
+  behind the screen. A flat display cannot show a 3D room without eye tracking,
+  so nothing fakes one — no depth-of-field blur, no parallax sway, no dimming
+  with distance. A 3D model is a 3D object drawn cleanly onto a flat widget.
+- **It is a desktop dashboard.** Since 2026-09 the board is not on the
+  television: it is a browser tab left up on a monitor beside the user's desk,
+  read at arm's length. Rules and comments that talk about a sofa or a room
+  describe where it used to be, not what to design for.
   Dragging is a **second-class citizen** in this project. The user can ask a
   Claude to move, resize or restyle anything by name, so when handling and the
   look of the board disagree, the look wins. Do not add an affordance to the
@@ -81,7 +88,7 @@ requests are in use.
 - A commit message says *why*, not just what. `git log` is the record of intent.
 - **The user does not read the code.** Not the diff, not the PR body, not the
   files. This is a deliberate position, not an oversight: the project is
-  reviewed by looking at the television. So a PR description is written for the
+  reviewed by looking at the board. So a PR description is written for the
   next Claude and for the record, the gates are the only thing actually checking
   the work, and "I will explain it in review" is not a plan.
 - **What decides `master` versus a branch is the screen, not the size.** A change
@@ -91,7 +98,7 @@ requests are in use.
   what it says or how it behaves goes on a branch and through a PR, because that
   is the only kind of change the user can review, and they review it by seeing
   it. When in doubt it is a branch: an unnecessary PR costs a minute, and a
-  surprise on the television costs trust.
+  surprise on the board costs trust.
 
 ### Issues
 
