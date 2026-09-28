@@ -43,6 +43,27 @@ export function boardStatus(): Promise<BoardStatus> {
   return request<BoardStatus>("/board/status");
 }
 
+/**
+ * What this page asks for when it puts a widget on the board: a subset of
+ * `ItemCreate` in `backend/schemas/item.py`, and deliberately only the part
+ * something here sends — see `ItemUpdate` above for what happened to the last
+ * full copy that nothing called.
+ *
+ * No `x` or `y`, on purpose. A person adding a widget by hand gets the same
+ * treatment as `add_media` with no position: the board finds a free slot, and
+ * a full board says what is free instead of overlapping anything.
+ */
+export interface ItemCreate {
+  payload: Payload;
+  w: number;
+  h: number;
+}
+
+/** Put a widget on the board. A full board refuses with a 409 and a sentence. */
+export function createItem(body: ItemCreate): Promise<Item> {
+  return request<Item>("/board/items", { method: "POST", body });
+}
+
 export function updateItem(id: string, body: ItemUpdate): Promise<Item> {
   return request<Item>(`/board/items/${id}`, { method: "PATCH", body });
 }
@@ -60,5 +81,27 @@ export function reportPlayback(
   return request<Item>(`/board/items/${id}/playback`, {
     method: "POST",
     body,
+  });
+}
+
+/**
+ * One track a person hands a player, mirroring `HandedTrack` in
+ * `backend/schemas/uploads.py`: the path an upload came back with, or a
+ * YouTube link exactly as it was pasted.
+ */
+export type HandedTrack = { path: string } | { youtube: string };
+
+/**
+ * Put one track on a player in place of its queue, and play it.
+ *
+ * A link goes as pasted and is never checked here: the server reads every
+ * shape of YouTube link there is, and says in a sentence what it cannot read.
+ * The widget redraws from the socket like any other change; the returned item
+ * is only there to know when it has happened.
+ */
+export function handOver(id: string, track: HandedTrack): Promise<Item> {
+  return request<Item>(`/board/items/${id}/queue`, {
+    method: "PUT",
+    body: track,
   });
 }

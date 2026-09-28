@@ -18,7 +18,7 @@
  * addresses — a file on the host that a widget can play.
  */
 
-import { request, apiUrl } from "@/lib/api/client";
+import { apiUrl, upload } from "@/lib/api/client";
 
 /** The picture a media or image widget holds, by the widget's id. */
 export function mediaUrl(id: string): string {
@@ -100,10 +100,16 @@ export interface Uploaded {
  * belongs, which is the same gigabytes twice on a machine with one disk. The
  * name travels in the query instead, encoded because a filename may contain
  * anything at all and is not to be trusted at either end.
+ *
+ * `onProgress` hears how much has gone, from 0 to 1, as it goes.
  */
-export function uploadTrack(file: File): Promise<Uploaded> {
-  return request<Uploaded>(
+export function uploadTrack(
+  file: File,
+  onProgress?: (fraction: number) => void,
+): Promise<Uploaded> {
+  return upload<Uploaded>(
     `/media/upload?name=${encodeURIComponent(file.name)}`,
-    { method: "POST", body: file },
+    file,
+    onProgress,
   );
 }

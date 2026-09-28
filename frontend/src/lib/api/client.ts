@@ -47,40 +47,77 @@ export async function request<T>(
   options: RequestOptions = {},
 ): Promise<T> {
   const { method = "GET", body } = options;
-  // A file goes as itself. Everything else this board sends is JSON, and a file
-  // cannot be: a film is gigabytes, `JSON.stringify` would refuse it, and
-  // base64 inside a field would be a third more bytes held in memory twice
-  // over. `fetch` streams a Blob, so the body crosses as the file it already
-  // is and the backend writes it to disk a chunk at a time. Its content type is
-  // left unset on purpose — the browser fills one in from the file.
-  const raw = body instanceof Blob;
   const headers: Record<string, string> = {};
-  if (body !== undefined && !raw) headers["Content-Type"] = "application/json";
+  if (body !== undefined) headers["Content-Type"] = "application/json";
 
   const response = await fetch(apiUrl(path), {
     method,
     headers,
-    body: raw
-      ? (body as Blob)
-      : body === undefined
-        ? undefined
-        : JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
 
   if (!response.ok) {
-    throw new ApiError(response.status, await detail(response));
+    throw new ApiError(
+      response.status,
+      detail(await response.text(), response.statusText),
+    );
   }
   // 204 No Content (e.g. DELETE) has no body to parse.
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
 
-/** Pull FastAPI's `{ detail }` off an error response, falling back to status. */
-async function detail(response: Response): Promise<string> {
+/**
+ * Send a file, saying how much of it has gone while it goes.
+ *
+ * The file goes as itself, never as JSON: a film is gigabytes, `JSON.stringify`
+ * would refuse it, and base64 inside a field would be a third more bytes held in
+ * memory twice over. The body crosses as the file it already is and the backend
+ * writes it to disk a chunk at a time. Its content type is left unset on
+ * purpose — the browser fills one in from the file.
+ *
+ * `XMLHttpRequest` rather than `fetch`, and only here, because it is the one
+ * thing in a browser that reports how much of a body has been sent. A film over
+ * the LAN takes minutes, and "uploading" with no number on it for minutes reads
+ * as stuck. `fetch` can stream a request body, but Chrome allows that only over
+ * HTTP/2, and says nothing about progress even then.
+ *
+ * It rejects with the same `ApiError` as `request()` when the backend says no,
+ * and with a plain `Error` when the request never got an answer at all.
+ */
+export function upload<T>(
+  path: string,
+  file: Blob,
+  onProgress?: (fraction: number) => void,
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", apiUrl(path));
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) {
+        onProgress?.(event.loaded / event.total);
+      }
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(JSON.parse(xhr.responseText) as T);
+        return;
+      }
+      reject(
+        new ApiError(xhr.status, detail(xhr.responseText, xhr.statusText)),
+      );
+    };
+    xhr.onerror = () => reject(new Error("upload never reached the board"));
+    xhr.send(file);
+  });
+}
+
+/** Pull FastAPI's `{ detail }` off an error body, falling back to the status. */
+function detail(body: string, fallback: string): string {
   try {
-    const data = (await response.json()) as { detail?: string };
-    return data.detail ?? response.statusText;
+    const data = JSON.parse(body) as { detail?: unknown };
+    return typeof data.detail === "string" ? data.detail : fallback;
   } catch {
-    return response.statusText;
+    return fallback;
   }
 }

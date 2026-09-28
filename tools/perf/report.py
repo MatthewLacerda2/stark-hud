@@ -66,6 +66,7 @@ FIXTURE = [
     Landmark("the fixture board, before #133 (868314c)", "168 - 181 %", "31 fps"),
     Landmark("the fixture board, master of 2026-09-20", "140 - 153 %", "51 fps"),
     Landmark("...and with the pie and bar animations off", "55 - 60 %", "56 fps"),
+    Landmark("the fixture board after #176 (pie swept, bar off)", "77 - 84 %", "56 fps"),
 ]
 
 # The television, re-measured 2026-09-20 after that day's deploy, 12 s samples.
@@ -91,10 +92,12 @@ NOTES = [
     "gpu column that reads the same in all four rows is the card's, not the",
     "board's, and the rig prints who else is on it so you can see that coming.",
     "",
-    "The pie and the bar still take recharts' 1500 ms default animation - the",
-    "gauge and the radar were given `SWEEP_MS` in #133 and these two were not.",
-    "On the fixture board that is about ninety points of a core, and the settled",
-    "picture is identical mark for mark. Measured, not guessed; see #142/#143.",
+    "Since #176 no chart series is left at recharts' 1500 ms default: the pie",
+    "sweeps in `SWEEP_MS` like the radar and the gauge, the bar is off like the",
+    "line and the area, and a lint rule refuses a series that decides neither.",
+    "Master 135 - 152 % against 77 - 84 % after, interleaved, 2026-09-28, with",
+    "the settled picture identical mark for mark. The pie's sweep is the gap",
+    "between that and the all-off 55 - 60 %.",
 ]
 
 

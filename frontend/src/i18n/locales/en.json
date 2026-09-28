@@ -15,7 +15,15 @@
     "emptyQueue": "Nothing queued",
     "wontPlay": "will not play",
     "fullscreen": "Fullscreen",
-    "leaveFullscreen": "Leave fullscreen"
+    "leaveFullscreen": "Leave fullscreen",
+    "fill": {
+      "open": "Put something on",
+      "link": "Paste a YouTube link",
+      "play": "Play",
+      "file": "Pick a file",
+      "uploading": "Uploading",
+      "lost": "The board did not answer. Is it still up?"
+    }
   },
   "chart": {
     "noData": "No data"
@@ -56,7 +64,11 @@
     "tilt": "Tilt",
     "sway": "Sway",
     "glass": "Glass",
-    "reset": "Reset"
+    "reset": "Reset",
+    "thisScreen": "This screen",
+    "everyScreen": "Every screen",
+    "addMedia": "Add a media player",
+    "lost": "The board did not answer. Is it still up?"
   },
   "image": {
     "fullscreen": "Look closer"

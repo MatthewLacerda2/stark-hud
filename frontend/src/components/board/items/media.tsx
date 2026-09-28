@@ -11,6 +11,7 @@ import type { MediaPayload, Playback } from "@/lib/schemas/board";
 import { reportPlayback } from "@/lib/api/board";
 import { trackUrl } from "@/lib/api/media";
 import { YouTubeTrack } from "@/components/board/items/youtube";
+import { MediaFill } from "@/components/board/media-fill";
 import { APART_SECONDS, TICK_SECONDS } from "@/lib/playback";
 import { DUCKED, useDucked } from "@/lib/ducking";
 import { Button } from "@/components/ui/button";
@@ -149,6 +150,9 @@ function FullScreen({ frame }: { frame: RefObject<HTMLDivElement | null> }) {
  * keyboard and no mouse and a button drawn on this board is a button nobody can
  * press. Fullscreen is the one thing a call cannot do — a browser grants it only
  * to a gesture — so it is a button, and it is only ever visible to a pointer.
+ * The other is `MediaFill`, the hover button a person without a session fills
+ * the player with: a picked file is bytes only the browser holds, so no call can
+ * hand it over for them.
  *
  * Saying what happened is the only thing on this board that runs back to the
  * server. A file may be gone or in a codec this browser will not decode, and
@@ -422,6 +426,7 @@ export function Media({
       )}
 
       {track ? <FullScreen frame={frame} /> : null}
+      <MediaFill id={id} />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { noHandRolledFormControl } from "./no-hand-rolled-form-control";
 import { noRedundantFontUtility } from "./no-redundant-font-utility";
 import { noFixedWidgetInset } from "./no-fixed-widget-inset";
 import { noHandBuiltApiUrl } from "./no-hand-built-api-url";
+import { noDefaultChartAnimation } from "./no-default-chart-animation";
 
 /** The local ESLint plugin exposing the design-system rules. */
 const plugin = {
@@ -19,6 +20,7 @@ const plugin = {
     "no-redundant-font-utility": noRedundantFontUtility,
     "no-fixed-widget-inset": noFixedWidgetInset,
     "no-hand-built-api-url": noHandBuiltApiUrl,
+    "no-default-chart-animation": noDefaultChartAnimation,
   },
 };
 

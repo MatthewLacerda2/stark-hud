@@ -15,7 +15,15 @@
     "emptyQueue": "Nada na fila",
     "wontPlay": "não toca",
     "fullscreen": "Tela cheia",
-    "leaveFullscreen": "Sair da tela cheia"
+    "leaveFullscreen": "Sair da tela cheia",
+    "fill": {
+      "open": "Colocar algo",
+      "link": "Cole um link do YouTube",
+      "play": "Tocar",
+      "file": "Escolher um arquivo",
+      "uploading": "Enviando",
+      "lost": "O painel não respondeu. Ele ainda está no ar?"
+    }
   },
   "chart": {
     "noData": "Sem dados"
@@ -56,7 +64,11 @@
     "tilt": "Inclinação",
     "sway": "Balanço",
     "glass": "Vidro",
-    "reset": "Restaurar"
+    "reset": "Restaurar",
+    "thisScreen": "Esta tela",
+    "everyScreen": "Todas as telas",
+    "addMedia": "Adicionar um player",
+    "lost": "O painel não respondeu. Ele ainda está no ar?"
   },
   "image": {
     "fullscreen": "Ver de perto"
