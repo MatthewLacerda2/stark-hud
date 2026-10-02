@@ -67,7 +67,7 @@ MAX_RADIUS = 0.5
 
 
 class FlowNode(BaseModel):
-    """One box in a flow, with a word in it.
+    """One box in a flow, with a word or an icon in it.
 
     A box either names its whole rectangle — all four of ``x``, ``y``, ``w``,
     ``h`` — or names none of it and is laid out for. Half a rectangle has no
@@ -86,7 +86,14 @@ class FlowNode(BaseModel):
     # refused naming it, because a link to the second of two boxes called
     # "build" would silently draw to the first.
     id: str
-    text: str
+    # Empty when the box is an icon: a diagram of twenty boxes reads as twenty
+    # glyphs faster than as twenty labels, so an icon-only box is an ordinary
+    # box, not a fallback.
+    text: str = ""
+    # The same three forms an icon takes anywhere on the board — a name, a path
+    # to a picture, or SVG markup — drawn in the box's ink. Alone in the box
+    # when ``text`` is empty, in front of the words when there are both.
+    icon: Icon | None = None
     shape: FlowShape = "rectangle"
     # How rounded the corners are, as a fraction of the box's **own shorter
     # side** rather than of the widget: 0 is a square corner and 0.5 is a pill,

@@ -51,6 +51,7 @@ function node(id: string, over?: Partial<FlowNode>): FlowNode {
   return {
     id,
     text: id,
+    icon: null,
     shape: "rectangle",
     radius: 0.18,
     color: null,
@@ -101,6 +102,7 @@ async function show(
   });
   return {
     heading: () => host.querySelector("h3"),
+    glyphs: () => [...host.querySelectorAll("svg.lucide")],
     lines: () => [...host.querySelectorAll("path")],
     heads: () => [...host.querySelectorAll("polygon")],
     labels: () => [...host.querySelectorAll("text")].map((t) => t.textContent),
@@ -120,6 +122,26 @@ describe("a flow", () => {
     expect(drawn.text()).toContain("Build");
     expect(drawn.text()).toContain("Ship");
     expect(drawn.lines()).toHaveLength(1);
+  });
+
+  it("draws a box with an icon and no words as the icon alone", async () => {
+    const drawn = await show(
+      [node("build", { text: "", icon: "wrench" }), node("ship")],
+      [link("build", "ship")],
+    );
+
+    expect(drawn.glyphs()).toHaveLength(1);
+    expect(drawn.text()).toBe("ship");
+  });
+
+  it("puts a box's icon in front of its words when it has both", async () => {
+    const drawn = await show(
+      [node("build", { text: "Build", icon: "wrench" })],
+      [],
+    );
+
+    expect(drawn.glyphs()).toHaveLength(1);
+    expect(drawn.text()).toContain("Build");
   });
 
   it("draws no chrome at all when it was given no title and no icon", async () => {

@@ -88,3 +88,14 @@ async def test_a_list_entry_icon_is_served_by_its_place(
     assert response.status_code == 200
     assert response.content == b"pretend-a-face"
     assert (await client.get(f"/api/v1/media/{item_id}/icon/0")).status_code == 404
+
+
+async def test_a_flow_box_icon_is_served_by_its_place(client: AsyncClient, tmp_path: Path) -> None:
+    """A flow carries an icon per box, addressed the way a list's entries are."""
+    icon = tmp_path / "gear.png"
+    icon.write_bytes(b"pretend-a-gear")
+    nodes = [{"id": "plain", "text": "Plain"}, {"id": "gear", "icon": str(icon)}]
+    body = {"payload": {"kind": "flow", "nodes": nodes}}
+    item_id = (await client.post(ITEMS, json=body)).json()["id"]
+    assert (await client.get(f"/api/v1/media/{item_id}/icon/1")).content == b"pretend-a-gear"
+    assert (await client.get(f"/api/v1/media/{item_id}/icon/0")).status_code == 404

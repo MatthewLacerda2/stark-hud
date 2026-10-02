@@ -106,12 +106,13 @@ def icon_path(item: ItemRead, index: int | None = None) -> str | None:
     item's id, so the path never appears in a URL.
 
     Without an index this is the widget's own icon; with one it is that entry's,
-    since a list carries an icon per line and they need telling apart.
+    since a list carries an icon per line and a flow one per box, and they need
+    telling apart.
     """
     if index is None:
         icon = getattr(item.payload, "icon", None)
     else:
-        entries = getattr(item.payload, "items", [])
+        entries = getattr(item.payload, "items", None) or getattr(item.payload, "nodes", [])
         entry = entries[index] if 0 <= index < len(entries) else None
         icon = getattr(entry, "icon", None)
     return icon if isinstance(icon, str) and icon.startswith("/") else None

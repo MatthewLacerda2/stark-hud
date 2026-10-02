@@ -19,7 +19,7 @@ import type { IconRef } from "@/lib/schemas/board";
 export type FlowSide = "left" | "right" | "top" | "bottom" | "center";
 
 /**
- * One box in a flow, with a word in it.
+ * One box in a flow, with a word or an icon in it.
  *
  * `x`/`w` are fractions of the widget's width and `y`/`h` of its height, so the
  * drawing means the same thing at every widget size. All four or none: the
@@ -33,7 +33,10 @@ export type FlowSide = "left" | "right" | "top" | "bottom" | "center";
  */
 export interface FlowNode {
   id: string;
+  /** Empty when the box is an icon alone. */
   text: string;
+  /** A name, a path or SVG markup, in the box's ink. */
+  icon: IconRef | null;
   shape: "rectangle" | "ellipse";
   /** A fraction of the box's own shorter side: 0 square, 0.5 a pill. */
   radius: number;
