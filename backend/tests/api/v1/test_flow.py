@@ -225,3 +225,14 @@ def test_a_box_icon_that_is_no_icon_is_refused_naming_it() -> None:
     """A typo in a box's icon is a sentence, as it is everywhere else."""
     sentence = refusal({"kind": "flow", "nodes": [{"id": "a", "icon": "volumee"}]})
     assert "'volumee' is not an icon" in sentence
+
+
+def test_an_arrow_is_one_house_line_unless_it_says_otherwise() -> None:
+    """Thickness is a multiple of the line, kept inside the range that still reads."""
+    nodes = [{"id": "a"}, {"id": "b"}]
+    flow = FlowPayload.model_validate(
+        {"kind": "flow", "nodes": nodes, "links": [{"source": "a", "target": "b"}]}
+    )
+    assert flow.links[0].thickness == 1.0
+    thin = {"source": "a", "target": "b", "thickness": 0.1}
+    assert "thickness" in refusal({"kind": "flow", "nodes": nodes, "links": [thin]})

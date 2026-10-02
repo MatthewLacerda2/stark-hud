@@ -60,6 +60,12 @@ FlowCurve = Literal["straight", "s"]
 # that*, and that reading has a direction.
 FlowHeads = Literal["none", "end", "both"]
 
+# How far an arrow may be thinned or thickened from the house line. Below a
+# quarter it is a ghost of a line at most sizes; past four it is a bar, and a
+# bar reads as a box rather than as a way from one box to another.
+MIN_THICKNESS = 0.25
+MAX_THICKNESS = 4.0
+
 # The most a corner can be rounded: half the box's shorter side, where the two
 # corners of that side meet and the end has become a semicircle. Past it there
 # is no straight edge left to round.
@@ -184,6 +190,11 @@ class FlowLink(BaseModel):
     # washed. A hairline at a third strength over a moving video is not faint
     # from six feet away, it is absent.
     color: Colour | None = None
+    # A multiple of the widget's one line weight, so it means the same at every
+    # widget size and follows any retune of that weight. 1 is the house line.
+    # For the arrows that cannot help crossing or lying along each other: a
+    # lighter line over a heavier one is two arrows, not a smudge.
+    thickness: float = Field(default=1.0, ge=MIN_THICKNESS, le=MAX_THICKNESS)
 
 
 class FlowPayload(BaseModel):

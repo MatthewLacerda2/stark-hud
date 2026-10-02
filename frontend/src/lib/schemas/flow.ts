@@ -67,6 +67,8 @@ export interface FlowLink {
   heads: "none" | "end" | "both";
   /** Always drawn at full strength: an arrow is a mark and marks are not washed. */
   color: string | null;
+  /** A multiple of the widget's line weight, 0.25 to 4. 1 is the house line. */
+  thickness: number;
 }
 
 /**

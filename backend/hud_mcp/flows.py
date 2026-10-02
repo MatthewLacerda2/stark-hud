@@ -68,7 +68,9 @@ def register(server: MCPServer) -> None:
         when the arrow is too short to hold it. `curve` is "straight" (the
         default) or "s", which leaves each box along the side it meets — what
         two boxes side by side want. `heads` is "end" (the default), "none" for a
-        plain connecting line, or "both".
+        plain connecting line, or "both". `thickness` thins or thickens one
+        arrow as a multiple of the widget's line (0.25 to 4, default 1) — for
+        arrows that cannot help crossing, so they read as two.
 
         Say nothing about where the boxes sit and the widget lays them out in one
         evenly spaced line along its longer side, which is worth looking at and

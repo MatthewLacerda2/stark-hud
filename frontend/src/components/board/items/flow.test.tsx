@@ -76,6 +76,7 @@ function link(
     label: null,
     curve: "straight",
     heads: "end",
+    thickness: 1,
     color: null,
     ...over,
   };
@@ -105,6 +106,10 @@ async function show(
     glyphs: () => [...host.querySelectorAll("svg.lucide")],
     lines: () => [...host.querySelectorAll("path")],
     heads: () => [...host.querySelectorAll("polygon")],
+    weights: () =>
+      [...host.querySelectorAll("svg g")].map((g) =>
+        Number(g.getAttribute("stroke-width")),
+      ),
     labels: () => [...host.querySelectorAll("text")].map((t) => t.textContent),
     text: () => host.textContent ?? "",
   };
@@ -122,6 +127,27 @@ describe("a flow", () => {
     expect(drawn.text()).toContain("Build");
     expect(drawn.text()).toContain("Ship");
     expect(drawn.lines()).toHaveLength(1);
+  });
+
+  it("draws an arrow's thickness as a multiple of the house line", async () => {
+    const drawn = await show(
+      [node("a"), node("b"), node("c")],
+      [link("a", "b"), link("b", "c", { thickness: 2 })],
+    );
+
+    const [plain, heavy] = drawn.weights();
+    expect(heavy).toBeCloseTo(plain * 2);
+  });
+
+  it("never thins an arrow below the thinnest line a browser draws", async () => {
+    // This widget's house line is already at that floor, so half of it is too.
+    const drawn = await show(
+      [node("a"), node("b"), node("c")],
+      [link("a", "b"), link("b", "c", { thickness: 0.5 })],
+    );
+
+    const [plain, thin] = drawn.weights();
+    expect(thin).toBe(plain);
   });
 
   it("draws a box with an icon and no words as the icon alone", async () => {
