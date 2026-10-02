@@ -40,6 +40,7 @@ export function link(
     label: null,
     curve: "straight",
     heads: "end",
+    thickness: 1,
     color: null,
     ...over,
   };

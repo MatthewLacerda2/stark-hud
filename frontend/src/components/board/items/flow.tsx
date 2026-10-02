@@ -27,8 +27,10 @@ const WASH = 0.14;
 /**
  * The house line weight, as a fraction of the widget's shorter side.
  *
- * One weight for the whole widget: an outline and an arrow are the same ink and
- * a diagram drawn in two thicknesses reads as two diagrams. Against the shorter
+ * One weight for the whole widget by default: an outline and an arrow are the
+ * same ink and a diagram drawn in two thicknesses for no reason reads as two
+ * diagrams. An arrow may name a `thickness`, a multiple of this, when it has a
+ * reason — two arrows that cannot help crossing read apart when one is lighter. Against the shorter
  * side because a line has no axis of its own and needs one chosen for it — the
  * same call `scorsese_core::shape` makes for `stroke_width`, and picking the
  * same one twice is one fewer thing to remember. Halved from 1/70 on
@@ -267,6 +269,9 @@ function Arrow({
   stroke: number;
 }) {
   const colour = link.color ?? "currentColor";
+  // The heads and the label are sized as multiples of the line, so they follow
+  // it: a thin arrow with a full-size head reads as a head with a tail.
+  const thick = Math.max(MIN_STROKE, stroke * link.thickness);
   const px = (at: Point) => ({ x: at.x * width, y: at.y * height });
   const start = px(run.start);
   const end = px(run.end);
@@ -281,16 +286,16 @@ function Arrow({
   const along = cells(run.start, run.end, cols, rows);
 
   return (
-    <g stroke={colour} fill={colour} strokeWidth={stroke}>
+    <g stroke={colour} fill={colour} strokeWidth={thick}>
       <path d={path} fill="none" strokeLinecap="round" />
       {link.heads !== "none" ? (
-        <Head at={end} aim={aim(run.atEnd)} thick={stroke} />
+        <Head at={end} aim={aim(run.atEnd)} thick={thick} />
       ) : null}
       {link.heads === "both" ? (
-        <Head at={start} aim={back(aim(run.atStart))} thick={stroke} />
+        <Head at={start} aim={back(aim(run.atStart))} thick={thick} />
       ) : null}
       {link.label && roomy(link.label, along) ? (
-        <Label at={px(midpoint(run))} aim={aim(run.atEnd)} thick={stroke}>
+        <Label at={px(midpoint(run))} aim={aim(run.atEnd)} thick={thick}>
           {link.label}
         </Label>
       ) : null}
