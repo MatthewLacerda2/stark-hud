@@ -25,6 +25,9 @@ type Board = { cols: number; rows: number };
  * quarter of the screen — and the owner halved it to an eighth — and it should
  * stay that share however many columns there turn out to be.
  *
+ * The owner then took 30% off the width (2026-10-01, #212), so it is 0.7 of an
+ * eighth: about 2.8 columns, beside the widget rather than across its neighbour.
+ *
  * Deliberately a little shorter than the text it holds. Two rows of eighteen is
  * about four lines of the small type, and the server cuts a call to roughly
  * six — so a long one drifts up through the panel over its two seconds and a
@@ -32,7 +35,7 @@ type Board = { cols: number; rows: number };
  * everything would never move, and a thing that never moves on a board is a
  * label.
  */
-const WIDE = 1 / 8;
+const WIDE = 0.7 / 8;
 const TALL = 1 / 9;
 
 /** Keep `value` inside `[low, high]`. */
