@@ -1,5 +1,5 @@
 import type { Tape } from "@/lib/vhs";
-import { DIRT } from "@/lib/dirt";
+import { DIRT, DIRT_SIZE } from "@/lib/dirt";
 
 // Four pixels of tube, one and a half of them dark. A filter has no primitive
 // that makes stripes, so they arrive as an image and are tiled across whatever
@@ -50,7 +50,12 @@ export function VhsFilter({ tape }: { tape: Tape }) {
     <svg aria-hidden className="pointer-events-none absolute size-0">
       <defs>
         <filter id="vhs-tape" colorInterpolationFilters="sRGB">
-          <feImage href={DIRT} width="256" height="256" result="dust" />
+          <feImage
+            href={DIRT}
+            width={DIRT_SIZE}
+            height={DIRT_SIZE}
+            result="dust"
+          />
           <feTile in="dust" result="spread" />
           <feComponentTransfer in="spread" result="dimDust">
             <feFuncA type="linear" slope={dirt} />

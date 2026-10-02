@@ -76,8 +76,8 @@ def register(server: MCPServer) -> None:
         are ignored. The model is framed to fit the widget whatever units it was
         saved in, so it never needs a scale.
 
-        The board is a flat sheet, and the model is drawn flat onto it: nothing
-        fakes depth. It holds still by default at `heading` degrees (turned
+        The model is drawn cleanly onto its widget: nothing blurs or dims it to
+        fake depth. It holds still by default at `heading` degrees (turned
         counter-clockwise, seen from above) and `tilt` degrees of looking down.
         `spin` turns it on a turntable instead, in turns per second — slowly,
         if at all. Everything else about the view is `set_mesh`.

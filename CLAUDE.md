@@ -33,14 +33,12 @@ these can be overridden by the user** (see the closing note).
   but compactness serves readability, it is not the finish line. If the clearest
   version of something isn't the densest, leave it clear. Don't end on clever
   one-liners nobody can debug later.
-- **Push back when it's earned.**
-  - If a feature or addition doesn't move the model's final performance, say so
-    and say why it isn't pulling its weight.
-  - If an idea contradicts what the literature has settled, flag it immediately.
-    But calibrate: push hard on documented dead-ends, stay curious about
-    genuinely untried ground. Research means trying what the literature hasn't
-    settled — don't suppress a novel idea just because it's unproven. The line
-    is "documented to fail" versus "simply not yet tried."
+- **Push back when it's earned.** If an idea contradicts what the literature
+  has settled, flag it immediately. But calibrate: push hard on documented
+  dead-ends, stay curious about genuinely untried ground. Research means trying
+  what the literature hasn't settled — don't suppress a novel idea just because
+  it's unproven. The line is "documented to fail" versus "simply not yet
+  tried."
 - **Looks beat handling.** A widget is what it shows. Chrome that exists only to
   make a widget easier to grab, label or configure — a title bar, a caption, a
   queue position, a name in a corner — comes off. A video widget draws video and
@@ -50,10 +48,10 @@ these can be overridden by the user** (see the closing note).
   handles them all the time, so handling shows up when it is wanted (on hover,
   on a click) and the look is what is there the rest of the time. When the
   two disagree, the look wins.
-- **The board is a flat sheet.** Widgets are drawn on it, not placed in a space
-  behind the screen. A flat display cannot show a 3D room without eye tracking,
-  so nothing fakes one — no depth-of-field blur, no parallax sway, no dimming
-  with distance. A 3D model is a 3D object drawn cleanly onto a flat widget.
+- **What a widget draws stays sharp.** The board may lean and drift as panes of
+  glass (the depth dials, `tilt`, `sway`, `glass`, are a look each browser
+  chooses), but nothing inside a widget is blurred or dimmed to fake distance.
+  A 3D model is drawn cleanly onto its widget.
 - **It is a desktop dashboard.** It runs on a PC and is made to be visited from
   one, in a browser tab: a TV, a 24" monitor, a laptop screen. Design for a PC
   screen with a pointer, not for one particular display. Rules and comments
@@ -256,8 +254,6 @@ needs a running app, ask them to start it.
 
 - New work: `git pull` the latest default branch → create a named git worktree
   off it → push a remote branch of the same name. Prefix `feat/` or `fix/`.
-- Each worktree is DB-isolated: tests derive a per-worktree DB name so parallel
-  sessions never collide.
 - Name each session after what it's doing.
 
 ## Upgrade paths (intentionally deferred)

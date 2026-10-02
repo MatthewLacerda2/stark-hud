@@ -1,3 +1,6 @@
+import type { CSSProperties } from "react";
+import { dirtOffset } from "@/lib/dirt";
+
 // Whole class names, never built by interpolation: Tailwind reads the source as
 // text, and a utility it cannot see spelled out is a utility it never emits.
 const WALLS = [
@@ -21,13 +24,23 @@ const WALLS = [
  * rather than under it. Everything here is decoration and nothing is hit: a
  * pointer goes straight through to the widget.
  */
-export function Slab() {
+export function Slab({
+  /** The widget's id, which picks where in the dirt this pane starts. */
+  id,
+}: {
+  id: string;
+}) {
+  const { x, y } = dirtOffset(id);
+  const dirt = {
+    "--dirt-x": `${-x}px`,
+    "--dirt-y": `${-y}px`,
+  } as CSSProperties;
   return (
     <>
       {WALLS.map((wall) => (
         <div key={wall} aria-hidden className={wall} />
       ))}
-      <div aria-hidden className="glass-face" />
+      <div aria-hidden className="glass-face" style={dirt} />
     </>
   );
 }
