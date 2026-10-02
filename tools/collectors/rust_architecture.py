@@ -85,6 +85,11 @@ GLYPHS = {
 }
 FALLBACK = "box"
 
+# The strip over the boxes a title needs, as a fraction of the widget's height.
+# The heading is sized against the widget's width and capped, which on these
+# square-ish widgets comes to about 8% of the height; 10% leaves it a margin.
+TITLE_ROOM = 0.1
+
 # Directories nobody's architecture lives in: build output, vendored packages,
 # and anything hidden — a `.claude/worktrees` checkout is a second copy of the
 # same crates, not more of them.
@@ -287,17 +292,18 @@ def glyph(name: str, missed: list[str]) -> str:
     return (ICONS / f"{icon or FALLBACK}.svg").read_text().strip()
 
 
-def flow(graph: Graph, aspect: float | None = None) -> dict:
+def flow(graph: Graph, aspect: float | None = None, title: str | None = None) -> dict:
     """The graph as a flow payload: icon boxes, and arrows with a mutual pair merged.
 
     Given the widget's `aspect` (width over height, in board cells) every box is
-    placed, square, by `rust_layout`; without it the widget lays them out.
+    placed, square, by `rust_layout`; without it the widget lays them out. A
+    `title` is the project's name over the diagram, and the boxes start below it.
     """
     arrows = reduce(graph)
     missed: list[str] = []
     nodes: list[dict] = [{"id": name, "icon": glyph(name, missed)} for name in sorted(graph)]
     if aspect:
-        boxes = place(sorted(graph), arrows, aspect)
+        boxes = place(sorted(graph), arrows, aspect, TITLE_ROOM if title else 0.0)
         for node in nodes:
             node.update(zip("xywh", boxes[node["id"]], strict=True))
     links = []
@@ -309,7 +315,7 @@ def flow(graph: Graph, aspect: float | None = None) -> dict:
             links.append({"source": a, "target": b})
     if missed:
         print(f"rust_architecture: no icon for {', '.join(missed)}", file=sys.stderr)
-    return {"nodes": nodes, "links": links}
+    return {"title": title, "nodes": nodes, "links": links}
 
 
 def read(root: Path, skip: set[str]) -> Graph:
@@ -326,9 +332,10 @@ def main() -> int:
     parser.add_argument(
         "--aspect", type=float, help="the widget's width over its height, to place the boxes"
     )
+    parser.add_argument("--title", help="the name drawn over the diagram")
     args = parser.parse_args()
     skip = set(filter(None, args.skip.split(",")))
-    print(json.dumps(flow(read(args.root.expanduser(), skip), args.aspect)))
+    print(json.dumps(flow(read(args.root.expanduser(), skip), args.aspect, args.title)))
     return 0
 
 

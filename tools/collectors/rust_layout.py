@@ -78,18 +78,22 @@ def ranks(names: list[str], arrows: set[tuple[str, str]]) -> list[list[str]]:
     return rows
 
 
-def place(names: list[str], arrows: set[tuple[str, str]], aspect: float) -> dict[str, Box]:
+def place(
+    names: list[str], arrows: set[tuple[str, str]], aspect: float, top: float = 0.0
+) -> dict[str, Box]:
     """A square box for every part, in rows, each row centred across the widget.
 
     `aspect` is the widget's width over its height, in board cells, which are
-    square on screen — so a box `side` tall is `side / aspect` wide.
+    square on screen — so a box `side` tall is `side / aspect` wide. `top` is
+    a strip left empty above the rows, for the widget's title.
     """
     rows = ranks(names, arrows)
     busiest = max(len(row) for row in rows)
-    side = FILL * min(1 / len(rows), aspect / busiest)
+    tall = 1 - top
+    side = FILL * min(tall / len(rows), aspect / busiest)
     placed: dict[str, Box] = {}
     for r, row in enumerate(rows):
-        y = (r + 0.5) / len(rows) - side / 2
+        y = top + tall * (r + 0.5) / len(rows) - side / 2
         for i, n in enumerate(row):
             x = ((i + 0.5) / len(row)) - side / aspect / 2
             placed[n] = (_floor(x), _floor(y), _floor(side / aspect), _floor(side))

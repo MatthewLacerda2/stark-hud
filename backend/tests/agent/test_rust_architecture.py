@@ -153,3 +153,14 @@ def test_placed_boxes_are_square_inside_the_widget_and_apart():
     for i, (x, y, w, h) in enumerate(boxes):
         for x2, y2, _, _ in boxes[i + 1 :]:
             assert abs(x - x2) >= w or abs(y - y2) >= h
+
+
+def test_a_title_gets_a_strip_above_the_boxes():
+    """The project's name is drawn over the diagram, so no box may sit under it."""
+    graph = {"api": {"core": 1}, "core": {}}
+
+    drawn = ra.flow(graph, aspect=1.0, title="rusty")
+
+    assert drawn["title"] == "rusty"
+    assert min(n["y"] for n in drawn["nodes"]) >= ra.TITLE_ROOM
+    assert max(n["y"] + n["h"] for n in drawn["nodes"]) <= 1

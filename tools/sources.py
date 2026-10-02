@@ -251,6 +251,10 @@ class Source:
             # arrows only mean something together, so both are replaced whole.
             panel["nodes"] = produced.get("nodes", [])
             panel["links"] = produced.get("links", [])
+            # A title the collector names wins over the spec's: it is the one
+            # that left room for it above the boxes.
+            if produced.get("title"):
+                panel["title"] = produced["title"]
             return panel
 
         rows = produced if isinstance(produced, list) else [produced]
