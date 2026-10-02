@@ -35,7 +35,7 @@ import sys
 import tomllib
 from pathlib import Path
 
-from rust_layout import place
+from rust_layout import THIN, place
 
 ICONS = Path(__file__).resolve().parent / "rust_icons"
 
@@ -302,17 +302,23 @@ def flow(graph: Graph, aspect: float | None = None, title: str | None = None) ->
     arrows = reduce(graph)
     missed: list[str] = []
     nodes: list[dict] = [{"id": name, "icon": glyph(name, missed)} for name in sorted(graph)]
+    crowded: set[tuple[str, str]] = set()
     if aspect:
-        boxes = place(sorted(graph), arrows, aspect, TITLE_ROOM if title else 0.0)
+        used_by = {name: sum(name in uses for uses in graph.values()) for name in graph}
+        top = TITLE_ROOM if title else 0.0
+        boxes, crowded = place(sorted(graph), arrows, aspect, top, used_by)
         for node in nodes:
             node.update(zip("xywh", boxes[node["id"]], strict=True))
-    links = []
+    links: list[dict] = []
     for a, b in sorted(arrows):
+        if (b, a) in arrows and a > b:
+            continue
+        link: dict = {"source": a, "target": b}
         if (b, a) in arrows:
-            if a < b:
-                links.append({"source": a, "target": b, "heads": "both"})
-        else:
-            links.append({"source": a, "target": b})
+            link["heads"] = "both"
+        if (min(a, b), max(a, b)) in crowded:
+            link["thickness"] = THIN
+        links.append(link)
     if missed:
         print(f"rust_architecture: no icon for {', '.join(missed)}", file=sys.stderr)
     return {"title": title, "nodes": nodes, "links": links}

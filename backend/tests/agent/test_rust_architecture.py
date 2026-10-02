@@ -136,7 +136,7 @@ def test_a_part_sits_above_what_it_uses_and_a_cycle_is_cut_to_rank_it():
 
 
 def test_placed_boxes_are_square_inside_the_widget_and_apart():
-    """One size, square at the widget's shape, inside 0-1, and none overlapping."""
+    """Each square at the widget's shape, inside 0-1, and none overlapping."""
     graph = {
         "api": {"scene": 1, "audio": 1},
         "scene": {"core": 1},
@@ -147,12 +147,11 @@ def test_placed_boxes_are_square_inside_the_widget_and_apart():
     nodes = ra.flow(graph, aspect=0.9)["nodes"]
 
     boxes = [(n["x"], n["y"], n["w"], n["h"]) for n in nodes]
-    assert len({(w, h) for _, _, w, h in boxes}) == 1
-    assert abs(boxes[0][2] * 0.9 - boxes[0][3]) < 1e-3
+    assert all(abs(w * 0.9 - h) < 1e-3 for _, _, w, h in boxes)
     assert all(x >= 0 and y >= 0 and x + w <= 1 and y + h <= 1 for x, y, w, h in boxes)
     for i, (x, y, w, h) in enumerate(boxes):
-        for x2, y2, _, _ in boxes[i + 1 :]:
-            assert abs(x - x2) >= w or abs(y - y2) >= h
+        for x2, y2, w2, h2 in boxes[i + 1 :]:
+            assert x + w <= x2 or x2 + w2 <= x or y + h <= y2 or y2 + h2 <= y
 
 
 def test_a_title_gets_a_strip_above_the_boxes():
@@ -164,3 +163,31 @@ def test_a_title_gets_a_strip_above_the_boxes():
     assert drawn["title"] == "rusty"
     assert min(n["y"] for n in drawn["nodes"]) >= ra.TITLE_ROOM
     assert max(n["y"] + n["h"] for n in drawn["nodes"]) <= 1
+
+
+def test_a_box_grows_with_how_many_parts_use_it():
+    """The foundation everyone uses is the largest box, a part nobody uses the smallest."""
+    graph = {"app": {"api": 1, "core": 1}, "api": {"core": 1}, "core": {}}
+
+    size = {n["id"]: n["h"] for n in ra.flow(graph, aspect=1.0)["nodes"]}
+
+    assert size["core"] > size["api"] > size["app"]
+
+
+def test_the_search_takes_an_arrow_out_of_a_box_it_ran_through():
+    """Straight down a column, `top → bottom` would cross `middle`; it is moved aside."""
+    arrows = {("top", "middle"), ("middle", "bottom"), ("top", "bottom"), ("top", "side")}
+
+    _, crowded = rust_layout.place(["bottom", "middle", "side", "top"], arrows, aspect=1.0)
+
+    assert ("bottom", "top") not in crowded
+
+
+def test_an_arrow_that_cannot_avoid_a_crossing_is_drawn_thinner():
+    """Two pairs wired across each other in two rows: whichever way, they cross."""
+    graph = {"a": {"x": 1, "y": 1}, "b": {"x": 1, "y": 1}, "x": {}, "y": {}}
+
+    links = ra.flow(graph, aspect=1.0)["links"]
+
+    assert any(link.get("thickness") == rust_layout.THIN for link in links)
+    assert all(link.get("thickness", 1) in (1, rust_layout.THIN) for link in links)
