@@ -201,3 +201,27 @@ def test_a_flow_comes_back_off_the_disk_intact(tmp_path: Path, monkeypatch) -> N
     assert [n.id for n in restored.payload.nodes] == ["build", "test", "ship"]
     assert restored.payload.links[1].label == "green"
     assert restored.payload.nodes[1].shape == "ellipse"
+
+
+def test_a_box_can_be_an_icon_with_no_words() -> None:
+    """An icon-only box is ordinary: no text, and markup is kept sanitised."""
+    flow = FlowPayload.model_validate(
+        {
+            "kind": "flow",
+            "nodes": [
+                {"id": "audio", "icon": "bell"},
+                {"id": "drawn", "icon": "<svg viewBox='0 0 24 24'><script/><path d='M0 0'/></svg>"},
+            ],
+        }
+    )
+    assert flow.nodes[0].text == ""
+    assert flow.nodes[0].icon == "bell"
+    assert flow.nodes[1].icon is not None
+    assert "<path" in flow.nodes[1].icon
+    assert "script" not in flow.nodes[1].icon
+
+
+def test_a_box_icon_that_is_no_icon_is_refused_naming_it() -> None:
+    """A typo in a box's icon is a sentence, as it is everywhere else."""
+    sentence = refusal({"kind": "flow", "nodes": [{"id": "a", "icon": "volumee"}]})
+    assert "'volumee' is not an icon" in sentence

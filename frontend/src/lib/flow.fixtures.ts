@@ -15,6 +15,7 @@ export function node(id: string, box?: Partial<FlowNode>): FlowNode {
   return {
     id,
     text: id,
+    icon: null,
     shape: "rectangle",
     radius: 0.18,
     color: null,

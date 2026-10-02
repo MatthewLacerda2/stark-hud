@@ -53,6 +53,15 @@ def register(server: MCPServer) -> None:
                      {"source": "test",  "target": "build", "label": "red",
                       "curve": "s", "color": "destructive"}]
 
+        A box can be an icon instead of words: give it `icon` and leave out
+        `text`, and the box shows one glyph in its own ink. It takes what any
+        icon here takes — a name, an absolute path to a picture, or SVG markup
+        starting with <svg> for a glyph the board has no name for:
+
+            {"id": "audio", "icon": "<svg viewBox='0 0 24 24'>...</svg>"}
+
+        A box with both draws the icon in front of its words.
+
         A link says `source` and `target`, never `from` — `from` is a keyword in
         the language this board is written in, and one spelling everywhere beats
         the nicer word. `label` is a word on the arrow, dropped by the widget

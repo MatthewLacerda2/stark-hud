@@ -1,8 +1,10 @@
 import { useTranslation } from "react-i18next";
 import type { FlowLink, FlowNode, FlowPayload } from "@/lib/schemas/board";
+import { Icon } from "@/components/board/icon";
 import { WidgetHeading } from "@/components/board/widget-heading";
 import { useContainerSize } from "@/hooks/use-container-size";
 import { useFitText } from "@/hooks/use-fit-text";
+import { iconUrl } from "@/lib/api/media";
 import { carriesAlpha } from "@/lib/colour";
 import type { Box, Point, Route } from "@/lib/flow";
 import { arrows, cells, layout, midpoint, roomy } from "@/lib/flow";
@@ -61,6 +63,12 @@ const LABEL_LIFT = 3.3;
 const MAX_CORNER = 1 / 40;
 
 /**
+ * How much of a box's shorter side an icon alone takes. The rest is margin, so
+ * the glyph sits in the pane rather than touching its outline.
+ */
+const ICON_FILL = 0.6;
+
+/**
  * A diagram of boxes and arrows: *this leads to that*.
  *
  * The one thing no other widget on this board can say. A deployment, a morning
@@ -108,10 +116,11 @@ export function Flow({
         title={payload.title}
         className="absolute inset-x-0 top-0 z-10 truncate"
       />
-      {payload.nodes.map((node) => (
+      {payload.nodes.map((node, index) => (
         <Node
           key={node.id}
           node={node}
+          src={iconUrl(id, index)}
           box={laid.boxes.get(node.id)}
           width={width}
           height={height}
@@ -152,15 +161,18 @@ export function Flow({
   );
 }
 
-/** One box, as a pane of glass with a word on it. */
+/** One box, as a pane of glass with a word or an icon on it. */
 function Node({
   node,
+  src,
   box,
   width,
   height,
   stroke,
 }: {
   node: FlowNode;
+  /** Where the box's icon is served from, when it is a picture. */
+  src: string;
   box: Box | undefined;
   width: number;
   height: number;
@@ -169,6 +181,7 @@ function Node({
   const { ref, size } = useFitText(node.text);
   if (!box) return null;
   const colour = node.color ?? "currentColor";
+  const short = Math.min(box.w * width, box.h * height);
   // A fraction of the box's own shorter side, worked out in pixels. A CSS
   // percentage is taken per axis, which on an oblong box gives elliptical
   // corners rather than round ones — the very thing the radius was defined
@@ -176,10 +189,7 @@ function Node({
   const corner =
     node.shape === "ellipse"
       ? "50%"
-      : `${Math.min(
-          node.radius * Math.min(box.w * width, box.h * height),
-          MAX_CORNER * Math.min(width, height),
-        )}px`;
+      : `${Math.min(node.radius * short, MAX_CORNER * Math.min(width, height))}px`;
 
   return (
     <div
@@ -202,18 +212,38 @@ function Node({
           opacity: carriesAlpha(colour) ? 1 : WASH,
         }}
       />
-      {/* Sized to the box, not to a token: a word is as large as the box
-          lets it be, up to the widget's own type size. A block that fills the
-          width and is clipped at the height is what the fitting measures
-          against, and a word is left whole rather than broken — a word that
-          will not fit on a line is what shrinks the type. */}
-      <span
-        ref={ref}
-        className="relative block max-h-full w-full overflow-hidden text-node leading-tight"
-        style={size === undefined ? undefined : { fontSize: `${size}px` }}
-      >
-        {node.text}
-      </span>
+      {node.icon && !node.text ? (
+        // Alone, the icon is the box's whole content, sized to its shorter
+        // side in pixels for the reason the corner is. Its own `em` sizing is
+        // overridden: there is no line of text here for it to line up with.
+        <span
+          className="relative flex"
+          style={{ width: ICON_FILL * short, height: ICON_FILL * short }}
+        >
+          <Icon name={node.icon} src={src} className="size-full" />
+        </span>
+      ) : (
+        // Sized to the box, not to a token: a word is as large as the box lets
+        // it be, up to the widget's own type size. A block that fills the
+        // width and is clipped at the height is what the fitting measures
+        // against, and a word is left whole rather than broken — a word that
+        // will not fit on a line is what shrinks the type. An icon beside the
+        // words is sized in `em`, so it shrinks with them.
+        <span
+          ref={ref}
+          className="relative block max-h-full w-full overflow-hidden text-node leading-tight"
+          style={size === undefined ? undefined : { fontSize: `${size}px` }}
+        >
+          {node.icon ? (
+            <Icon
+              name={node.icon}
+              src={src}
+              className="mr-[0.3em] inline-block align-[-0.2em]"
+            />
+          ) : null}
+          {node.text}
+        </span>
+      )}
     </div>
   );
 }
