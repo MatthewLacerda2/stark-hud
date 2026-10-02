@@ -15,8 +15,8 @@
  * "glass" has to be drawn back to front and flickers wherever parts sit inside
  * other parts.
  *
- * Nothing fakes depth — the board is a flat sheet, and the model is drawn flat
- * onto it: no dimming with distance, no blur, no sway.
+ * Nothing fakes depth inside the widget — the model is drawn cleanly onto it:
+ * no dimming with distance, no blur, no sway of its own.
  */
 import {
   AdditiveBlending,

@@ -50,9 +50,8 @@ that sit on it at rest. A pointer exists, and widgets can be dragged, resized an
 operated with it; that handling is occasional, so it appears on hover and is
 gone the rest of the time.
 
-The board is a flat sheet. Widgets are drawn on it, not placed in a space
-behind it — even a 3D model is drawn flat onto its widget, with nothing faking
-depth.
+What a widget draws stays sharp: nothing inside one is blurred or dimmed to
+fake distance, and a 3D model is drawn cleanly onto its widget.
 
 The board is a space {cols} columns wide and {rows} rows tall, and it
 never scrolls: anything that does not fit would be invisible forever, so a full

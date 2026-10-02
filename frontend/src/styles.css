@@ -1003,7 +1003,11 @@
     position: absolute;
     inset: 0;
     background-image: var(--glass-dirt);
-    background-size: 256px 256px;
+    /* Must match DIRT_SIZE in lib/dirt.ts. Each pane starts at its own place in
+       the tile, set by the slab from the widget's id, so no two panes wear the
+       same marks in the same corner. */
+    background-size: 1024px 1024px;
+    background-position: var(--dirt-x, 0) var(--dirt-y, 0);
     opacity: 0.12;
   }
 }

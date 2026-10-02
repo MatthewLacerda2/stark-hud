@@ -116,7 +116,7 @@ async def test_a_model_can_be_set_to_swing_instead_of_turn(server: MCPServer) ->
 
 
 async def test_a_model_holds_still_unless_told_to_turn(server: MCPServer) -> None:
-    """The board is a flat sheet; a model on it is shown, not spun."""
+    """A model is shown, not spun, unless it is asked to turn."""
     assert payload(await a_mesh(server)).spin == 0.0
 
 

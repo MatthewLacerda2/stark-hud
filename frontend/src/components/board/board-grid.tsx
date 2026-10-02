@@ -231,7 +231,9 @@ export function BoardGrid({
                     conditions are an `and` on purpose — the board's dial and
                     the widget's own setting can each take the pane away, and
                     neither can give one the other took. */}
-                {glass && !item.flat && !maximised ? <Slab /> : null}
+                {glass && !item.flat && !maximised ? (
+                  <Slab id={item.id} />
+                ) : null}
                 {drawn(item, maximised) ? (
                   <>
                     <div className={cn("size-full", looked(item, tape, bloom))}>
