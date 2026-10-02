@@ -227,13 +227,14 @@ class Source:
         self.said = {_mark(row) for row in rows}
         return [{k: v for k, v in row.items() if k != "key"} for row in fresh]
 
-    def payload(self, produced: list[Row] | str) -> dict:
+    def payload(self, produced: list[Row] | Row | str) -> dict:
         """Fold what the source produced into the declared panel.
 
         Where it lands depends on the kind: a chart wants rows in `data`, a list
         wants strings in `items`, a feed wants entries in `entries`, a table
         wants them in `rows`, a 3D model wants `{part, color}` rows as its part
-        colours, and anything else wants text. The source only has to print the content; the
+        colours, a flow wants one `{nodes, links}` object, and anything else
+        wants text. The source only has to print the content; the
         config already says what it is.
         """
         panel = dict(self.spec["panel"])
@@ -243,6 +244,13 @@ class Source:
             panel["items" if kind == "list" else "text"] = (
                 produced.splitlines() if kind == "list" else produced
             )
+            return panel
+
+        if kind == "flow" and isinstance(produced, dict):
+            # A diagram is one value, not a series of rows: its boxes and its
+            # arrows only mean something together, so both are replaced whole.
+            panel["nodes"] = produced.get("nodes", [])
+            panel["links"] = produced.get("links", [])
             return panel
 
         rows = produced if isinstance(produced, list) else [produced]

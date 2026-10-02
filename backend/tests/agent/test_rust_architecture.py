@@ -1,0 +1,123 @@
+"""The architecture collector: the two readers, and the reduction between them.
+
+Small trees written into `tmp_path`, never the real repositories: those move
+every day, and a test that read them would be asserting this week's code.
+"""
+
+from pathlib import Path
+
+from collectors import rust_architecture as ra
+
+
+def _write(root: Path, files: dict[str, str]) -> Path:
+    """A checkout holding these files."""
+    for name, text in files.items():
+        path = root / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text)
+    return root
+
+
+def _package(name: str, deps: str = "", dev: str = "") -> str:
+    """A crate's manifest with these dependency lines."""
+    return f'[package]\nname = "x-{name}"\n[dependencies]\n{deps}\n[dev-dependencies]\n{dev}\n'
+
+
+def test_crates_are_joined_by_their_path_dependencies(tmp_path):
+    """`path` and `workspace = true` both count; a dev-dependency does not."""
+    root = _write(
+        tmp_path,
+        {
+            "Cargo.toml": '[workspace]\n[workspace.dependencies]\nx-core = { path = "crates/core" }\n',
+            "crates/core/Cargo.toml": _package("core"),
+            "crates/render/Cargo.toml": _package("render", "x-core.workspace = true"),
+            "crates/cli/Cargo.toml": _package(
+                "cli", 'x-render = { path = "../render" }', 'x-golden = { path = "../golden" }'
+            ),
+            "crates/golden/Cargo.toml": _package("golden", 'x-core = { path = "../core" }'),
+        },
+    )
+
+    graph = ra.crates(root, skip={"golden"})
+
+    assert graph == {"render": {"core": 1}, "core": {}, "cli": {"render": 1}}
+
+
+def test_a_crate_joined_to_nothing_and_a_hidden_copy_are_left_out(tmp_path):
+    """A tool beside the project is not part of it, nor is a worktree inside it."""
+    root = _write(
+        tmp_path,
+        {
+            "a/Cargo.toml": _package("a", 'x-b = { path = "../b" }'),
+            "b/Cargo.toml": _package("b"),
+            "tools/lint/Cargo.toml": _package("lint"),
+            ".claude/worktrees/q/a/Cargo.toml": _package("a", 'x-b = { path = "../b" }'),
+        },
+    )
+
+    assert set(ra.crates(root, skip=set())) == {"a", "b"}
+
+
+def test_one_crate_is_read_as_its_top_level_modules(tmp_path):
+    """Plain and grouped `crate::` paths count, comments and tests do not."""
+    root = _write(
+        tmp_path,
+        {
+            "Cargo.toml": _package("game"),
+            "src/api/mod.rs": "use crate::scene::World;\nuse crate::{audio::Mixer, time};\n",
+            "src/scene/mod.rs": "// see crate::api for the caller\n#[cfg(test)]\nuse crate::api;\n",
+            "src/scene/scene_tests.rs": "use crate::api::Thing;\n",
+            "src/audio/mod.rs": "",
+            "src/time/mod.rs": "",
+            "src/bin/tool.rs": "use crate::api;\n",
+        },
+    )
+
+    graph = ra.read(root, skip=set())
+
+    assert graph == {
+        "api": {"scene": 1, "audio": 1, "time": 1},
+        "scene": {},
+        "audio": {},
+        "time": {},
+    }
+
+
+def test_an_arrow_another_path_already_implies_is_dropped():
+    """`api → scene → components` says `api → components` already."""
+    graph = {"api": {"scene": 1, "components": 1}, "scene": {"components": 1}, "components": {}}
+
+    assert ra.reduce(graph) == {("api", "scene"), ("scene", "components")}
+
+
+def test_a_cycle_survives_the_reduction_as_a_cycle():
+    """Inside a cycle only the arrows that keep it a cycle are left."""
+    graph = {
+        "a": {"b": 1, "c": 1},
+        "b": {"c": 1},
+        "c": {"a": 1},
+        "d": {"a": 1, "b": 1},
+    }
+
+    kept = ra.reduce(graph)
+
+    assert {("a", "b"), ("b", "c"), ("c", "a")} <= kept
+    assert ("a", "c") not in kept
+    # Into the cycle once is enough: from there everything in it is reached.
+    assert len([e for e in kept if e[0] == "d"]) == 1
+
+
+def test_a_mutual_pair_is_one_arrow_with_two_heads(tmp_path):
+    """And every box is an icon with no words, a plain one when the name is unknown."""
+    flow = ra.flow({"scene": {"navigation": 1}, "navigation": {"scene": 1}, "zorp": {}})
+
+    assert flow["links"] == [{"source": "navigation", "target": "scene", "heads": "both"}]
+    assert [n["id"] for n in flow["nodes"]] == ["navigation", "scene", "zorp"]
+    assert all(n["icon"].startswith("<svg") and "text" not in n for n in flow["nodes"])
+    assert flow["nodes"][2]["icon"] == (ra.ICONS / f"{ra.FALLBACK}.svg").read_text().strip()
+
+
+def test_every_glyph_the_table_names_is_vendored():
+    """A name in the table with no file beside it would fail on the hour, not here."""
+    for icon in {*ra.GLYPHS.values(), ra.FALLBACK}:
+        assert (ra.ICONS / f"{icon}.svg").is_file(), icon
