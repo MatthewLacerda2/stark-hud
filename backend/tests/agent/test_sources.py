@@ -233,3 +233,13 @@ def test_a_flow_takes_its_boxes_and_arrows_from_one_object(tmp_path):
         "nodes": [{"id": "a"}, {"id": "b"}],
         "links": [{"source": "a", "target": "b"}],
     }
+
+
+def test_a_flow_takes_the_title_its_collector_left_room_for(tmp_path):
+    """The collector placed the boxes below its title, so its title is the one drawn."""
+    spec = CPU.replace('panel = { kind = "chart" }', 'panel = { kind = "flow" }')
+    source = Declared(_file(tmp_path, spec)).refresh()[0]
+
+    written = source.payload({"title": "rusty", "nodes": [], "links": []})
+
+    assert written["title"] == "rusty"
