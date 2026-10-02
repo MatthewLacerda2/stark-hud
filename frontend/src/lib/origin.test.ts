@@ -11,8 +11,8 @@ import { beside } from "@/lib/origin";
 
 const BOARD = { cols: 32, rows: 18 };
 
-/** The panel is an eighth of the board wide and a ninth of it tall. */
-const W = 4;
+/** The panel is 0.7 of an eighth of the board wide (about 2.8 columns) and a ninth of it tall. */
+const W = BOARD.cols * (0.7 / 8);
 const H = 2;
 
 describe("the call beside a widget", () => {
@@ -28,21 +28,21 @@ describe("the call beside a widget", () => {
 
     // Twenty to the left against eight to the right: both fit, the left is
     // roomier, and a call in open space reads better than one in a gap.
-    expect(seat.x).toBe(16);
+    expect(seat.x).toBe(20 - W);
   });
 
   it("takes the only side that fits, roomy or not", () => {
-    // Four columns to the left exactly, and none at all to the right.
-    const seat = beside({ x: 4, y: 4, w: 28, h: 4 }, BOARD);
+    // Three columns to the left, just enough, and none at all to the right.
+    const seat = beside({ x: 3, y: 4, w: 29, h: 4 }, BOARD);
 
-    expect(seat.x).toBe(0);
+    expect(seat.x).toBeCloseTo(3 - W);
   });
 
   it("lies over the widget when neither side can hold it", () => {
     const seat = beside({ x: 2, y: 4, w: 28, h: 4 }, BOARD);
 
     // Centred on the widget, which is where it is least in the way of itself.
-    expect(seat.x).toBe(14);
+    expect(seat.x).toBeCloseTo(2 + (28 - W) / 2);
   });
 
   it("never leaves the screen, whatever it is beside", () => {

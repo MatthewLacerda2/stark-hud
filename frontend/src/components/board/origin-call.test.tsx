@@ -101,7 +101,8 @@ describe("the call that made a widget", () => {
     // Six columns of thirty-two: the widget ends at column six, and the call
     // starts there rather than anywhere inside it.
     expect(panel.style.left).toBe("18.75%");
-    expect(panel.style.width).toBe("12.5%");
+    // 0.7 of an eighth of the board: the width the owner cut it to in #212.
+    expect(panel.style.width).toBe("8.75%");
     // Not a child of the widget: it is over the board, so nothing it does can
     // change what a widget is given to draw in.
     const widget = [...host.querySelectorAll("div")].find((div) =>

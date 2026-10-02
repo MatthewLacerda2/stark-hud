@@ -132,7 +132,9 @@
      because it is sized off a panel an eighth of the board wide: the node
      scale's small step at 0.6 of its size, with the width term doubled to
      undo the panel being half as wide as it was. */
-  --text-origin: clamp(0.35rem, 4.937cqi, 0.823rem);
+  /* Sized from the call's panel. When the panel lost 30% of its width (#212) the
+     cqi term grew by 1/0.7, so the type stayed the size it was. */
+  --text-origin: clamp(0.35rem, 7.053cqi, 0.823rem);
   --text-origin--line-height: 1.35;
 
   /* A mark in a cartesian chart's corner, at the origin. Node-relative like the
@@ -876,11 +878,11 @@
      is measured in JavaScript, so nothing here waits for a ResizeObserver and
      the first painted frame is already right. */
   container-type: size;
-  /* Dim, and barely a panel at all: enough ground to read a thin grey line over
-     a video, and no more. The rule down the left is what says "a machine said
+  /* No ground at all, and in the board's own ink: the owner asked for the
+     video to show through and for the text and rule to be the same white as
+     every widget (#212). The rule down the left is what says "a machine said
      this" without a label saying it. */
-  background: color-mix(in oklab, var(--color-card) 25%, transparent);
-  border-left: 2px solid color-mix(in oklab, var(--color-info) 40%, transparent);
+  border-left: 2px solid var(--color-foreground);
   transform-origin: top left;
   animation: origin-call var(--motion-origin) var(--motion-ease) forwards;
 
