@@ -7,6 +7,7 @@ every day, and a test that read them would be asserting this week's code.
 from pathlib import Path
 
 from collectors import rust_architecture as ra
+from collectors import rust_layout
 
 
 def _write(root: Path, files: dict[str, str]) -> Path:
@@ -121,3 +122,34 @@ def test_every_glyph_the_table_names_is_vendored():
     """A name in the table with no file beside it would fail on the hour, not here."""
     for icon in {*ra.GLYPHS.values(), ra.FALLBACK}:
         assert (ra.ICONS / f"{icon}.svg").is_file(), icon
+
+
+def test_a_part_sits_above_what_it_uses_and_a_cycle_is_cut_to_rank_it():
+    """Dependents at the top, the foundation at the bottom, and no endless loop."""
+    arrows = {("app", "scene"), ("scene", "nav"), ("nav", "scene"), ("scene", "core")}
+
+    rows = rust_layout.ranks(["app", "core", "nav", "scene"], arrows)
+
+    assert rows[0] == ["app"]
+    assert rows[-1] in (["core"], ["core", "nav"], ["nav", "core"])
+    assert sum(len(row) for row in rows) == 4
+
+
+def test_placed_boxes_are_square_inside_the_widget_and_apart():
+    """One size, square at the widget's shape, inside 0-1, and none overlapping."""
+    graph = {
+        "api": {"scene": 1, "audio": 1},
+        "scene": {"core": 1},
+        "audio": {"core": 1},
+        "core": {},
+    }
+
+    nodes = ra.flow(graph, aspect=0.9)["nodes"]
+
+    boxes = [(n["x"], n["y"], n["w"], n["h"]) for n in nodes]
+    assert len({(w, h) for _, _, w, h in boxes}) == 1
+    assert abs(boxes[0][2] * 0.9 - boxes[0][3]) < 1e-3
+    assert all(x >= 0 and y >= 0 and x + w <= 1 and y + h <= 1 for x, y, w, h in boxes)
+    for i, (x, y, w, h) in enumerate(boxes):
+        for x2, y2, _, _ in boxes[i + 1 :]:
+            assert abs(x - x2) >= w or abs(y - y2) >= h
