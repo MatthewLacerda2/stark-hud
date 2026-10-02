@@ -216,3 +216,20 @@ def test_a_model_takes_its_part_colours_from_the_rows(tmp_path):
         "heading": 97,
         "colors": {"cpu_*": "#ffd400", "vram": "#a855f7"},
     }
+
+
+def test_a_flow_takes_its_boxes_and_arrows_from_one_object(tmp_path):
+    """A diagram is printed whole, and the spec keeps everything else it says."""
+    spec = CPU.replace('panel = { kind = "chart" }', 'panel = { kind = "flow", title = "rusty" }')
+    source = Declared(_file(tmp_path, spec)).refresh()[0]
+
+    written = source.payload(
+        {"nodes": [{"id": "a"}, {"id": "b"}], "links": [{"source": "a", "target": "b"}]}
+    )
+
+    assert written == {
+        "kind": "flow",
+        "title": "rusty",
+        "nodes": [{"id": "a"}, {"id": "b"}],
+        "links": [{"source": "a", "target": "b"}],
+    }
