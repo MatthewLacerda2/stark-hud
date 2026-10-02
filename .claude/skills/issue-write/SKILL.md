@@ -51,9 +51,9 @@ and is the difference between an agent that finds the real cause and one that
 rewrites a mechanism that was working. A diagnosis written as fact is obeyed: it
 is the one part of an issue nobody re-derives.
 
-**Say what it looks like.** This is a board on a television, and most work here is
-finally judged by looking at it. When a change is visible, describe what a person
-across the room sees afterwards. When it is not visible at all, say that too.
+**Say what it looks like.** This is a board in a browser tab on a PC screen, and
+most work here is finally judged by looking at it. When a change is visible,
+describe what a person looking at the board sees afterwards. When it is not visible at all, say that too.
 
 **Cite what it relates to.** Sibling issues, the pull request that exposed it, the
 rule in `CLAUDE.md` it turns on, the upgrade path in `SPEC.md` it finally takes. A
@@ -109,10 +109,10 @@ shape — say so and propose the right one.
 - **All user-facing strings go through i18next.** Code, comments and docs are
   English only.
 - **Looks beat handling.** A widget is what it shows. An issue whose outcome is a
-  title bar, a caption, a name in a corner or any other chrome that exists to make
-  a widget easier to grab or configure is the wrong shape: dragging is a
-  second-class citizen, and anything of that sort belongs on hover, where a
-  pointer exists and a television never is.
+  title bar, a caption, a name in a corner or any other chrome that sits on the
+  widget at rest is the wrong shape. Handling a widget is allowed (dragging,
+  resizing, a control it needs) but it is occasional, so it appears when wanted,
+  on hover or a click, and is gone the rest of the time.
 - **Length discipline is enforced, not encouraged.** Backend: file ≤ 350,
   endpoint handler ≤ 50, test ≤ 50 (`backend/lint/house_lint.py`). Frontend:
   `max-lines` 550. An issue whose honest shape is a 600-line module is an issue
@@ -187,7 +187,7 @@ joins anything.
 No amount of the issue looking startable overrides a stage label, and no amount of
 it looking vague substitutes for one. **The judgement lives in the label**, so put
 it on honestly: a Claude-written issue **must** carry one if it is a breaking
-change, changes what the television shows, proposes a structural change, or needs a
+change, changes what the board shows, proposes a structural change, or needs a
 call the user has not made.
 
 A `bug` usually should **not** carry one — it is specific, the deciding already

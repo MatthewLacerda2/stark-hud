@@ -45,18 +45,20 @@ these can be overridden by the user** (see the closing note).
   make a widget easier to grab, label or configure — a title bar, a caption, a
   queue position, a name in a corner — comes off. A video widget draws video and
   nothing else; anything else appears on hover, and is never there at rest.
-  Dragging is a **second-class citizen** in this project. The user can ask a
-  Claude to move, resize or restyle anything by name, so when handling and the
-  look of the board disagree, the look wins. Do not add an affordance to the
-  screen to make something easier to move.
+  That is not a ban on touching widgets. They can be dragged, resized and
+  operated with a pointer, and a control a widget needs is welcome. But nobody
+  handles them all the time, so handling shows up when it is wanted (on hover,
+  on a click) and the look is what is there the rest of the time. When the
+  two disagree, the look wins.
 - **The board is a flat sheet.** Widgets are drawn on it, not placed in a space
   behind the screen. A flat display cannot show a 3D room without eye tracking,
   so nothing fakes one — no depth-of-field blur, no parallax sway, no dimming
   with distance. A 3D model is a 3D object drawn cleanly onto a flat widget.
-- **It is a desktop dashboard.** Since 2026-09 the board is not on the
-  television: it is a browser tab left up on a monitor beside the user's desk,
-  read at arm's length. Rules and comments that talk about a sofa or a room
-  describe where it used to be, not what to design for.
+- **It is a desktop dashboard.** It runs on a PC and is made to be visited from
+  one, in a browser tab: a TV, a 24" monitor, a laptop screen. Design for a PC
+  screen with a pointer, not for one particular display. Rules and comments
+  that talk about a sofa or a room describe where it used to be (until 2026-09
+  it lived on the television), not what to design for.
 
 - **Overriding these rules.** In the end, all rules may be overridden by the
   user — so long as the user says why, and the explanation still holds in the
@@ -91,14 +93,11 @@ requests are in use.
   reviewed by looking at the board. So a PR description is written for the
   next Claude and for the record, the gates are the only thing actually checking
   the work, and "I will explain it in review" is not a plan.
-- **What decides `master` versus a branch is the screen, not the size.** A change
-  that cannot alter what appears on the board — a gate, a lint rule, a test, a
-  comment, a refactor behind an unchanged surface — goes straight to `master`
-  once `make check` is green. Anything that changes what is drawn, where it sits,
-  what it says or how it behaves goes on a branch and through a PR, because that
-  is the only kind of change the user can review, and they review it by seeing
-  it. When in doubt it is a branch: an unnecessary PR costs a minute, and a
-  surprise on the board costs trust.
+- **Every change gets an issue and a PR. Nothing goes straight to `master`.**
+  That holds even for a change the board cannot show: a gate, a lint rule, a
+  test, a comment, a refactor behind an unchanged surface. An invisible change
+  still needs a reason someone can find later, and the issue and the PR are
+  where that reason is kept.
 
 ### Issues
 
@@ -267,7 +266,9 @@ Each of these is deliberate, not forgotten. See `SPEC.md` for why. Persistence
 and drag-and-resize used to be listed here and have both shipped — the board is
 a `.hud` file on disk, and a widget can be dragged.
 
-- **Auth:** none. The board is open to the LAN on purpose. A token would go in
-  the API client and one dependency, not through the layers.
+- **Auth:** none. The board is open on purpose to whoever shares the owner's
+  Wi-Fi or tailnet: a small group, the way a LAN game server is open to the
+  friends on it. A token would go in the API client and one dependency, not
+  through the layers.
 - **Typed SDK:** generate `lib/schemas/` from the backend OpenAPI spec instead
   of maintaining `board.ts` by hand alongside `board.py`.

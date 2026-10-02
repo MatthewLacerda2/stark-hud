@@ -38,14 +38,17 @@ from hud_mcp.origin import OriginServer
 # instructions are worse than none — every session would plan against a grid
 # that does not exist.
 _INSTRUCTIONS = """\
-stark-hud is the user's personal dashboard: a browser tab left open on a
-monitor beside their desk, read at arm's length and glanced at while working.
+stark-hud is its owner's personal dashboard: a server on their PC, opened in a
+browser tab on whatever screen is at hand — a TV, a desk monitor, a laptop. It
+is open to whoever shares the owner's Wi-Fi or tailnet, so the Claude reading
+this may belong to the owner or to a friend in that group.
 
 It is always up and nobody babysits it, so whatever you put there has to make
-sense unattended. It is read up close, so a widget can be as small as what it
-shows needs — but a widget is what it shows: no titles, captions or chrome that
-exist only to label or handle it. A pointer exists; anything that is only for
-handling appears on hover.
+sense unattended. It is read on a PC screen, so a widget can be as small as what
+it shows needs — but a widget is what it shows: no titles, captions or chrome
+that sit on it at rest. A pointer exists, and widgets can be dragged, resized and
+operated with it; that handling is occasional, so it appears on hover and is
+gone the rest of the time.
 
 The board is a flat sheet. Widgets are drawn on it, not placed in a space
 behind it — even a 3D model is drawn flat onto its widget, with nothing faking
