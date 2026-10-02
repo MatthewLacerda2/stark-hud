@@ -35,6 +35,8 @@ import sys
 import tomllib
 from pathlib import Path
 
+from rust_layout import place
+
 ICONS = Path(__file__).resolve().parent / "rust_icons"
 
 # A part's name, or one `_`/`-` word of it, to the lucide glyph that says what
@@ -285,11 +287,19 @@ def glyph(name: str, missed: list[str]) -> str:
     return (ICONS / f"{icon or FALLBACK}.svg").read_text().strip()
 
 
-def flow(graph: Graph) -> dict:
-    """The graph as a flow payload: icon boxes, and arrows with a mutual pair merged."""
+def flow(graph: Graph, aspect: float | None = None) -> dict:
+    """The graph as a flow payload: icon boxes, and arrows with a mutual pair merged.
+
+    Given the widget's `aspect` (width over height, in board cells) every box is
+    placed, square, by `rust_layout`; without it the widget lays them out.
+    """
     arrows = reduce(graph)
     missed: list[str] = []
-    nodes = [{"id": name, "icon": glyph(name, missed)} for name in sorted(graph)]
+    nodes: list[dict] = [{"id": name, "icon": glyph(name, missed)} for name in sorted(graph)]
+    if aspect:
+        boxes = place(sorted(graph), arrows, aspect)
+        for node in nodes:
+            node.update(zip("xywh", boxes[node["id"]], strict=True))
     links = []
     for a, b in sorted(arrows):
         if (b, a) in arrows:
@@ -313,9 +323,12 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", type=Path, help="a local checkout")
     parser.add_argument("--skip", default="", help="comma-separated parts to leave out")
+    parser.add_argument(
+        "--aspect", type=float, help="the widget's width over its height, to place the boxes"
+    )
     args = parser.parse_args()
     skip = set(filter(None, args.skip.split(",")))
-    print(json.dumps(flow(read(args.root.expanduser(), skip))))
+    print(json.dumps(flow(read(args.root.expanduser(), skip), args.aspect)))
     return 0
 
 
