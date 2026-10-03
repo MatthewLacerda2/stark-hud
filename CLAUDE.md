@@ -258,9 +258,9 @@ needs a running app, ask them to start it.
 
 ## Upgrade paths (intentionally deferred)
 
-Each of these is deliberate, not forgotten. See `SPEC.md` for why. Persistence
-and drag-and-resize used to be listed here and have both shipped — the board is
-a `.hud` file on disk, and a widget can be dragged.
+Each of these is deliberate, not forgotten. Persistence and drag-and-resize
+used to be listed here and have both shipped — the board is a `.hud` file on
+disk, and a widget can be dragged.
 
 - **Auth:** none. The board is open on purpose to whoever shares the owner's
   Wi-Fi or tailnet: a small group, the way a LAN game server is open to the

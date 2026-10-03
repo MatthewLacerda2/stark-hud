@@ -56,7 +56,7 @@ most work here is finally judged by looking at it. When a change is visible,
 describe what a person looking at the board sees afterwards. When it is not visible at all, say that too.
 
 **Cite what it relates to.** Sibling issues, the pull request that exposed it, the
-rule in `CLAUDE.md` it turns on, the upgrade path in `SPEC.md` it finally takes. A
+rule in `CLAUDE.md` it turns on, the upgrade path it finally takes. A
 future reader arrives with no memory of today.
 
 **Title carries a scope tag** — `[FE]`, `[BE]`, `[FS]`, `[OT]` (the agent in

@@ -186,5 +186,4 @@ Which is why **commands live in `state/sources.toml` on the host and never on
 the board**. If the board carried commands, anything on the network could run
 code here. A display should not be a remote shell.
 
-For the decisions and their reasons, see [`SPEC.md`](./SPEC.md). For how to work
-in this repository, [`CLAUDE.md`](./CLAUDE.md).
+For how to work in this repository, see [`CLAUDE.md`](./CLAUDE.md).
