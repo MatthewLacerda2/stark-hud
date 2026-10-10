@@ -7,7 +7,7 @@ every day, and a test that read them would be asserting this week's code.
 from pathlib import Path
 
 from collectors import rust_architecture as ra
-from collectors import rust_layout
+from collectors import rust_glyphs, rust_layout
 
 
 def _write(root: Path, files: dict[str, str]) -> Path:
@@ -109,19 +109,22 @@ def test_a_cycle_survives_the_reduction_as_a_cycle():
 
 
 def test_a_mutual_pair_is_one_arrow_with_two_heads(tmp_path):
-    """And every box is an icon with no words, a plain one when the name is unknown."""
+    """And every box is its glyph and its name, a plain glyph when the name is unknown."""
     flow = ra.flow({"scene": {"navigation": 1}, "navigation": {"scene": 1}, "zorp": {}})
 
     assert flow["links"] == [{"source": "navigation", "target": "scene", "heads": "both"}]
     assert [n["id"] for n in flow["nodes"]] == ["navigation", "scene", "zorp"]
-    assert all(n["icon"].startswith("<svg") and "text" not in n for n in flow["nodes"])
-    assert flow["nodes"][2]["icon"] == (ra.ICONS / f"{ra.FALLBACK}.svg").read_text().strip()
+    assert all(n["icon"].startswith("<svg") and n["text"] == n["id"] for n in flow["nodes"])
+    assert (
+        flow["nodes"][2]["icon"]
+        == (rust_glyphs.ICONS / f"{rust_glyphs.FALLBACK}.svg").read_text().strip()
+    )
 
 
 def test_every_glyph_the_table_names_is_vendored():
     """A name in the table with no file beside it would fail on the hour, not here."""
-    for icon in {*ra.GLYPHS.values(), ra.FALLBACK}:
-        assert (ra.ICONS / f"{icon}.svg").is_file(), icon
+    for icon in {*rust_glyphs.GLYPHS.values(), rust_glyphs.FALLBACK}:
+        assert (rust_glyphs.ICONS / f"{icon}.svg").is_file(), icon
 
 
 def test_a_part_sits_above_what_it_uses_and_a_cycle_is_cut_to_rank_it():
@@ -135,8 +138,13 @@ def test_a_part_sits_above_what_it_uses_and_a_cycle_is_cut_to_rank_it():
     assert sum(len(row) for row in rows) == 4
 
 
+def _cards(nodes: list[dict]) -> dict[str, tuple[float, float, float, float]]:
+    """The outline of each part, the box its arrows join, by name."""
+    return {n["id"]: (n["x"], n["y"], n["w"], n["h"]) for n in nodes if ":" not in n["id"]}
+
+
 def test_placed_boxes_are_square_inside_the_widget_and_apart():
-    """Each square at the widget's shape, inside 0-1, and none overlapping."""
+    """Each glyph square at the widget's shape, each card inside 0-1, none overlapping."""
     graph = {
         "api": {"scene": 1, "audio": 1},
         "scene": {"core": 1},
@@ -146,8 +154,10 @@ def test_placed_boxes_are_square_inside_the_widget_and_apart():
 
     nodes = ra.flow(graph, aspect=0.9)["nodes"]
 
-    boxes = [(n["x"], n["y"], n["w"], n["h"]) for n in nodes]
-    assert all(abs(w * 0.9 - h) < 1e-3 for _, _, w, h in boxes)
+    glyphs = [n for n in nodes if n["id"].endswith(":icon")]
+    assert len(glyphs) == 4
+    assert all(abs(n["w"] * 0.9 - n["h"]) < 1e-3 for n in glyphs)
+    boxes = list(_cards(nodes).values())
     assert all(x >= 0 and y >= 0 and x + w <= 1 and y + h <= 1 for x, y, w, h in boxes)
     for i, (x, y, w, h) in enumerate(boxes):
         for x2, y2, w2, h2 in boxes[i + 1 :]:
@@ -169,7 +179,7 @@ def test_a_box_grows_with_how_many_parts_use_it():
     """The foundation everyone uses is the largest box, a part nobody uses the smallest."""
     graph = {"app": {"api": 1, "core": 1}, "api": {"core": 1}, "core": {}}
 
-    size = {n["id"]: n["h"] for n in ra.flow(graph, aspect=1.0)["nodes"]}
+    size = {name: h for name, (_, _, _, h) in _cards(ra.flow(graph, aspect=1.0)["nodes"]).items()}
 
     assert size["core"] > size["api"] > size["app"]
 
@@ -191,3 +201,70 @@ def test_an_arrow_that_cannot_avoid_a_crossing_is_drawn_thinner():
 
     assert any(link.get("thickness") == rust_layout.THIN for link in links)
     assert all(link.get("thickness", 1) in (1, rust_layout.THIN) for link in links)
+
+
+def test_every_card_names_its_part_under_its_glyph():
+    """The name is drawn inside the card the arrows join, below the glyph, on no wash."""
+    nodes = ra.flow({"render": {"core": 1}, "core": {}}, aspect=0.5)["nodes"]
+
+    by_id = {n["id"]: n for n in nodes}
+    for name, (x, y, _, h) in _cards(nodes).items():
+        glyph, label = by_id[f"{name}:icon"], by_id[f"{name}:name"]
+        assert label["text"] == name and "icon" not in label
+        assert glyph["color"] == label["color"] == "transparent"
+        assert glyph["y"] == y and abs(label["y"] - (glyph["y"] + glyph["h"])) < 1e-9
+        assert abs(label["y"] + label["h"] - (y + h)) < 1e-9 and label["x"] == x
+    assert {link["source"] for link in ra.flow({"render": {"core": 1}, "core": {}})["links"]} == {
+        "render"
+    }
+
+
+def test_every_name_is_written_the_same_size():
+    """A box nobody uses is smaller, but its name's strip is as tall as the busiest's."""
+    graph = {"app": {"api": 1, "core": 1}, "api": {"core": 1}, "core": {}}
+
+    strips = {n["h"] for n in ra.flow(graph, aspect=1.0)["nodes"] if n["id"].endswith(":name")}
+
+    assert max(strips) - min(strips) < 1e-3
+
+
+def test_two_arrows_leaving_one_point_along_one_line_read_as_one():
+    """Two arrows out of one point at nearly one angle are charged; a fan is not."""
+    out, near, far = (0.0, 0.0), (0.0, 1.0), (0.05, 2.0)
+
+    assert rust_layout.along(out, near, out, far)
+    assert not rust_layout.along(out, near, out, (1.0, 1.0))
+
+
+def test_an_arrow_is_scored_from_the_sides_the_widget_draws_it_between():
+    """A box straight below is joined bottom to top; one far to the side, side to side."""
+    at = {"a": (0.0, 0.0), "b": (0.0, 1.0), "c": (3.0, 0.5)}
+    half = dict.fromkeys(at, (0.2, 0.3))
+
+    assert rust_layout.ends(at, half, "a", "b") == ((0.0, 0.3), (0.0, 0.7))
+    assert rust_layout.ends(at, half, "a", "c") == ((0.2, 0.0), (2.8, 0.5))
+
+
+def test_a_spare_column_takes_every_arrow_out_of_every_box():
+    """scorsese's shape on its tall panel: three seats a row ran two arrows through boxes."""
+    graph = {
+        "app": {"providers": 1, "render": 1},
+        "cli": {"providers": 1, "render": 1},
+        "mcp": {"providers": 1, "render": 1},
+        "server": {"mcp": 1},
+        "render": {"compositor": 1, "zimmer": 1},
+        "providers": {"core": 1, "zimmer": 1},
+        "compositor": {"core": 1},
+        "zimmer": {},
+        "core": {},
+    }
+
+    drawn = ra.flow(graph, aspect=0.5, title="scorsese")
+
+    cards = _cards(drawn["nodes"])
+    at = {n: ((x + w / 2) * 0.5, y + h / 2) for n, (x, y, w, h) in cards.items()}
+    half = {n: (w * 0.5 / 2, h / 2) for n, (_, _, w, h) in cards.items()}
+    for link in drawn["links"]:
+        p, q = rust_layout.ends(at, half, link["source"], link["target"])
+        hit = [n for n in at if n not in (link["source"], link["target"])]
+        assert not any(rust_layout.hits(p, q, at[n], half[n]) for n in hit), link
