@@ -7,7 +7,6 @@ import type {
   Item,
   Notification,
   Origin,
-  Spoken,
 } from "@/lib/schemas/board";
 
 /**
@@ -24,9 +23,6 @@ const WS_URL =
 
 const RETRY_MIN_MS = 500;
 const RETRY_MAX_MS = 10_000;
-
-/** How many spoken lines the page remembers. Enough to outlast a burst. */
-const SPOKEN_KEPT = 8;
 
 /**
  * How many origins the page keeps around.
@@ -74,14 +70,6 @@ interface BoardState {
    */
   reloads: Record<string, number>;
   /**
-   * Lines the board has been told to say out loud since this page connected.
-   *
-   * A queue rather than the latest one: two agents speaking at the same moment
-   * arrive as two messages in one tick, and a single slot would drop the first.
-   * Trimmed to the last few, because nothing here reads an old one twice.
-   */
-  spoken: Spoken[];
-  /**
    * What made each of the last few widgets, in the order the calls arrived.
    *
    * Beside the items rather than on them, for the reason `wakes` is: nothing
@@ -104,7 +92,6 @@ const EMPTY: BoardState = {
   notifications: [],
   wakes: {},
   reloads: {},
-  spoken: [],
   origins: [],
 };
 
@@ -133,19 +120,10 @@ export function reduceBoard(
         // model's geometry for the first time anyway, so it has the file as it
         // is on disk right now and has no older version to be told about.
         reloads: {},
-        // A reconnect does not replay what was said while the page was away: a
-        // television reading out the afternoon's announcements because someone
-        // restarted the browser is worse than one that misses a line.
-        spoken: [],
         // A page that has just loaded has missed every call that built the
         // board it is showing, and that is right: an origin is what somebody
         // just did, not a property of what is on screen.
         origins: [],
-      };
-    case "speech.spoken":
-      return {
-        ...state,
-        spoken: [...state.spoken, message.data].slice(-SPOKEN_KEPT),
       };
     case "board.cleared":
       // The background is not an item; clearing the board leaves it alone.

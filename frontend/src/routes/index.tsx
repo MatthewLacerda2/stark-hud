@@ -10,7 +10,6 @@ import { LookMenu, type MenuAt } from "@/components/board/look-menu";
 import { useBoard } from "@/hooks/use-board";
 import { useGrid } from "@/hooks/use-grid";
 import { useLook } from "@/hooks/use-look";
-import { useSpeech } from "@/hooks/use-speech";
 import { onBoard } from "@/lib/groups";
 import { onPage } from "@/lib/pages";
 import { maximisedIn } from "@/lib/maximised";
@@ -40,13 +39,8 @@ export function BoardPage() {
     wakes,
     reloads,
     origins,
-    spoken,
     connected,
   } = useBoard();
-  // The board's voice. Nothing is drawn for it: the browser is the only part of
-  // this board with a speaker, so saying a line is something the page does
-  // rather than something a widget shows.
-  useSpeech(spoken);
   // The look — tape, bloom, depth — as this browser keeps it, and the menu that
   // turns it. See `use-look.ts`.
   const look = useLook();

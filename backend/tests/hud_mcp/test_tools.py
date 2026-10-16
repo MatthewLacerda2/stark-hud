@@ -62,7 +62,6 @@ EXPECTED = {
     "show_page",
     "move_to_page",
     "set_style",
-    "speak",
     "set_description",
     "unfold_group",
     "wake_item",

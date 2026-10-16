@@ -27,27 +27,10 @@ services:
       # the times an agent reads back out of the inbox, for one — is hours off
       # from the clock on the wall next to the screen.
       TZ: ${TZ:-America/Fortaleza}
-      # The board's voice. Passed through from a `.env` beside this file, which
-      # git ignores and a human fills in: this repository is public, and a key
-      # in it would be a key on the internet. Empty is a working board that
-      # simply cannot speak and says so when something asks it to.
-      # Only what is named in this block reaches the container: the `.env` is
-      # read by compose for interpolation, not handed to the backend. So to tune
-      # the voice — its speed, its stability, any other ELEVENLABS_ setting —
-      # add the variable here. Setting it in `.env` alone changes nothing.
-      ELEVENLABS_API_KEY: ${ELEVENLABS_API_KEY:-}
-      # Spoken lines land beside the board file, in the one volume the backend
-      # can write to. Absolute on purpose, and for the same reason STATE_FILE is
-      # below it: the default is a path relative to the backend's working
-      # directory, which in here is /app, so leaving this alone would write every
-      # MP3 into the container's own filesystem — outside the volume, gone on the
-      # next `up --build`, and a 404 for every URL the browser was already
-      # handed. Only the newest few are kept.
-      SPEECH_DIR: /data/speech
-      # A file somebody sent from a browser. Beside the spoken lines and for the
-      # same reason: /data is the one volume this container can write to, so a
-      # path left at its relative default would put a four-gigabyte film inside
-      # the container's own filesystem — gone on the next `up --build`, and
+      # A file somebody sent from a browser. Absolute on purpose: /data is the
+      # one volume this container can write to, so a path left at its relative
+      # default would put a four-gigabyte film inside the container's own
+      # filesystem — gone on the next `up --build`, and
       # taking the widget that played it with it. This is also the only
       # directory on the host where the board deletes anything it did not make.
       UPLOAD_DIR: /data/uploads
@@ -59,8 +42,8 @@ services:
       # own, so it can be backed up, edited or swapped for another board.
       STATE_FILE: /data/board.hud
     volumes:
-      # Read-write, unlike the rest: the board file, the spoken lines and the
-      # files a browser uploads are what the backend owns. The same directory is where this instance's own
+      # Read-write, unlike the rest: the board file and the files a
+      # browser uploads are what the backend owns. The same directory is where this instance's own
       # data lives — sources.toml and the scripts it names — which the agent
       # reads on the host and the backend never looks at.
       - ./state:/data

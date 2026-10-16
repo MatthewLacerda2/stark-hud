@@ -25,7 +25,6 @@ from hud_mcp import (
     notifications,
     pages,
     progress,
-    speech,
     table,
     wake,
 )
@@ -127,12 +126,6 @@ instead of sitting dead until the answer arrives. Every tool here returns in
 milliseconds, so the only thing anybody ever waits for is you; this is the one
 signal that can go before you know the answer. It settles by itself and it never
 replaces the write that follows.
-The board also has a voice: speak says one short line out loud through the
-machine showing it, into a room where somebody may be. Every line is bought from a
-speech service on a free tier of a few thousand characters a month, so it is for
-something worth interrupting a room for and not for reading back what a tool has
-already returned as text. At most 100 characters, refused rather than trimmed —
-and the voice reads any language, so write the line in the user's.
 
 Use notify to say something finished. Notifications are not widgets — they all go
 into one inbox, like a phone's shade, and drop out after 48 hours. Put your
@@ -165,7 +158,6 @@ def build_server() -> MCPServer:
     notifications.register(server)
     pages.register(server)
     wake.register(server)
-    speech.register(server)
     return server
 
 

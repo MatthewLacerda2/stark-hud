@@ -142,8 +142,8 @@ Give it, in this order:
 Tell it to open a pull request and **not merge** — merging is the batch's job,
 because only the batch knows what else is in flight.
 
-Anything that spends money or quota (the ElevenLabs account is on a free tier)
-is **forbidden to the agent** and done once by the session, deliberately.
+Anything that spends money or quota is **forbidden to the agent** and done once
+by the session, deliberately.
 
 ## Reporting back
 
