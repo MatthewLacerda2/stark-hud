@@ -5,11 +5,10 @@ Nothing here is authenticated: the board is open to the LAN by design.
 
 from fastapi import APIRouter
 
-from api.v1 import board, command, entries, media, mesh, notifications, speech
+from api.v1 import board, entries, media, mesh, notifications, speech
 
 api_router = APIRouter()
 api_router.include_router(board.router)
-api_router.include_router(command.router)
 # Both of these hang routes off ``/board`` for one kind of widget: the lines a
 # list or a countdown keeps, and what the browser says a player is doing. They
 # are their own files rather than more of the generic board router, which should

@@ -44,12 +44,6 @@
   "flow": {
     "empty": "Nothing to draw"
   },
-  "command": {
-    "placeholder": "Tell the board what to do",
-    "sending": "Working…",
-    "failed": "Nothing happened: {{reason}}",
-    "model": "Model"
-  },
   "look": {
     "title": "Look",
     "vhs": "Tape",
