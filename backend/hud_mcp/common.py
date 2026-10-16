@@ -20,10 +20,7 @@ from services.placement import BoardFullError, cells, crowding, size
 
 # Tools that reach past the board: a path on the host, a file it reads, a URL it
 # fetches. `open_world_hint` is MCP's own word for exactly this, and the honest
-# metadata for any client. It is also what decides which tools a typed
-# instruction may use — `services.command` sends a model only the tools that
-# need nothing but the board and the sentence, because a model that has never
-# seen this computer cannot name a file on it and should not go looking.
+# metadata for any client.
 ON_HOST = ToolAnnotations(open_world_hint=True)
 
 # Tools that take something away that cannot be put back. One mistyped sentence

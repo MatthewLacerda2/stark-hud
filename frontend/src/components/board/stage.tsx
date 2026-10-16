@@ -10,8 +10,7 @@ import { deep, depthVars, type Depth } from "@/lib/depth";
  * about ten middles is ten pictures tilting, not one thing in a room.
  *
  * Only the board is inside. The background video stays flat behind it, so the
- * panes slide over the room, and the command bar stays flat in front, because it
- * is something being typed into rather than something on the board.
+ * panes slide over the room.
  *
  * With depth off this is nothing at all — not a wrapper with no effect, but no
  * element — so `?depth=0` is the board exactly as it was before depth existed.

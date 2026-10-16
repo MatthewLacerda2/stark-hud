@@ -3,7 +3,6 @@ import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Background } from "@/components/board/background";
 import { BoardGrid } from "@/components/board/board-grid";
-import { CommandBar } from "@/components/board/command-bar";
 import { VhsFilter } from "@/components/board/vhs-filter";
 import { BloomFilter } from "@/components/board/bloom-filter";
 import { Stage } from "@/components/board/stage";
@@ -21,9 +20,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * The board. This page is what the TV shows, so it is full-bleed, dark, and has
- * no chrome: nothing here is meant to be clicked. The two exceptions appear only
- * where an input device already is — the command bar on a key, and the look
- * menu on the right mouse button.
+ * no chrome: nothing here is meant to be clicked. The one exception appears only
+ * where an input device already is — the look menu on the right mouse button.
  *
  * Exported so `components/board/first-frame.test.tsx` can render the page
  * itself: what happens before the server has answered is a fact about this
@@ -114,11 +112,6 @@ export function BoardPage() {
             {t("board.empty")}
           </p>
         ) : null}
-
-        {/* Outside `board-grid.tsx` on purpose: the bar belongs to the page
-            rather than to the grid — it is not a widget and never takes a
-            cell. */}
-        <CommandBar />
 
         {!connected ? (
           <p className="absolute right-4 bottom-3 text-body text-warning">
