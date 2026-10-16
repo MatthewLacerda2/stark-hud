@@ -29,7 +29,6 @@ from core.hub import hub
 from repositories import board as repo
 from schemas.board import BackgroundRead, BoardArranged, Ink, ItemRead
 from schemas.notifications import Notification
-from schemas.speech import Spoken
 from services import origin
 
 # The vocabulary. A name that appears here appears nowhere else in the backend.
@@ -46,7 +45,6 @@ MESH_RELOADED = "mesh.reloaded"
 NOTIFICATION_CREATED = "notification.created"
 NOTIFICATION_REMOVED = "notification.removed"
 NOTIFICATIONS_CLEARED = "notifications.cleared"
-SPEECH_SPOKEN = "speech.spoken"
 
 
 async def _send(event: str, data: Any) -> None:
@@ -146,8 +144,3 @@ async def dismissed(notification_id: str) -> None:
 async def inbox_cleared(removed_count: int) -> None:
     """The whole inbox emptied at once."""
     await _send(NOTIFICATIONS_CLEARED, {"removed": removed_count})
-
-
-async def spoken(line: Spoken) -> None:
-    """A line the board should say out loud. The page does the speaking."""
-    await _send(SPEECH_SPOKEN, line.model_dump(mode="json"))

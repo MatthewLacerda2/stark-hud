@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { Playback } from "@/lib/schemas/board";
 import { APART_SECONDS, ASK_SECONDS } from "@/lib/playback";
-import { DUCKED, useDucked } from "@/lib/ducking";
 import {
   playbackState,
   whyYouTubeRefused,
@@ -49,7 +48,6 @@ export function YouTubeTrack({
 }) {
   const host = useRef<HTMLDivElement>(null);
   const player = useRef<YouTubePlayer | null>(null);
-  const ducked = useDucked();
   // Which video the player is actually showing, which is not what the board says
   // until we have told it. Kept outside React because the player is.
   const shown = useRef(video);
@@ -77,9 +75,6 @@ export function YouTubeTrack({
     }
     if (muted) built.mute();
     else built.unMute();
-    // Stand down while the board is speaking. This player takes a whole number
-    // out of a hundred rather than a fraction of one.
-    built.setVolume(Math.round((ducked ? DUCKED : 1) * 100));
     // Somewhere to go only when it is somewhere this player is not: the board is
     // always a tick behind, and obeying that would jog the video every ten
     // seconds. Nothing else can reach into a video — the television has no
@@ -89,7 +84,7 @@ export function YouTubeTrack({
     }
     if (playing) built.playVideo();
     else built.pauseVideo();
-  }, [video, playing, muted, seconds, ducked]);
+  }, [video, playing, muted, seconds]);
 
   // Everything the player calls, read through a ref. The player outlives every
   // render, so a handler captured when it was built would report the track the

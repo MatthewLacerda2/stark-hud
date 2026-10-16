@@ -11,7 +11,6 @@ import type {
   Item,
   Notification,
   Origin,
-  Spoken,
 } from "@/lib/schemas/board";
 import { reduceBoard } from "@/hooks/use-board";
 
@@ -23,7 +22,6 @@ const EMPTY = {
   notifications: [],
   wakes: {} as Record<string, number>,
   reloads: {} as Record<string, number>,
-  spoken: [] as Spoken[],
   origins: [] as Origin[],
 };
 

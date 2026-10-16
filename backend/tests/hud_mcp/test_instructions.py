@@ -29,7 +29,6 @@ def test_instructions_cover_what_a_session_cannot_guess() -> None:
         "set_description",  # the note on a widget that the TV never shows
         "wake_item",  # that a widget can be told work is coming
         "before you know the answer",  # and that it goes first, which is the only thing that matters
-        "free tier",  # what saying something out loud costs, and who pays
         "decimals",  # that the board is a space, not a set of slots
         "arrange",  # that several widgets move as one, or a swap looks impossible
         "show_page",  # that the board holds several screenfuls and turns to one

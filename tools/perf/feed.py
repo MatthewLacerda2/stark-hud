@@ -141,7 +141,7 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
                 }
             )
         elif self.path.startswith("/api/"):
-            # Media, speech and the rest. The fixture board asks for none of them,
+            # Media, uploads and the rest. The fixture board asks for none of them,
             # and a 404 here is a louder failure than a stub that quietly works.
             self.send_error(404, "the rig serves the board socket and the grid, nothing else")
         else:
