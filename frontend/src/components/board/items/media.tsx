@@ -13,6 +13,7 @@ import { trackUrl } from "@/lib/api/media";
 import { YouTubeTrack } from "@/components/board/items/youtube";
 import { MediaFill } from "@/components/board/media-fill";
 import { APART_SECONDS, TICK_SECONDS } from "@/lib/playback";
+import { DUCKED, useDucked } from "@/lib/ducking";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -185,6 +186,7 @@ export function Media({
   const { t } = useTranslation();
   const frame = useRef<HTMLDivElement>(null);
   const element = useRef<HTMLVideoElement>(null);
+  const ducked = useDucked();
   // What this widget last saw itself do. Seeded from what it was told to do, so
   // a page that has just loaded reads correctly before the first event fires.
   const [said, setSaid] = useState<Playback["state"]>(() => {
@@ -253,6 +255,14 @@ export function Media({
     if (payload.playing && media.paused) void media.play().catch(() => {});
     if (!payload.playing && !media.paused) media.pause();
   }, [payload.playing, index, track, onYouTube, ghost]);
+
+  // Stand down while the board is speaking. Volume rather than pause: a song
+  // that stops and starts around a sentence draws more attention than the
+  // sentence does, and a film would lose its place.
+  useEffect(() => {
+    const media = element.current;
+    if (media) media.volume = ducked ? DUCKED : 1;
+  }, [ducked]);
 
   // Pick up where this widget was before it was moved between layers.
   useEffect(() => {

@@ -457,6 +457,24 @@ export interface BoardStatus {
   largest_free_rect: Placement | null;
 }
 
+/**
+ * A line the board has been told to say out loud, already synthesised.
+ *
+ * `url` is where the audio is, addressed by id: the backend has no speakers, so
+ * the page is the only thing here that can actually say it. `play` is fresh on
+ * every broadcast while `id` is the line's own, so a line said again on purpose
+ * arrives with the same id and a new `play`.
+ */
+export interface Spoken {
+  id: string;
+  text: string;
+  voice: string;
+  reason: string | null;
+  url: string;
+  created_at: string;
+  play: string;
+}
+
 /** What made a widget appear: the call, as a line of code, and what it made. */
 export interface Origin {
   id: string;
@@ -492,4 +510,5 @@ export type BoardEvent =
   | { event: "item.removed"; data: { id: string } }
   | { event: "notification.created"; data: Notification }
   | { event: "notification.removed"; data: { id: string } }
-  | { event: "notifications.cleared"; data: { removed: number } };
+  | { event: "notifications.cleared"; data: { removed: number } }
+  | { event: "speech.spoken"; data: Spoken };

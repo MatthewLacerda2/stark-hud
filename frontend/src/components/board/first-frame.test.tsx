@@ -69,6 +69,7 @@ vi.mock("@/hooks/use-board", () => ({
     notifications: [],
     wakes: {},
     reloads: {},
+    spoken: [],
     origins: [],
     connected: true,
   }),

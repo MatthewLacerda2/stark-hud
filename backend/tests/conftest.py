@@ -9,15 +9,19 @@ run should never touch, or be steered by, the board that is on the TV.
 """
 
 import os
+import tempfile
 
 os.environ.setdefault("STATE_FILE", "")
 # And no background copies: a test that sets a background would otherwise run
 # ffmpeg on a file of pretend bytes and write the failure into `state/`.
 os.environ.setdefault("BACKGROUND_DIR", "")
+# Nor any spoken lines: a test that forgets to point the voice somewhere else
+# would otherwise prune the audio of the lines the real board has said.
+os.environ.setdefault("SPEECH_DIR", os.path.join(tempfile.gettempdir(), "hud-test-speech"))
 
 import pytest
 
-from repositories import board, notifications
+from repositories import board, notifications, speech
 from schemas.board import DEFAULT_PAGE
 from services import origin
 
@@ -43,3 +47,4 @@ def _empty() -> None:
     board.set_ink(None)
     board.set_showing(DEFAULT_PAGE)
     notifications.clear()
+    speech.clear()
