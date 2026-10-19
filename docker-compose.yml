@@ -1,4 +1,4 @@
-# The board as two long-lived containers.
+# The board as three long-lived containers: itself, its page, and its voice.
 #
 # `restart: unless-stopped` plus a docker daemon enabled at boot is the whole of
 # the autostart story: no unit files, and `docker compose stop` still means
@@ -30,8 +30,8 @@ services:
       # A file somebody sent from a browser. Absolute on purpose: /data is the
       # one volume this container can write to, so a path left at its relative
       # default would put a four-gigabyte film inside the container's own
-      # filesystem — gone on the next `up --build`, and
-      # taking the widget that played it with it. This is also the only
+      # filesystem — gone on the next `up --build`, and taking the widget that
+      # played it with it. This is also the only
       # directory on the host where the board deletes anything it did not make.
       UPLOAD_DIR: /data/uploads
       # The board-ready copy of the background video: the one file here that is
@@ -42,9 +42,9 @@ services:
       # own, so it can be backed up, edited or swapped for another board.
       STATE_FILE: /data/board.hud
     volumes:
-      # Read-write, unlike the rest: the board file and the files a
-      # browser uploads are what the backend owns. The same directory is where this instance's own
-      # data lives — sources.toml and the scripts it names — which the agent
+      # Read-write, unlike the rest: the board file and the files a browser
+      # uploads are what the backend owns. The same directory is where this
+      # instance's own data lives — sources.toml and the scripts it names — which the agent
       # reads on the host and the backend never looks at.
       - ./state:/data
       # Media items hold absolute paths, so the same path has to resolve inside
@@ -69,3 +69,31 @@ services:
       - backend
     ports:
       - "8080:80"
+
+  # The board's voice: Kokoro, a local text-to-speech model, served by somebody
+  # else's prebuilt image in the OpenAI speech format (POST /v1/audio/speech).
+  # Text and a voice go in, an audio file comes out, and there is no key and no
+  # bill — which is the whole reason it replaced ElevenLabs.
+  #
+  # CPU rather than the GPU image: the GPU is the owner's for other work, and a
+  # sentence is quick enough on a processor. Pinned, never `latest`: this image
+  # is one maintainer's project, and an update should be something we chose.
+  # Should it ever go unmaintained, any server speaking the same format drops in
+  # here and nothing that calls it notices.
+  kokoro:
+    image: ghcr.io/remsky/kokoro-fastapi-cpu:v0.9.0
+    restart: unless-stopped
+    environment:
+      # The model and its 72 voices are already inside the image. Left at its
+      # default, the entrypoint goes to fetch the model again at every start,
+      # which makes a reboot with no internet a board with no voice.
+      DOWNLOAD_MODEL: "false"
+    # A ceiling against a leak, not a budget: the model is loaded once and stays
+    # the same size however many lines it reads, because the audio is kept on
+    # the board's disk and not in here.
+    mem_limit: 4g
+    ports:
+      # Open to the network on purpose, like the board: anything on the LAN or
+      # tailnet may call it directly. A line made that way skips the board's
+      # history, which only sees what goes through its own speak tool.
+      - "8880:8880"
