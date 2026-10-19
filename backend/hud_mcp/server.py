@@ -25,6 +25,7 @@ from hud_mcp import (
     notifications,
     pages,
     progress,
+    speech,
     table,
     wake,
 )
@@ -127,6 +128,11 @@ milliseconds, so the only thing anybody ever waits for is you; this is the one
 signal that can go before you know the answer. It settles by itself and it never
 replaces the write that follows.
 
+The board also has a voice: speak says a line out loud on every open board tab,
+and the board keeps its newest hundred lines, so list_spoken and replay find one
+somebody missed. It is local and free, but it interrupts somebody, so it is for
+something worth that and not for reading back what a tool already returned.
+
 Use notify to say something finished. Notifications are not widgets — they all go
 into one inbox, like a phone's shade, and drop out after 48 hours. Put your
 project name in the source field so a human can tell which Claude is speaking.\
@@ -158,6 +164,7 @@ def build_server() -> MCPServer:
     notifications.register(server)
     pages.register(server)
     wake.register(server)
+    speech.register(server)
     return server
 
 

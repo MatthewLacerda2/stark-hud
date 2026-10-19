@@ -24,6 +24,7 @@ from pydantic import BaseModel, ValidationError
 from core.config import get_settings
 from schemas.board import DEFAULT_PAGE, Background, Ink, ItemRead
 from schemas.notifications import Notification
+from schemas.speech import Spoken
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +82,11 @@ class HudFile(BaseModel):
     background: Background | None = None
     ink: Ink | None = None
     notifications: list[Notification] = []
+    # The lines the board has said, so a session can read back one somebody
+    # missed and have it said again. The audio is not in here, only where to
+    # find it; see `repositories.speech`. A file from before the voice came back
+    # has none, which is the same as a board that has said nothing yet.
+    spoken: list[Spoken] = []
 
 
 def path() -> Path | None:
@@ -217,13 +223,6 @@ def _salvage(document: dict) -> HudFile:
 
     kept = _reattached(kept)
 
-    notes: list[Notification] = []
-    for entry in document.get("notifications") or []:
-        try:
-            notes.append(Notification.model_validate(entry))
-        except ValidationError:
-            logger.warning("dropping a notification this build cannot read")
-
     background = None
     if document.get("background"):
         try:
@@ -244,10 +243,26 @@ def _salvage(document: dict) -> HudFile:
         hud=document.get("hud", FORMAT),
         showing=document.get("showing") or DEFAULT_PAGE,
         items=kept,
-        notifications=notes,
+        notifications=_each(document, "notifications", Notification),
         background=background,
         ink=ink,
+        spoken=_each(document, "spoken", Spoken),
     )
+
+
+def _each[M: BaseModel](document: dict, key: str, model: type[M]) -> list[M]:
+    """Every entry under `key` this build can read, one at a time.
+
+    One at a time for the reason items are: a notification or a spoken line in a
+    shape this build no longer reads costs itself, not the rest of the list.
+    """
+    kept: list[M] = []
+    for entry in document.get(key) or []:
+        try:
+            kept.append(model.model_validate(entry))
+        except ValidationError:
+            logger.warning("dropping one of the %s this build cannot read", key)
+    return kept
 
 
 def read() -> HudFile | None:

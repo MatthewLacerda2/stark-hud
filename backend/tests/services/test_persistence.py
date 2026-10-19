@@ -1,11 +1,13 @@
 """The board has to come back after a restart, widgets and notifications alike."""
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
-from repositories import board, notifications, store
+from repositories import board, notifications, speech, store
 from schemas.board import DEFAULT_PAGE, GroupPayload, Ink, NotePayload
 from schemas.notifications import NotificationCreate
+from schemas.speech import Spoken
 from services import persistence
 
 
@@ -326,3 +328,23 @@ def test_the_pages_and_the_one_showing_survive_a_restart(tmp_path, monkeypatch):
 
     assert board.showing() == "planning"
     assert sorted(i.page for i in board.list_items()) == [DEFAULT_PAGE, "planning"]
+
+
+def test_round_trip_keeps_what_the_board_has_said(tmp_path, monkeypatch):
+    """A line somebody missed has to survive the restart that made them miss it."""
+    _point_at(tmp_path, monkeypatch)
+    line = Spoken(
+        id="a" * 32,
+        text="the build is green",
+        voice="af_heart",
+        reason=None,
+        url=f"/api/v1/speech/{'a' * 32}",
+        created_at=datetime.now(UTC),
+    )
+    speech.load([line])
+
+    assert persistence.save()
+    speech.clear()
+    persistence.restore()
+
+    assert speech.list_all() == [line]

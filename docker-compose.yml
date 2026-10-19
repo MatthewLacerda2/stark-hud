@@ -34,6 +34,14 @@ services:
       # played it with it. This is also the only
       # directory on the host where the board deletes anything it did not make.
       UPLOAD_DIR: /data/uploads
+      # The board's voice, reached by service name over the compose network. Not
+      # a dependency: a board whose voice is down still shows everything, and
+      # speak says why it could not.
+      KOKORO_URL: http://kokoro:8880
+      # The audio of the lines it has said, in the one volume it can write to.
+      # Left relative it would land inside the container and vanish on the next
+      # `up --build`, leaving the history pointing at files that are not there.
+      SPEECH_DIR: /data/speech
       # The board-ready copy of the background video: the one file here that is
       # made from somebody else's, and the only one kept of it. The original
       # stays where its owner keeps it, read through the read-only mounts below.

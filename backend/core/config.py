@@ -40,10 +40,39 @@ class Settings(BaseSettings):
     # cut loses at most this many seconds of the screen.
     STATE_FLUSH_SECONDS: float = 5.0
 
+    # The board's voice: Kokoro, running beside it as its own container (see
+    # `docker-compose.yml`). Local and free, so there is no key here and nothing
+    # to ration. This default is right for a backend run by hand next to a
+    # published port; the container points it at the service by name instead.
+    KOKORO_URL: str = "http://localhost:8880"
+
+    # The voice a line is read in when the session does not name one. American
+    # English, because most of what the owner says to these sessions is in
+    # English — and an English voice reads a Portuguese line passably, which was
+    # tried and accepted rather than assumed. A native voice (pf_dora, pm_alex)
+    # is better for a line written in Portuguese, and any call can ask for one.
+    KOKORO_VOICE: str = "af_heart"
+
+    # How long one line may take to come back. A sentence takes a second or two
+    # on a processor; this is for the first line after a cold start, when the
+    # model is still being read in, and short enough that a hung service comes
+    # back to the session as a sentence rather than as silence.
+    KOKORO_TIMEOUT_SECONDS: float = Field(default=60.0, gt=0)
+
+    # Where a spoken line's audio is kept. Under the state directory because that
+    # is the one place the backend owns and the one volume it can write to.
+    # Relative here like `STATE_FILE`; the container points it at the volume.
+    SPEECH_DIR: str = "state/speech"
+
+    # How many lines the board remembers. The newest this many keep their record
+    # and their audio, so any of them can be read back or said again; the one
+    # after that takes the oldest with it, record and file together.
+    SPEECH_KEEP: int = Field(default=100, ge=1)
+
     # Where a file handed over by a browser lands. Beside the board file, because
     # that is the one directory this backend owns and the one volume it can write
-    # to. Relative here like `STATE_FILE`,
-    # and absolute in the container for the same reason — see `docker-compose.yml`.
+    # to. Relative here like `STATE_FILE`, and absolute in the container for the
+    # same reason — see `docker-compose.yml`.
     #
     # It is also the only directory on this machine where the board deletes
     # anything it did not make itself.

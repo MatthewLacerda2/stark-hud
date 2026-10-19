@@ -15,6 +15,7 @@ import logging
 
 from repositories import board as board_repo
 from repositories import notifications as notifications_repo
+from repositories import speech as speech_repo
 from repositories import store
 from repositories.store import HudFile
 from schemas.board import ItemRead
@@ -30,6 +31,7 @@ def snapshot() -> HudFile:
         background=board_repo.get_background(),
         ink=board_repo.get_ink(),
         notifications=notifications_repo.list_all(),
+        spoken=speech_repo.list_all(),
     )
 
 
@@ -73,10 +75,12 @@ def restore() -> None:
 
     board_repo.load(_named_once(state.items), state.background, state.ink, state.showing)
     notifications_repo.load(state.notifications)
+    speech_repo.load(state.spoken)
     logger.info(
-        "restored %s items and %s notifications from %s, showing page %r",
+        "restored %s items, %s notifications and %s spoken lines from %s, showing page %r",
         len(state.items),
         len(state.notifications),
+        len(state.spoken),
         store.path(),
         state.showing,
     )
