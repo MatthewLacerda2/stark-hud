@@ -20,10 +20,9 @@ implies is dropped, so `api → scene → components` does not also draw
 `api → components`. Cycles survive as cycles, and a mutual pair is one arrow
 with a head at each end, which is how a cycle shows on the board.
 
-Every box is an icon and no words: a keyword table maps a part's name to a
-lucide glyph vendored beside this file (ISC, see `rust_icons/LICENSE`). A name
-the table does not know gets a plain box, and is named on stderr so the table
-can grow.
+Every box is a glyph with the part's name under it, the glyph chosen by name
+in `rust_glyphs`. The glyph alone was tried first and said too little: nobody
+can tell by looking that a waveform is `zimmer` or a cloud is `providers`.
 
     rust_architecture.py ~/Desktop/Repos/scorsese --skip golden
 """
@@ -35,55 +34,8 @@ import sys
 import tomllib
 from pathlib import Path
 
+from rust_glyphs import glyph
 from rust_layout import THIN, place
-
-ICONS = Path(__file__).resolve().parent / "rust_icons"
-
-# A part's name, or one `_`/`-` word of it, to the lucide glyph that says what
-# it is. Whole names come first because some carry no meaning a word can find:
-# `zimmer` is scorsese's synthesiser, `shadergen` is not two words.
-GLYPHS = {
-    "zimmer": "audio-waveform",
-    "shadergen": "sparkles",
-    "procgen": "dices",
-    "ecs": "boxes",
-    "mcp": "bot",
-    "api": "plug",
-    "app": "app-window",
-    "asset": "package",
-    "assets": "package",
-    "audio": "volume-2",
-    "sound": "volume-2",
-    "cli": "terminal",
-    "shell": "terminal",
-    "components": "puzzle",
-    "compositor": "layers",
-    "config": "settings",
-    "core": "atom",
-    "db": "database",
-    "storage": "database",
-    "dev": "wrench",
-    "util": "wrench",
-    "utils": "wrench",
-    "editor": "pen-tool",
-    "input": "gamepad-2",
-    "math": "sigma",
-    "navigation": "compass",
-    "net": "network",
-    "network": "network",
-    "physics": "orbit",
-    "preview": "eye",
-    "providers": "cloud",
-    "render": "monitor",
-    "gfx": "monitor",
-    "scene": "mountain",
-    "scripting": "code",
-    "script": "code",
-    "server": "server",
-    "time": "clock",
-    "ui": "layout-dashboard",
-}
-FALLBACK = "box"
 
 # The strip over the boxes a title needs, as a fraction of the widget's height.
 # The heading is sized against the widget's width and capped, which on these
@@ -283,32 +235,46 @@ def reduce(graph: Graph) -> set[tuple[str, str]]:
     return kept | inside
 
 
-def glyph(name: str, missed: list[str]) -> str:
-    """The SVG for a part, by whole name, then by its first known word."""
-    words = [name, *re.split(r"[_-]", name)]
-    icon = next((GLYPHS[w] for w in words if w in GLYPHS), None)
-    if icon is None:
-        missed.append(name)
-    return (ICONS / f"{icon or FALLBACK}.svg").read_text().strip()
+def _card(
+    name: str, icon: str, box: tuple[float, float, float, float], aspect: float
+) -> list[dict]:
+    """One part as three boxes: its outline, its glyph's square, its name's strip.
+
+    The square is as tall as the card is wide, in cells, which is the card's
+    width times the widget's `aspect` as a fraction of its height.
+
+    A flow box cannot stack a glyph over a word, so the outline carries the id
+    the arrows join and two transparent boxes draw inside it. Their ids hold a
+    `:`, which no crate or module name can, so they never meet a part's.
+    """
+    x, y, w, h = box
+    square = w * aspect
+    clear = {"color": "transparent", "x": x, "w": w}
+    return [
+        {"id": name, "x": x, "y": y, "w": w, "h": h},
+        {"id": f"{name}:icon", "icon": icon, "y": y, "h": square, **clear},
+        {"id": f"{name}:name", "text": name, "y": y + square, "h": h - square, **clear},
+    ]
 
 
 def flow(graph: Graph, aspect: float | None = None, title: str | None = None) -> dict:
-    """The graph as a flow payload: icon boxes, and arrows with a mutual pair merged.
+    """The graph as a flow payload: named glyph boxes, and arrows with a mutual pair merged.
 
     Given the widget's `aspect` (width over height, in board cells) every box is
-    placed, square, by `rust_layout`; without it the widget lays them out. A
-    `title` is the project's name over the diagram, and the boxes start below it.
+    placed by `rust_layout`, a glyph's square over its name; without it the widget
+    lays them out, the name beside the glyph. A `title` is the project's name over
+    the diagram, and the boxes start below it.
     """
     arrows = reduce(graph)
     missed: list[str] = []
-    nodes: list[dict] = [{"id": name, "icon": glyph(name, missed)} for name in sorted(graph)]
+    icons = {name: glyph(name, missed) for name in sorted(graph)}
+    nodes: list[dict] = [{"id": n, "icon": icon, "text": n} for n, icon in icons.items()]
     crowded: set[tuple[str, str]] = set()
     if aspect:
         used_by = {name: sum(name in uses for uses in graph.values()) for name in graph}
         top = TITLE_ROOM if title else 0.0
         boxes, crowded = place(sorted(graph), arrows, aspect, top, used_by)
-        for node in nodes:
-            node.update(zip("xywh", boxes[node["id"]], strict=True))
+        nodes = [box for n, icon in icons.items() for box in _card(n, icon, boxes[n], aspect)]
     links: list[dict] = []
     for a, b in sorted(arrows):
         if (b, a) in arrows and a > b:
